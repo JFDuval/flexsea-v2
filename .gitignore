@@ -8,4 +8,11 @@
 *.o
 *.a
 
+#CodeBlocks:
+
+bin/
+obj/
+*.layout
+*.depend
+
 
