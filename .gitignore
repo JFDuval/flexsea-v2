@@ -1,0 +1,11 @@
+#FlexSEA v2.0 - Git Ignore List
+#==============================
+
+#General:
+
+*~
+*.bak
+*.o
+*.a
+
+
