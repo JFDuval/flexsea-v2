@@ -31,7 +31,7 @@
 extern "C" {
 #endif
 
-#include <flexsea_circular_buffer.h>
+#include "flexsea_circular_buffer.h"
 #include <string.h>
 //#include "log.h"
 
@@ -43,8 +43,10 @@ void circ_buff_init(circularBuffer_t* cb)
 
 	int i = 0;
 	uint8_t* b = cb->bytes;
-	for(i=0; i<CB_BUF_LEN;i++)
-		b[i]=0;
+	for(i = 0; i < CB_BUF_LEN; i++)
+	{
+		b[i] = 0;
+	}
 }
 
 int circ_buff_write(circularBuffer_t* cb, uint8_t *writeFrom, uint16_t numBytes)
@@ -53,11 +55,11 @@ int circ_buff_write(circularBuffer_t* cb, uint8_t *writeFrom, uint16_t numBytes)
 	const int OVERWROTE = 2;
     const int SUCCESS = 0;
 
-	if(numBytes > CB_BUF_LEN) { return MSG_BIGGER_THAN_BUFFER; }
+	if(numBytes > CB_BUF_LEN){return MSG_BIGGER_THAN_BUFFER;}
 
-	if(cb->tail + numBytes <= CB_BUF_LEN)
+	if((cb->tail + numBytes) <= CB_BUF_LEN)
 	{
-		memcpy(cb->bytes + cb->tail, writeFrom, numBytes);
+		memcpy((cb->bytes + cb->tail), writeFrom, numBytes);
 	}
 	else
 	{
@@ -66,7 +68,7 @@ int circ_buff_write(circularBuffer_t* cb, uint8_t *writeFrom, uint16_t numBytes)
 		memcpy(cb->bytes, writeFrom + bytesUntilEnd, numBytes - bytesUntilEnd);
 	}
 
-	if(cb->head < 0) cb->head = 0;
+	if(cb->head < 0){cb->head = 0;}
 	cb->tail = (cb->tail + numBytes) % CB_BUF_LEN;
 	cb->size += numBytes;
 
@@ -80,19 +82,19 @@ int circ_buff_write(circularBuffer_t* cb, uint8_t *writeFrom, uint16_t numBytes)
 	return SUCCESS;
 }
 
-uint8_t circ_buff_peak(circularBuffer_t* cb, uint16_t offset)
+uint8_t circ_buff_peek(circularBuffer_t* cb, uint16_t offset)
 {
-    if(offset >= cb->size) return 0;
+    if(offset >= cb->size){return 0;}
     return cb->bytes[((cb->head + offset) % CB_BUF_LEN)];
 }
 
 int32_t circ_buff_search(circularBuffer_t* cb, uint8_t value, uint16_t start)
 {
-    if(start >= cb->size) return -1;
+    if(start >= cb->size){return -1;}
     int i = start;
     int index = cb->head + start;
 
-    while(i < cb->size && index < CB_BUF_LEN)
+    while((i < cb->size) && (index < CB_BUF_LEN))
     {
         if(cb->bytes[index] == value) return i;
         i++;
@@ -103,7 +105,7 @@ int32_t circ_buff_search(circularBuffer_t* cb, uint8_t value, uint16_t start)
 
     while(i < cb->size)
     {
-        if(cb->bytes[index] == value) return i;
+        if(cb->bytes[index] == value){return i;}
         i++;
         index++;
     }
@@ -113,19 +115,19 @@ int32_t circ_buff_search(circularBuffer_t* cb, uint8_t value, uint16_t start)
 
 int32_t circ_buff_search_not(circularBuffer_t* cb, uint8_t value, uint16_t start)
 {
-    if(start > cb->size) return -1;
+    if(start > cb->size){return -1;}
 
     uint16_t i = start;
 
     uint16_t idx = (cb->head + start);
-    while(idx < CB_BUF_LEN && i < cb->size && cb->bytes[idx] == value)
+    while((idx < CB_BUF_LEN) && (i < cb->size) && (cb->bytes[idx] == value))
     {
         idx++;
         i++;
     }
 
     idx = idx % CB_BUF_LEN;
-    while(idx < CB_BUF_LEN && i < cb->size && cb->bytes[idx] == value)
+    while((idx < CB_BUF_LEN) && (i < cb->size) && (cb->bytes[idx] == value))
     {
         idx++;
         i++;
@@ -136,22 +138,26 @@ int32_t circ_buff_search_not(circularBuffer_t* cb, uint8_t value, uint16_t start
 
 uint8_t circ_buff_checksum(circularBuffer_t* cb, uint16_t start, uint16_t end)
 {
-    if(start >= cb->size || end > cb->size) return 0;
-	if(end - start < 1) return 0;
+    if((start >= cb->size) || (end > cb->size)){return 0;}
+	if(end - start < 1){return 0;}
 
     uint8_t checksum = 0;
 
     int i = (cb->head + start); //no modulo on purpose. (it would have no ultimate effect)
 	int j = (cb->head + end);
 
-	while(i < j && i < CB_BUF_LEN)
+	while((i < j) && (i < CB_BUF_LEN))
+	{
 		checksum += cb->bytes[i++];
+	}
 
     i %= CB_BUF_LEN;
 	j %= CB_BUF_LEN;
 
     while(i < j)
+    {
         checksum += cb->bytes[i++];
+    }
 
     return checksum;
 }
@@ -161,17 +167,17 @@ int circ_buff_read(circularBuffer_t* cb, uint8_t* readInto, uint16_t numBytes)
     const int SUCCESS = 0;
     const int NOT_ENOUGH_BUFFERED = 1;
 
-    if(numBytes > cb->size) { return NOT_ENOUGH_BUFFERED; }
+    if(numBytes > cb->size){return NOT_ENOUGH_BUFFERED;}
 
-    if(cb->head + numBytes < CB_BUF_LEN)
+    if((cb->head + numBytes) < CB_BUF_LEN)
     {
         memcpy(readInto, cb->bytes + cb->head, numBytes);
     }
     else
     {
 		uint16_t bytesUntilEnd = CB_BUF_LEN - cb->head;
-        memcpy(readInto, cb->bytes + cb->head, bytesUntilEnd);
-        memcpy(readInto + bytesUntilEnd, cb->bytes, numBytes - bytesUntilEnd);
+        memcpy(readInto, (cb->bytes + cb->head), bytesUntilEnd);
+        memcpy((readInto + bytesUntilEnd), cb->bytes, (numBytes - bytesUntilEnd));
     }
 
     return SUCCESS;
@@ -182,18 +188,18 @@ int circ_buff_read_section(circularBuffer_t* cb, uint8_t* readInto, uint16_t sta
     const int SUCCESS = 0;
     const int INVALID_ARGS = 1;
 
-	if(!cb || !readInto || start + numBytes > cb->size) { return INVALID_ARGS; }
+	if(!cb || !readInto || ((start + numBytes) > cb->size)){return INVALID_ARGS;}
 
 	uint16_t s = (cb->head + start) % CB_BUF_LEN;
-	if(s + numBytes > CB_BUF_LEN)
+	if((s + numBytes) > CB_BUF_LEN)
 	{
 		uint16_t bytesUntilEnd = CB_BUF_LEN - s;
-		memcpy(readInto, cb->bytes + s, bytesUntilEnd);
-		memcpy(readInto + bytesUntilEnd, cb->bytes, numBytes - bytesUntilEnd);
+		memcpy(readInto, (cb->bytes + s), bytesUntilEnd);
+		memcpy((readInto + bytesUntilEnd), cb->bytes, (numBytes - bytesUntilEnd));
 	}
 	else
 	{
-		memcpy(readInto, cb->bytes + s, numBytes);
+		memcpy(readInto, (cb->bytes + s), numBytes);
 	}
 	return SUCCESS;
 }
@@ -206,24 +212,30 @@ int circ_buff_move_head(circularBuffer_t* cb, uint16_t numBytes)
 
 	int result = SUCCESS;
 	if(numBytes > CB_BUF_LEN)
+	{
 		result = MOVED_MORE_THAN_MAX;
+	}
 	else if(numBytes > cb->size)
+	{
 		result = MOVED_MORE_THAN_BUFFERED;
+	}
 
-	numBytes = numBytes < CB_BUF_LEN ? numBytes : CB_BUF_LEN;
+	numBytes = (numBytes < CB_BUF_LEN) ? numBytes : CB_BUF_LEN;
 
 	if(cb->head < 0) //buffer is already empty
+	{
 		return result;
+	}
 
-	if(cb->head + numBytes > CB_BUF_LEN)
+	if((cb->head + numBytes) > CB_BUF_LEN)
 	{
 		uint16_t bytesUntilEnd = CB_BUF_LEN - cb->head;
-		memset(cb->bytes + cb->head, 0, bytesUntilEnd);
-		memset(cb->bytes, 0, numBytes - bytesUntilEnd);
+		memset((cb->bytes + cb->head), 0, bytesUntilEnd);
+		memset(cb->bytes, 0, (numBytes - bytesUntilEnd));
 	}
 	else
 	{
-		memset(cb->bytes + cb->head, 0, numBytes);
+		memset((cb->bytes + cb->head), 0, numBytes);
 	}
 
 	cb->size -= numBytes;

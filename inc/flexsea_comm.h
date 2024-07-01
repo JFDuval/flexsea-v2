@@ -21,15 +21,15 @@
 	Biomechatronics research group <http://biomech.media.mit.edu/>
 	[Contributors]
 *****************************************************************************
-	[This file] flexsea_buffers: everything related to the reception buffers
+	[This file] flexsea_comm: Data-Link layer of the FlexSEA protocol
 *****************************************************************************
 	[Change log] (Convention: YYYY-MM-DD | author | comment)
 	* 2016-09-09 | jfduval | Initial GPL-3.0 release
 	*
 ****************************************************************************/
 
-#ifndef INC_FX_BUF_H
-#define INC_FX_BUF_H
+#ifndef INC_FX_COMM_H
+#define INC_FX_COMM_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -40,20 +40,52 @@ extern "C" {
 //****************************************************************************
 
 //#include "flexsea.h"
-#include <flexsea_circular_buffer.h>
+#include "flexsea_buffers.h"
+
+//****************************************************************************
+// Public Function Prototype(s):
+//****************************************************************************
+
+uint8_t comm_gen_str(uint8_t payload[], uint8_t *cstr, uint8_t bytes);
+//int8_t unpack_payload(uint8_t *buf, uint8_t *packed, uint8_t rx_cmd[PACKAGED_PAYLOAD_LEN]);
+uint16_t unpack_payload_cb(circularBuffer_t *cb, uint8_t *packed, uint8_t rx_cmd[PACKAGED_PAYLOAD_LEN]);
+
+//int8_t unpack_payload_test(uint8_t *buf, uint8_t *packed, uint8_t rx_cmd[PACKAGED_PAYLOAD_LEN]);
+
+//Random numbers and arrays:
+/*
+void initRandomGenerator(int seed);
+uint8_t generateRandomUint8_t(void);
+void generateRandomUint8_tArray(uint8_t *arr, uint8_t size);
+*/
+
+//****************************************************************************
+// Definition(s):
+//****************************************************************************
+
+//Enable this to debug with the terminal:
+//#define DEBUG_COMM_PRINTF_
+
+//Conditional printf() statement:
+#ifdef DEBUG_COMM_PRINTF_
+	#define DEBUG_COMM_PRINTF(...) printf(__VA_ARGS__)
+#else
+	#define DEBUG_COMM_PRINTF(...) do {} while (0)
+#endif	//DEBUG_COMM_PRINTF_
+
+//****************************************************************************
+// Structure(s):
+//****************************************************************************
 
 //****************************************************************************
 // Shared variable(s)
 //****************************************************************************
 
-//****************************************************************************
-// New code - not integrated - test in progress:
-//****************************************************************************
-
-extern circularBuffer_t rx_buf_circ[2];
+extern uint8_t comm_str[2][COMM_PERIPH_ARR_LEN];
+extern uint8_t rx_command[2][COMM_PERIPH_ARR_LEN];
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif
+#endif	//INC_FX_COMM_H

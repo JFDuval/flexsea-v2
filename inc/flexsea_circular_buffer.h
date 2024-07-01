@@ -56,7 +56,7 @@ int circ_buff_get_size(circularBuffer_t* cb);
 int circ_buff_get_space(circularBuffer_t* cb);
 
 // Convenience Operations for Parsing Buffer Data
-uint8_t circ_buff_peak(circularBuffer_t* cb, uint16_t offset);
+uint8_t circ_buff_peek(circularBuffer_t* cb, uint16_t offset);
 int32_t circ_buff_search(circularBuffer_t* cb, uint8_t value, uint16_t start);
 int32_t circ_buff_search_not(circularBuffer_t* cb, uint8_t value, uint16_t start);
 uint8_t circ_buff_checksum(circularBuffer_t* cb, uint16_t start, uint16_t end);
