@@ -265,7 +265,7 @@ int circ_buff_move_head(circularBuffer_t* cb, uint16_t numBytes)
 }
 
 int circ_buff_get_size(circularBuffer_t* cb){return cb->size;}
-int circ_buff_get_space(circularBuffer_t* cb){return (CB_BUF_LEN - cb->size);}
+//int circ_buff_get_space(circularBuffer_t* cb){return (CB_BUF_LEN - cb->size);}
 
 #ifdef __cplusplus
 }

@@ -29,7 +29,7 @@ circ_buf_t circ_buf_serial_rx = {.buffer = {0},        \
 //Returns 0 if it's not full (normal operation)
 //Returns 1 if the buffer is full (it will save the value by overwriting the
 //oldest data)
-uint8_t circ_buf_write(circ_buf_t *cb, uint8_t new_value)
+uint8_t circ_buf_write_byte(circ_buf_t *cb, uint8_t new_value)
 {
     uint8_t ret_val = 0;
 
@@ -58,7 +58,7 @@ uint8_t circ_buf_write(circ_buf_t *cb, uint8_t new_value)
 //Read a value from the circular buffer (single byte)
 //Returns 0 if it's not empty, read_value is your data (normal operation)
 //Returns 1 if the buffer is empty (read_value will be set to 0)
-uint8_t circ_buf_read(circ_buf_t *cb, uint8_t* read_value)
+uint8_t circ_buf_read_byte(circ_buf_t *cb, uint8_t* read_value)
 {
     //Check if buffer is empty
     if(cb->length == 0)
@@ -82,34 +82,78 @@ uint8_t circ_buf_read(circ_buf_t *cb, uint8_t* read_value)
     return 0;
 }
 
+//Look at a specific location, but do not remove the value from the buffer
+//The location is an offset from the read pointer
+//Returns 0 the offset is within the size (normal operation)
+//Returns 1 if the buffer if the offset is outside the range of data available to read
+uint8_t circ_buf_peek(circ_buf_t *cb, uint8_t *read_value, uint16_t offset)
+{
+    if(offset >= cb->length)
+    {
+    	read_value = 0;
+    	return 1;
+    }
+
+    *read_value = cb->buffer[((cb->read_index + offset) % CIRC_BUF_SIZE)];
+    return 0;
+}
+
+//Find the index of a given value
+int32_t circ_buf_search(circ_buf_t *cb, uint16_t *search_result, uint8_t value, uint16_t start_offset)
+{
+    if(start_offset >= cb->length)
+    {
+    	//Invalid search
+    	*search_result = 0;
+    	return 1;
+    }
+
+    int i = 0; //Keeps track of how many values we looked at
+    int index = cb->read_index + start_offset; //Keeps track of the index
+
+    //Search from start offset to end of the linear buffer
+    while((i < cb->length) && (index < CIRC_BUF_SIZE))
+    {
+        if(cb->buffer[index] == value)
+		{
+        	//We found our value, we return
+        	*search_result = index;
+        	return 0;
+		}
+        i++;
+        index++;
+    }
+
+    //Start from the beginning (aka "circularize" the buffer)
+    index %= CIRC_BUF_SIZE;
+    while(i < cb->length)
+    {
+        if(cb->buffer[index] == value)
+        {
+        	//We found our value, we return
+        	*search_result = index;
+        	return 0;
+        }
+        i++;
+        index++;
+    }
+
+    //Value not found
+    *search_result = 0;
+    return 1;
+}
+
+
 //Get the buffer size
-uint16_t circ_buf_size(circ_buf_t *cb)
+uint16_t circ_buf_get_size(circ_buf_t *cb)
 {
     return cb->length;
 }
 
-//Get average of all values
-int16_t circ_buf_average(circ_buf_t *cb)
-{
-    int32_t sum = 0, average = 0;
-    for(int i = 0; i < CIRC_BUF_SIZE; i++)
-    {
-        sum += cb->buffer[i];
-    }
-    average = sum / CIRC_BUF_SIZE;
-
-    return (int16_t) average;
-}
 
 //ToDo:
 
 /*
-
-//Initialize circular buffer
-void circ_buff_init(circularBuffer_t* cb)
-
-//Look at a specific location, but do not remove the value from the buffer
-uint8_t circ_buff_peek(circularBuffer_t* cb, uint16_t offset)
 
 //Find the index of a given value
 int32_t circ_buff_search(circularBuffer_t* cb, uint8_t value, uint16_t start)
