@@ -1,6 +1,16 @@
 eclipse.preferences.version=1
+environment/project/cdt.managedbuild.config.gnu.cross.exe.debug.569193110.534291228/MINGW_HOME/delimiter=;
+environment/project/cdt.managedbuild.config.gnu.cross.exe.debug.569193110.534291228/MINGW_HOME/operation=replace
+environment/project/cdt.managedbuild.config.gnu.cross.exe.debug.569193110.534291228/MINGW_HOME/value=C\:\\Program Files\\CodeBlocks\\MinGW
+environment/project/cdt.managedbuild.config.gnu.cross.exe.debug.569193110.534291228/append=true
+environment/project/cdt.managedbuild.config.gnu.cross.exe.debug.569193110.534291228/appendContributed=true
 environment/project/cdt.managedbuild.config.gnu.cross.exe.debug.569193110/MINGW_HOME/delimiter=;
 environment/project/cdt.managedbuild.config.gnu.cross.exe.debug.569193110/MINGW_HOME/operation=replace
 environment/project/cdt.managedbuild.config.gnu.cross.exe.debug.569193110/MINGW_HOME/value=C\:\\Program Files\\CodeBlocks\\MinGW
 environment/project/cdt.managedbuild.config.gnu.cross.exe.debug.569193110/append=true
 environment/project/cdt.managedbuild.config.gnu.cross.exe.debug.569193110/appendContributed=true
+environment/project/cdt.managedbuild.config.gnu.cross.exe.release.1016323619/MINGW_HOME/delimiter=;
+environment/project/cdt.managedbuild.config.gnu.cross.exe.release.1016323619/MINGW_HOME/operation=replace
+environment/project/cdt.managedbuild.config.gnu.cross.exe.release.1016323619/MINGW_HOME/value=C\:\\Program Files\\CodeBlocks\\MinGW
+environment/project/cdt.managedbuild.config.gnu.cross.exe.release.1016323619/append=true
+environment/project/cdt.managedbuild.config.gnu.cross.exe.release.1016323619/appendContributed=true

@@ -46,19 +46,20 @@ typedef struct circularBuffer {
 	int size;
 } circularBuffer_t;
 
-// Basic Circular Buffer Operations
+//Basic Circular Buffer Operations
 void circ_buff_init(circularBuffer_t* cb);
 int circ_buff_write(circularBuffer_t* cb, uint8_t *writeFrom, uint16_t len);
 int circ_buff_read(circularBuffer_t* cb, uint8_t* readInto, uint16_t numBytes);
 int circ_buff_read_section(circularBuffer_t* cb, uint8_t* readInto, uint16_t start, uint16_t numBytes);
+//
 int circ_buff_move_head(circularBuffer_t* cb, uint16_t numBytes);
 int circ_buff_get_size(circularBuffer_t* cb);
 int circ_buff_get_space(circularBuffer_t* cb);
 
-// Convenience Operations for Parsing Buffer Data
+//Convenience Operations for Parsing Buffer Data
 uint8_t circ_buff_peek(circularBuffer_t* cb, uint16_t offset);
 int32_t circ_buff_search(circularBuffer_t* cb, uint8_t value, uint16_t start);
-int32_t circ_buff_search_not(circularBuffer_t* cb, uint8_t value, uint16_t start);
+//int32_t circ_buff_search_not(circularBuffer_t* cb, uint8_t value, uint16_t start);
 uint8_t circ_buff_checksum(circularBuffer_t* cb, uint16_t start, uint16_t end);
 
 #ifdef __cplusplus

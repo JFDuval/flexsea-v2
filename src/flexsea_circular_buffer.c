@@ -33,14 +33,15 @@ extern "C" {
 
 #include "flexsea_circular_buffer.h"
 #include <string.h>
-//#include "log.h"
 
+//Initialize circular buffer
 void circ_buff_init(circularBuffer_t* cb)
 {
 	cb->head = -1;
 	cb->tail = 0;
-	cb->size= 0;
+	cb->size = 0;
 
+	//FIll with zeros
 	int i = 0;
 	uint8_t* b = cb->bytes;
 	for(i = 0; i < CB_BUF_LEN; i++)
@@ -49,6 +50,7 @@ void circ_buff_init(circularBuffer_t* cb)
 	}
 }
 
+//Write new data to circular buffer
 int circ_buff_write(circularBuffer_t* cb, uint8_t *writeFrom, uint16_t numBytes)
 {
     const int MSG_BIGGER_THAN_BUFFER = 1;
@@ -74,7 +76,7 @@ int circ_buff_write(circularBuffer_t* cb, uint8_t *writeFrom, uint16_t numBytes)
 
 	if(cb->size > CB_BUF_LEN)
 	{
-		//LOG(lwarning, "CB has been overwritten");
+		//CB has been overwritten
 		cb->size = CB_BUF_LEN;
 		cb->head = cb->tail;
 		return OVERWROTE;
@@ -82,12 +84,14 @@ int circ_buff_write(circularBuffer_t* cb, uint8_t *writeFrom, uint16_t numBytes)
 	return SUCCESS;
 }
 
+//Look at a specific location, but do not remove the value from the buffer
 uint8_t circ_buff_peek(circularBuffer_t* cb, uint16_t offset)
 {
     if(offset >= cb->size){return 0;}
     return cb->bytes[((cb->head + offset) % CB_BUF_LEN)];
 }
 
+//Find the index of a given value
 int32_t circ_buff_search(circularBuffer_t* cb, uint8_t value, uint16_t start)
 {
     if(start >= cb->size){return -1;}
@@ -113,6 +117,7 @@ int32_t circ_buff_search(circularBuffer_t* cb, uint8_t value, uint16_t start)
     return -1;
 }
 
+/* Not used
 int32_t circ_buff_search_not(circularBuffer_t* cb, uint8_t value, uint16_t start)
 {
     if(start > cb->size){return -1;}
@@ -135,6 +140,7 @@ int32_t circ_buff_search_not(circularBuffer_t* cb, uint8_t value, uint16_t start
 
     return i;
 }
+*/
 
 uint8_t circ_buff_checksum(circularBuffer_t* cb, uint16_t start, uint16_t end)
 {
@@ -171,14 +177,18 @@ int circ_buff_read(circularBuffer_t* cb, uint8_t* readInto, uint16_t numBytes)
 
     if((cb->head + numBytes) < CB_BUF_LEN)
     {
+    	//Copy a continuous stretch of data to the readInto array
         memcpy(readInto, cb->bytes + cb->head, numBytes);
     }
     else
     {
+    	//Copy data while handling the discontinuity at the end of the circular buffer
 		uint16_t bytesUntilEnd = CB_BUF_LEN - cb->head;
         memcpy(readInto, (cb->bytes + cb->head), bytesUntilEnd);
         memcpy((readInto + bytesUntilEnd), cb->bytes, (numBytes - bytesUntilEnd));
     }
+
+    //ToDo recompute size?
 
     return SUCCESS;
 }
@@ -204,6 +214,7 @@ int circ_buff_read_section(circularBuffer_t* cb, uint8_t* readInto, uint16_t sta
 	return SUCCESS;
 }
 
+//That seems wrong... ToDo double check
 int circ_buff_move_head(circularBuffer_t* cb, uint16_t numBytes)
 {
     const int SUCCESS = 0;
@@ -253,8 +264,8 @@ int circ_buff_move_head(circularBuffer_t* cb, uint16_t numBytes)
 	return result;
 }
 
-int circ_buff_get_size(circularBuffer_t* cb)  { return cb->size; }
-int circ_buff_get_space(circularBuffer_t* cb)  { return CB_BUF_LEN - cb->size; }
+int circ_buff_get_size(circularBuffer_t* cb){return cb->size;}
+int circ_buff_get_space(circularBuffer_t* cb){return (CB_BUF_LEN - cb->size);}
 
 #ifdef __cplusplus
 }

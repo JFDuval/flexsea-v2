@@ -1,12 +1,8 @@
-#include <stdio.h>
-#include <stdint.h>
-#include <string.h>
-#include <stdlib.h>
-#include "flexsea_comm.h"
+#include "main.h"
 
 int main()
 {
-    printf("Hello world!\n");
+    printf("Hello world! This is a test\n");
 
     uint8_t my_test_payload[] = "jfduval";
     uint8_t my_test_packed_payload[48] = {0};
