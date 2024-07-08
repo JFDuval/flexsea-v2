@@ -7,12 +7,15 @@
 
 //This code was adapted from https://github.com/charlesdobson/circular-buffer
 
+//Return value convention: 0 is good, 1 means an error happened
+//Any numerical data that needs to be returned is passed via pointers
+
 //****************************************************************************
 // Variable(s)
 //****************************************************************************
 
 //One circular buffer for the serial input
-circ_buf_t circ_buf_serial_rx = {.buffer = {0},        \
+circ_buf_t circ_buf_serial_rx = {.buffer = {0},       \
                                 .length = 0,          \
                                 .write_index = 0,     \
                                 .read_index = 0};
@@ -24,6 +27,17 @@ circ_buf_t circ_buf_serial_rx = {.buffer = {0},        \
 //****************************************************************************
 // Public Function(s)
 //****************************************************************************
+
+//Inits or re-inits a circular buffer
+uint8_t circ_buf_init(circ_buf_t *cb)
+{
+	memset(cb->buffer, 0, CIRC_BUF_SIZE);
+	cb->length = 0;
+	cb->write_index = 0;
+	cb->read_index = 0;
+
+	return 0;
+}
 
 //Add a value to the circular buffer (single byte)
 //Returns 0 if it's not full (normal operation)
@@ -46,7 +60,7 @@ uint8_t circ_buf_write_byte(circ_buf_t *cb, uint8_t new_value)
     cb->length++;       //Increase buffer size after writing
     cb->write_index++;  //Increase write_index position to prepare for next write
 
-    //If at last index in buffer, set writeIndex back to 0
+    //If at last index in buffer, set write_index back to 0
     if(cb->write_index == CIRC_BUF_SIZE)
     {
         cb->write_index = 0;
@@ -143,8 +157,49 @@ int32_t circ_buf_search(circ_buf_t *cb, uint16_t *search_result, uint8_t value, 
     return 1;
 }
 
+//Calculate a checksum for a given section, without removing the values
+uint8_t circ_buf_checksum(circ_buf_t* cb, uint8_t *checksum, uint16_t start, uint16_t end)
+{
+    if((start >= cb->length) || (end > cb->length))
+    {
+    	//Start or stop are out of the range
+    	checksum = 0;
+    	return 1;
+    }
+
+	if((end - start) < 1)
+	{
+		//We need some bytes if we want to calculate a checksum
+		checksum = 0;
+		return 1;
+	}
+
+    uint8_t temp_checksum = 0;
+
+    int i = (cb->read_index + start); //no modulo on purpose. (it would have no ultimate effect)
+	int j = (cb->read_index + end);
+
+	//Calculate from start offset to end of the linear buffer
+	while((i < j) && (i < CIRC_BUF_SIZE))
+	{
+		temp_checksum += cb->buffer[i++];
+	}
+
+	//Start from the beginning (aka "circularize" the buffer)
+    i %= CIRC_BUF_SIZE;
+	j %= CIRC_BUF_SIZE;
+    while(i < j)
+    {
+    	temp_checksum += cb->buffer[i++];
+    }
+
+    //Success
+    *checksum = temp_checksum;
+    return 0;
+}
 
 //Get the buffer size
+//ToDo this doesn't follow our return convention
 uint16_t circ_buf_get_size(circ_buf_t *cb)
 {
     return cb->length;
@@ -156,13 +211,8 @@ uint16_t circ_buf_get_size(circ_buf_t *cb)
 /*
 
 //Find the index of a given value
-int32_t circ_buff_search(circularBuffer_t* cb, uint8_t value, uint16_t start)
 
 uint8_t circ_buff_checksum(circularBuffer_t* cb, uint16_t start, uint16_t end)
-
 int circ_buff_read_section(circularBuffer_t* cb, uint8_t* readInto, uint16_t start, uint16_t numBytes)
-
-int circ_buff_get_size(circularBuffer_t* cb){return cb->size;}
-int circ_buff_get_space(circularBuffer_t* cb){return (CB_BUF_LEN - cb->size);}
 
 */

@@ -288,10 +288,7 @@ void test_circ_buf_search(void)
 	TEST_ASSERT_EQUAL(value, search_result);
 
 	//We re-init our circular buffer, and half-fill it with constants
-	memset(cb.buffer, 0, CIRC_BUF_SIZE);
-	cb.length = 0;
-	cb.write_index = 0;
-	cb.read_index = 0;
+	circ_buf_init(&cb);
 	w_byte = 123;
 	for(i = 0; i < CIRC_BUF_SIZE / 10; i++)
 	{
@@ -308,6 +305,99 @@ void test_circ_buf_search(void)
 	TEST_ASSERT_EQUAL(1, ret_val);
 	//Is our value where it should be based on our sequential writing? 0 when not found
 	TEST_ASSERT_EQUAL(0, search_result);
+}
+
+//Test the checksum calculation
+void test_circ_buf_checksum(void)
+{
+	//Initialize new cir_buf
+	circ_buf_t cb = {.buffer = {0},        \
+	                 .length = 0,          \
+	                 .write_index = 0,     \
+	                 .read_index = 0};
+
+	//Create one array of the same size:
+	uint8_t w_array[CIRC_BUF_SIZE] = {0};
+
+	//Write sequential values to buffer, filling it
+	int i = 0;
+	uint8_t w_byte = 0, ret_val = 0;
+	for(i = 0; i < CIRC_BUF_SIZE; i++)
+	{
+		//Write to circular buffer
+		ret_val = circ_buf_write_byte(&cb, w_byte);
+		//Save the same info in a regular buffer
+		w_array[i] = w_byte;
+		w_byte++;
+
+		//circ_buf_write() should always return 0 if we are not overwriting
+		if(ret_val)
+		{
+			TEST_FAIL_MESSAGE("CB indicates it's full while it shouldn't.");
+			break;
+		}
+	}
+
+	//Manual checksum calculation, first 'len' values starting at offset = 0
+	uint16_t len = 10;
+	uint8_t manual_checksum = 0;
+	for(i = 0; i < len; i++)
+	{
+		manual_checksum += w_array[i];
+	}
+
+	//We compare to our function
+	ret_val = 0;
+	uint8_t checksum = 0;
+	uint16_t start_index = 0;
+	uint16_t stop_index = len;
+	ret_val = circ_buf_checksum(&cb, &checksum, start_index, stop_index);
+	//circ_buf_checksum() should always return 0 if there are no errors
+	TEST_ASSERT_EQUAL(0, ret_val);
+	//We expect the same value as our manual test
+	TEST_ASSERT_EQUAL(manual_checksum, checksum);
+
+	//Calculate at the rollover point
+	len = 10;
+	manual_checksum = 0;
+	for(i = CIRC_BUF_SIZE - (len / 2); i < CIRC_BUF_SIZE; i++)
+	{
+		manual_checksum += w_array[i];
+	}
+	for(i = 0; i < (len / 2); i++)
+	{
+		manual_checksum += w_array[i];
+	}
+
+	//We compare to our function
+	ret_val = 0;
+	checksum = 0;
+	cb.read_index = CIRC_BUF_SIZE - (len / 2);	//We manually change the read pointer
+	start_index = 0;
+	stop_index = len;
+	ret_val = circ_buf_checksum(&cb, &checksum, start_index, stop_index);
+	//circ_buf_checksum() should always return 0 if there are no errors
+	TEST_ASSERT_EQUAL(0, ret_val);
+	//We expect the same value as our manual test
+	TEST_ASSERT_EQUAL(manual_checksum, checksum);
+
+	//Re-init buffer. Fill with a handful of values.
+	circ_buf_init(&cb);
+	w_byte = 123;
+	for(i = 0; i < CIRC_BUF_SIZE / 10; i++)
+	{
+		//Write to circular buffer
+		ret_val = circ_buf_write_byte(&cb, w_byte);
+		w_byte++;
+	}
+	//We attempt to calculate a checksum for more values than what's available
+	ret_val = 0;
+	checksum = 0;
+	start_index = 0;
+	stop_index = CIRC_BUF_SIZE / 2;
+	ret_val = circ_buf_checksum(&cb, &checksum, start_index, stop_index);
+	//circ_buf_checksum() should always return 0 if there are no errors => 1 in this case
+	TEST_ASSERT_EQUAL(1, ret_val);
 }
 
 /*
@@ -367,42 +457,6 @@ int getIndexOf(uint8_t value, uint8_t* buf, uint16_t start, uint16_t length)
 	return -1;
 }
 
-void test_buffer_circular_checksum(void)
-{
-	circularBuffer_t circBuf;
-	circularBuffer_t* cb = &circBuf;
-	circ_buff_init(cb);
-	srand(time(NULL));
-
-	uint8_t buf[CB_BUF_LEN];
-	int i;
-	for(i = 0; i < CB_BUF_LEN; i++)
-		buf[i] = rand();
-
-
-	int testI;
-	for(testI = 0; testI < 100; testI++)
-	{
-		//Perform a bunch of random writes to mess up the tail/head positions
-		int start, length;
-		for(i = 0; i < 100; i++)
-		{
-			start = rand() % CB_BUF_LEN;
-			length = rand() % (CB_BUF_LEN - start);
-			circ_buff_write(cb, buf, length);
-		}
-
-		uint8_t *d = cb->bytes;
-		uint8_t expectedSum = 0;
-		for(i = 0; i < CB_BUF_LEN; i++)
-		{
-			expectedSum += d[i];
-		}
-		uint8_t actualSum = circ_buff_checksum(cb, 0, CB_BUF_LEN);
-		TEST_ASSERT_EQUAL(expectedSum, actualSum);
-	}
-}
-
 */
 
 void test_circ_buf(void)
@@ -412,8 +466,8 @@ void test_circ_buf(void)
 	RUN_TEST(test_circ_buf_size);
 	RUN_TEST(test_circ_buf_peek);
 	RUN_TEST(test_circ_buf_search);
+	RUN_TEST(test_circ_buf_checksum);
 	//RUN_TEST(test_buffer_circular_write_erase);
-	//RUN_TEST(test_buffer_circular_checksum);
 
 	fflush(stdout);
 }
