@@ -9,6 +9,7 @@
 
 //Return value convention: 0 is good, 1 means an error happened
 //Any numerical data that needs to be returned is passed via pointers
+//ToDo fix get_size
 
 //****************************************************************************
 // Variable(s)
@@ -113,7 +114,7 @@ uint8_t circ_buf_peek(circ_buf_t *cb, uint8_t *read_value, uint16_t offset)
 }
 
 //Find the index of a given value
-int32_t circ_buf_search(circ_buf_t *cb, uint16_t *search_result, uint8_t value, uint16_t start_offset)
+uint8_t circ_buf_search(circ_buf_t *cb, uint16_t *search_result, uint8_t value, uint16_t start_offset)
 {
     if(start_offset >= cb->length)
     {

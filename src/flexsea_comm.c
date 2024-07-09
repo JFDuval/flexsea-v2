@@ -63,8 +63,7 @@ extern "C" {
 #include <stdlib.h>
 #include <stdint.h>
 #include <flexsea_comm.h>
-//#include "log.h"
-//#include "flexsea_user_structs.h"
+#include "circ_buf.h"
 
 //****************************************************************************
 // Variable(s)
@@ -73,13 +72,8 @@ extern "C" {
 uint8_t comm_str[2][COMM_PERIPH_ARR_LEN];
 uint8_t rx_command[2][COMM_PERIPH_ARR_LEN];
 
-//PacketWrapper packet[NUMBER_OF_PORTS][2];
-//CommPeriph commPeriph[NUMBER_OF_PORTS];
-
 uint32_t cmd_valid = 0;
 uint32_t cmd_bad_checksum = 0;
-
-//struct commSpy_s commSpy1 = {0,0,0,0,0,0,0};
 
 //****************************************************************************
 // Private Function Prototype(s):
@@ -219,53 +213,103 @@ uint16_t unpack_payload_cb(circularBuffer_t *cb, uint8_t *packed, uint8_t unpack
 }
 
 //Moving this to the new circ buf code - WIP
-uint16_t unpack_payload_cb2(circularBuffer_t *cb, uint8_t *packed, uint8_t unpacked[PACKAGED_PAYLOAD_LEN])
+//ToDo: define and document naming convention (packed, unpacked, frame, string...)
+uint16_t unpack_payload_cb2(circ_buf_t *cb, uint8_t *packed, uint8_t unpacked[PACKAGED_PAYLOAD_LEN])
 {
-	//LOG(linfo,"unpack_payload_cb called");
-	int bufSize = circ_buff_get_size(cb);
+	int bufSize = circ_buf_get_size(cb);
 
-	int foundString = 0, foundFrame = 0, bytes, possibleFooterPos;
+	uint16_t foundString = 0, foundFrame = 0, possibleFooterPos;
 	int lastPossibleHeaderIndex = bufSize - 4;
-	int headerPos = -1, lastHeaderPos = -1;
+	uint16_t headerPos = 0, lastHeaderPos = 0;
+	uint8_t first_time = 1;
 	uint8_t checksum = 0;
+	uint8_t ret_val = 0;
+	uint8_t bytes = 0, byte_peek = 0;
 
+	//We look for a string, starting by searching for a header
 	int headers = 0, footers = 0;
 	while(!foundString && lastHeaderPos < lastPossibleHeaderIndex)
 	{
-		headerPos = circ_buff_search(cb, HEADER, lastHeaderPos+1);
-		//if we can't find a header, we quit searching for strings
-		if(headerPos == -1) break;
+		//We start from index 0 (first time), then from the last header position
+		if(first_time)
+		{
+			ret_val = circ_buf_search(cb, &headerPos, HEADER, lastHeaderPos);
+			first_time = 0;
+		}
+		else
+		{
+			ret_val = circ_buf_search(cb, &headerPos, HEADER, lastHeaderPos + 1);
+		}
 
+		//If we can't find a header, we quit searching for strings
+		if(ret_val == 1){break;}
+
+		//We found a header! Can we detect a full frame?
 		headers++;
 		foundFrame = 0;
 		if(headerPos <= lastPossibleHeaderIndex)
 		{
-			//LOG(ldebug2,"Last possible header");
-			bytes = circ_buff_peek(cb, headerPos + 1);
-			possibleFooterPos = headerPos + 3 + bytes;
-			foundFrame = (possibleFooterPos < bufSize && circ_buff_peek(cb, possibleFooterPos) == FOOTER);
+			//How many bytes in this potential frame?
+			ret_val = circ_buf_peek(cb, &bytes, headerPos + 1);
+			if(!ret_val)
+			{
+				//Is there a footer?
+				possibleFooterPos = headerPos + 3 + bytes;
+				ret_val = circ_buf_peek(cb, &byte_peek, possibleFooterPos);
+				if(!ret_val)
+				{
+					//We found a frame!
+					foundFrame = ((possibleFooterPos < bufSize) && (byte_peek == FOOTER));
+				}
+			}
 		}
 
+		//Now that we found a frame, let's make sure it's valid
 		if(foundFrame)
 		{
-			//LOG(ldebug2,"Frame found");
 			footers++;
-			checksum = circ_buff_checksum(cb, headerPos+2, possibleFooterPos-1);
-
-			//if checksum is valid than we found a valid string
-			foundString = (checksum == circ_buff_peek(cb, possibleFooterPos-1));
+			ret_val = circ_buf_checksum(cb, &checksum, (headerPos + 2), (possibleFooterPos - 1));
+			if(!ret_val)
+			{
+				//If checksum is valid than we found a valid string
+				ret_val = circ_buf_peek(cb, &byte_peek, (possibleFooterPos-1));
+				if(!ret_val)
+				{
+					foundString = (checksum == byte_peek);
+				}
+			}
 		}
 
-		//either we found a frame and it had a valid checksum, or we want to try the next value of i
+		//Either we found a frame and it had a valid checksum, or we want to try the next value of i
 		lastHeaderPos = headerPos;
 	}
 
+	//A string was found; extract it from the circular buffer
 	int numBytesInPackedString = 0;
+	int i = 0;
 	if(foundString)
 	{
 		//LOG(ldebug2,"String found");
 		numBytesInPackedString = headerPos + bytes + 4;
 
+		//Our circular buffer is first in first out. If our header wasn't at index = 0 we need to dump some bytes
+		if(headerPos)
+		{
+			uint8_t dump = 0;
+			for(i = 0; i < headerPos; i++)
+			{
+				ret_val = circ_buf_read_byte(cb, &dump);
+			}
+		}
+
+		//At this point our header is at index 0
+		for(i = 0; i < (bytes + 4); i++)
+		{
+			ret_val = circ_buf_read_byte(cb, &packed[i]);
+		}
+
+
+/*
 		circ_buff_read_section(cb, packed, headerPos, bytes + 4);
 
 		int k, skip = 0, unpacked_idx = 0;
@@ -282,7 +326,9 @@ uint16_t unpack_payload_cb2(circularBuffer_t *cb, uint8_t *packed, uint8_t unpac
 				unpacked[unpacked_idx++] = packed[index];
 			}
 		}
+		*/
 	}
+
 
 	return numBytesInPackedString;
 }

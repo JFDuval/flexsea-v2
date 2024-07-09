@@ -41,6 +41,7 @@ extern "C" {
 
 //#include "flexsea.h"
 #include "flexsea_buffers.h"
+#include "circ_buf.h"
 
 //****************************************************************************
 // Public Function Prototype(s):
@@ -49,6 +50,7 @@ extern "C" {
 uint8_t comm_gen_str(uint8_t payload[], uint8_t *cstr, uint8_t bytes);
 //int8_t unpack_payload(uint8_t *buf, uint8_t *packed, uint8_t rx_cmd[PACKAGED_PAYLOAD_LEN]);
 uint16_t unpack_payload_cb(circularBuffer_t *cb, uint8_t *packed, uint8_t rx_cmd[PACKAGED_PAYLOAD_LEN]);
+uint16_t unpack_payload_cb2(circ_buf_t *cb, uint8_t *packed, uint8_t unpacked[PACKAGED_PAYLOAD_LEN]);
 
 //int8_t unpack_payload_test(uint8_t *buf, uint8_t *packed, uint8_t rx_cmd[PACKAGED_PAYLOAD_LEN]);
 

@@ -67,6 +67,46 @@ void test_comm_gen_str_escape(void)
 	TEST_ASSERT_EQUAL(manual_checksum, my_test_packed_payload[packed_bytes - 1]);
 }
 
+//Simple payload (no escape, short, etc) located right at the start of our circular buffer
+void test_comm_unpack_1(void)
+{
+	//We start by packing a simple payload
+	uint8_t my_test_payload[] = "flexsea_v2";
+	uint8_t my_test_payload_len = sizeof(my_test_payload);
+	uint8_t my_test_packed_payload[PACKAGED_PAYLOAD_LEN] = {0};
+	uint8_t packed_bytes = comm_gen_str(my_test_payload, my_test_packed_payload, my_test_payload_len);
+	TEST_ASSERT_EQUAL_MESSAGE(my_test_payload_len + 3, packed_bytes, "How many bytes does generating a string add?");
+
+	//We then feed it to a new circular buffer
+	circ_buf_t cb = {.buffer = {0},        \
+					 .length = 0,          \
+					 .write_index = 0,     \
+					 .read_index = 0};
+	int i = 0;
+	uint8_t ret_val = 0;
+	for(i = 0; i < packed_bytes + 1; i++)
+	{
+		//Write to circular buffer
+		ret_val = circ_buf_write_byte(&cb, my_test_packed_payload[i]);
+
+		//circ_buf_write() should always return 0 if we are not overwriting
+		if(ret_val)
+		{
+			TEST_FAIL_MESSAGE("CB indicates it's full while it shouldn't.");
+			break;
+		}
+	}
+
+	//At this point our packaged payload is in 'cb'. We unpack it.
+	uint8_t extracted_packed_payload[PACKAGED_PAYLOAD_LEN] = {0};
+	uint8_t extracted_unpacked_payload[PACKAGED_PAYLOAD_LEN] = {0};
+	ret_val = unpack_payload_cb2(&cb, extracted_packed_payload,extracted_unpacked_payload);
+	if(ret_val)
+	{
+		TEST_FAIL_MESSAGE("unpack_payload_cb2 encountered an error");
+	}
+}
+
 /*
 
 //Helper function for test_circ_unpack
@@ -195,6 +235,9 @@ void test_flexsea_comm(void)
 	RUN_TEST(test_comm_gen_str_simple);
 	RUN_TEST(test_comm_gen_str_too_long);
 	RUN_TEST(test_comm_gen_str_escape);
+
+	RUN_TEST(test_comm_unpack_1);
+
 	//RUN_TEST(test_circ_unpack);
 
 	fflush(stdout);
