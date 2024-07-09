@@ -69,10 +69,12 @@ extern "C" {
 //'uint8_t *payload': the data you want to send, stored in an array
 //'uint8_t payload_bytes': number of bytes in 'payload' (could be shorter than sizeof())
 //'uint8_t *packed_ payload': array used to return a packed payload (this is your output)
-//'uint8_t packed_payload_bytes': number of bytes in 'payload' (could be shorter than sizeof())
-//Returns ToDo
+//'uint8_t *packed_payload_bytes': number of bytes in 'packed_payload'
+//Returns 0 if it was able to pack it, 1 otherwise
 
 //ToDo remove COMM_STR_BUF_LEN
+//ToDo optional byte filling, of a given length
+
 uint8_t comm_pack_payload(uint8_t *payload, uint8_t payload_bytes, uint8_t *packed_payload, uint8_t *packed_payload_bytes)
 {
 	uint16_t i = 0, escapes = 0, idx = 0, total_bytes = 0;
@@ -131,26 +133,26 @@ uint8_t comm_pack_payload(uint8_t *payload, uint8_t payload_bytes, uint8_t *pack
 	return 0;
 }
 
-//Moving this to the new circ buf code - WIP
-//ToDo: define and document naming convention (packed, unpacked, frame, string...)
+//Takes data from the wire (stored in a circular buffer) and extracts the first valid payload
+
 //ToDo: return number of bytes (pointers), and error code
-//ToDo: rename
 //ToDo: is it useful to return the packed version?
+
 uint8_t comm_unpack_payload(circ_buf_t *cb, uint8_t *packed, uint8_t unpacked[PACKAGED_PAYLOAD_LEN])
 {
 	uint16_t cb_size = circ_buf_get_size(cb);
-	uint16_t found_string = 0, found_frame = 0, possible_footer_pos = 0;
+	uint16_t found_packed_payload = 0, found_footer = 0, possible_footer_pos = 0;
 	uint16_t last_possible_header_index = cb_size - 4;
 	uint16_t header_pos = 0, last_header_pos = 0;
 	uint8_t first_time = 1;
 	uint8_t checksum = 0;
 	uint8_t ret_val = 0;
-	uint8_t bytes_in_frame = 0;
+	uint8_t bytes_in_packed_payload = 0;
 	uint8_t byte_peek = 0;
 
-	//We look for a string, starting by searching for a header
+	//We look for a packed payload, starting by searching for a header
 	uint16_t headers = 0, footers = 0;
-	while(!found_string && (last_header_pos < last_possible_header_index))
+	while(!found_packed_payload && (last_header_pos < last_possible_header_index))
 	{
 		//We start from index 0 (first time), then from the last header position
 		if(first_time)
@@ -163,31 +165,31 @@ uint8_t comm_unpack_payload(circ_buf_t *cb, uint8_t *packed, uint8_t unpacked[PA
 			ret_val = circ_buf_search(cb, &header_pos, HEADER, last_header_pos + 1);
 		}
 
-		//If we can't find a header, we quit searching for strings
+		//If we can't find a header, we quit searching for packed payloads
 		if(ret_val == 1){return 1;}
 
-		//We found a header! Can we detect a full frame?
+		//We found a header! Can we find a footer in the right location?
 		headers++;
-		found_frame = 0;
+		found_footer = 0;
 		if(header_pos <= last_possible_header_index)
 		{
-			//How many bytes in this potential frame?
-			ret_val = circ_buf_peek(cb, &bytes_in_frame, header_pos + 1);
+			//How many bytes in this potential packed payload?
+			ret_val = circ_buf_peek(cb, &bytes_in_packed_payload, header_pos + 1);
 			if(!ret_val)
 			{
 				//Is there a footer?
-				possible_footer_pos = header_pos + 3 + bytes_in_frame;
+				possible_footer_pos = header_pos + 3 + bytes_in_packed_payload;
 				ret_val = circ_buf_peek(cb, &byte_peek, possible_footer_pos);
 				if(!ret_val)
 				{
-					//We found a frame!
-					found_frame = ((possible_footer_pos < cb_size) && (byte_peek == FOOTER));
+					//We make sure that what we think is our footer is actually a footer
+					found_footer = ((possible_footer_pos < cb_size) && (byte_peek == FOOTER));
 				}
 			}
 		}
 
-		//Now that we found a frame, let's make sure it's valid
-		if(found_frame)
+		//Now that we found a packed payload, let's make sure it's valid
+		if(found_footer)
 		{
 			footers++;
 			ret_val = circ_buf_checksum(cb, &checksum, (header_pos + 2), (possible_footer_pos - 1));
@@ -197,23 +199,24 @@ uint8_t comm_unpack_payload(circ_buf_t *cb, uint8_t *packed, uint8_t unpacked[PA
 				ret_val = circ_buf_peek(cb, &byte_peek, (possible_footer_pos-1));
 				if(!ret_val)
 				{
-					found_string = (checksum == byte_peek);
+					//We make sure that the two checksums match
+					found_packed_payload = (checksum == byte_peek);
 				}
 			}
 		}
 
-		//Either we found a frame and it had a valid checksum, or we want to try the next value of i
+		//Either we found a packed payload and it had a valid checksum, or we want to launch a new search
 		last_header_pos = header_pos;
 	}
 
-	//A string was found; extract it from the circular buffer
+	//A correct packaged payload was found in the circular buffer, and we can now extract it
 	int numBytesInPackedString = 0;
 	uint16_t i = 0;
-	if(found_string)
+	if(found_packed_payload)
 	{
-		numBytesInPackedString = header_pos + bytes_in_frame + 4;
+		numBytesInPackedString = header_pos + bytes_in_packed_payload + 4;
 
-		//Our circular buffer is first in first out. If our header wasn't at index = 0 we need to dump some bytes to clear any build-up
+		//Our circular buffer is first in first out. If our header wasn't at index = 0 we need to dump some bytes to clear any build-up.
 		if(header_pos)
 		{
 			uint8_t dump = 0;
@@ -224,14 +227,14 @@ uint8_t comm_unpack_payload(circ_buf_t *cb, uint8_t *packed, uint8_t unpacked[PA
 		}
 
 		//At this point our header is at index 0. We grab the following bytes and save them.
-		for(i = 0; i < (bytes_in_frame + 4); i++)
+		for(i = 0; i < (bytes_in_packed_payload + 4); i++)
 		{
 			ret_val = circ_buf_read_byte(cb, &packed[i]);
 		}
 
 		//Final step, we remove any ESCAPE chars
 		uint16_t k, skip = 0, unpacked_idx = 0;
-		for(k = 0; k < bytes_in_frame; k++)
+		for(k = 0; k < bytes_in_packed_payload; k++)
 		{
 			uint16_t index = k + 2; //First value is header, next value is bytes, next value is first data
 			if((packed[index] == ESCAPE) && (skip == 0))
@@ -245,7 +248,7 @@ uint8_t comm_unpack_payload(circ_buf_t *cb, uint8_t *packed, uint8_t unpacked[PA
 			}
 		}
 
-		//Success, we are done!
+		//Success, we are done! The user will be able to access the data in 'unpacked'
 		return 0;
 	}
 
