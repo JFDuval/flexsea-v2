@@ -36,26 +36,9 @@ extern "C" {
 
 //FlexSEA comm. prototype:
 //=======================
-//[HEADER][# of BYTES][DATA...][CHECKSUM][FOOTER]
+//[HEADER][# of BYTES][PAYLOAD (DATA)...][CHECKSUM][FOOTER]
 //=> Number of bytes includes the ESCAPE bytes
 //=> Checksum is done on the payload (data + ESCAPEs) and on the BYTES byte.
-
-//To transmit a message:
-//======================
-// 1) Place the payload in an array (no header, no footer: pure data)
-// 2) Call comm_gen_str(your_data_array, number_of_bytes)
-// 2b) It will return the index of the last byte of the message (add 1 for the length)
-// 2c) The message is in comm_str[]
-// 3) Send comm_str[] (x_puts(comm_str, msg_length));
-
-//To receive a message:
-//=====================
-// 1) Assuming that you have dealt with all the previous messages, call comm_str_payload();
-//    to fill the buffer with zeros
-// 2) Every time you receive a byte update the buffer: comm_update_rx_buffer(your_new_byte);
-// 3) Call payload_str_available_in_buffer = comm_decode_str(). If you get >= 1, read the
-//    comm_str_payload buffer and do something with the data!
-// 4) At this point you might want to flush the read payload from rx_buf
 
 //****************************************************************************
 // Include(s)
@@ -81,64 +64,71 @@ extern "C" {
 // Public Function(s)
 //****************************************************************************
 
-//Takes payload, adds ESCAPES, checksum, header, ...
-//ToDo: this needs to return an error code, not a number of bytes
-//ToDo: rename
-uint8_t comm_gen_str(uint8_t payload[], uint8_t *cstr, uint8_t bytes)
+//Takes a payload (raw data) and packs it so it can be sent on the wire
+//Packing means adding a header, a footer, escape chars (if needed), and a checksum
+//'uint8_t *payload': the data you want to send, stored in an array
+//'uint8_t payload_bytes': number of bytes in 'payload' (could be shorter than sizeof())
+//'uint8_t *packed_ payload': array used to return a packed payload (this is your output)
+//'uint8_t packed_payload_bytes': number of bytes in 'payload' (could be shorter than sizeof())
+//Returns ToDo
+
+//ToDo remove COMM_STR_BUF_LEN
+uint8_t comm_pack_payload(uint8_t *payload, uint8_t payload_bytes, uint8_t *packed_payload, uint8_t *packed_payload_bytes)
 {
-	unsigned int i = 0, escapes = 0, idx = 0, total_bytes = 0;
+	uint16_t i = 0, escapes = 0, idx = 0, total_bytes = 0;
 	uint8_t checksum = 0;
 
-	//Fill comm_str with known values ('a')
-	memset(cstr, 0xAA, COMM_STR_BUF_LEN);
+	//Fill packaged_payload with known values ('a')
+	memset(packed_payload, 0xAA, COMM_STR_BUF_LEN);
 
-	//Fill comm_str with payload and add ESCAPE characters
+	//Fill packaged_payload with payload and add ESCAPE characters when necessary
 	escapes = 0;
 	idx = 2;
-	for(i = 0; i < bytes && idx < COMM_STR_BUF_LEN; i++)
+	for(i = 0; i < payload_bytes && idx < COMM_STR_BUF_LEN; i++)
 	{
 		if((payload[i] == HEADER) || (payload[i] == FOOTER) || (payload[i] == ESCAPE))
 		{
 			escapes = escapes + 1;
-			cstr[idx] = ESCAPE;
-			cstr[idx+1] = payload[i];
-			checksum += cstr[idx];
-			checksum += cstr[idx+1];
+			packed_payload[idx] = ESCAPE;
+			packed_payload[idx + 1] = payload[i];
+			checksum += packed_payload[idx];
+			checksum += packed_payload[idx + 1];
 			idx = idx + 1;
 		}
 		else
 		{
-			cstr[idx] = payload[i];
-			checksum += cstr[idx];
+			packed_payload[idx] = payload[i];
+			checksum += packed_payload[idx];
 		}
 		idx++;
 	}
 
 	if((idx + 2) >= COMM_STR_BUF_LEN)
 	{
-		//Comm string too long, abort
-		memset(cstr, 0, COMM_STR_BUF_LEN);	//Clear string
-		return 0;
+		//Packaged payload too long, abort
+		memset(packed_payload, 0, COMM_STR_BUF_LEN);	//Clear string
+		return 1;
 	}
 
-	total_bytes = bytes + escapes;
+	total_bytes = payload_bytes + escapes;
 
 	//String length?
 	if(total_bytes >= COMM_STR_BUF_LEN)
 	{
 		//Too long, abort:
-		memset(cstr, 0, COMM_STR_BUF_LEN);	//Clear string
-		return 0;
+		memset(packed_payload, 0, COMM_STR_BUF_LEN);	//Clear string
+		return 1;
 	}
 
 	//Build comm_str:
-	cstr[0] = HEADER;
-	cstr[1] = total_bytes;
-	cstr[2 + total_bytes] = checksum;
-	cstr[3 + total_bytes] = FOOTER;
+	packed_payload[0] = HEADER;
+	packed_payload[1] = total_bytes;
+	packed_payload[2 + total_bytes] = checksum;
+	packed_payload[3 + total_bytes] = FOOTER;
 
 	//Return the last index of the valid data
-	return (3 + total_bytes);
+	*packed_payload_bytes = (3 + total_bytes);
+	return 0;
 }
 
 //Moving this to the new circ buf code - WIP
@@ -146,7 +136,7 @@ uint8_t comm_gen_str(uint8_t payload[], uint8_t *cstr, uint8_t bytes)
 //ToDo: return number of bytes (pointers), and error code
 //ToDo: rename
 //ToDo: is it useful to return the packed version?
-uint8_t unpack_payload_cb2(circ_buf_t *cb, uint8_t *packed, uint8_t unpacked[PACKAGED_PAYLOAD_LEN])
+uint8_t comm_unpack_payload(circ_buf_t *cb, uint8_t *packed, uint8_t unpacked[PACKAGED_PAYLOAD_LEN])
 {
 	uint16_t cb_size = circ_buf_get_size(cb);
 	uint16_t found_string = 0, found_frame = 0, possible_footer_pos = 0;
