@@ -67,8 +67,8 @@ void test_comm_gen_str_escape(void)
 	TEST_ASSERT_EQUAL(manual_checksum, my_test_packed_payload[packed_bytes - 1]);
 }
 
-//Simple payload (no escape, short, etc) located right at the start of our circular buffer
-void test_comm_unpack_1(void)
+//Simple payload (no escape, short, etc.) located right at the start of our circular buffer
+void test_comm_unpack_simple(void)
 {
 	//We start by packing a simple payload
 	uint8_t my_test_payload[] = "flexsea_v2";
@@ -105,6 +105,16 @@ void test_comm_unpack_1(void)
 	{
 		TEST_FAIL_MESSAGE("unpack_payload_cb2 encountered an error");
 	}
+
+	//Compare strings in & out
+	TEST_ASSERT_EQUAL_UINT8_ARRAY(my_test_packed_payload, extracted_packed_payload, packed_bytes + 1);
+	TEST_ASSERT_EQUAL_UINT8_ARRAY(my_test_payload, extracted_unpacked_payload, my_test_payload_len + 1);
+}
+
+//Simple payload (no escape, short, etc.) preceded by some garbage in our circular buffer
+void test_comm_unpack_2(void)
+{
+
 }
 
 /*
@@ -232,13 +242,14 @@ void test_circ_unpack(void)
 
 void test_flexsea_comm(void)
 {
+	//Packing:
 	RUN_TEST(test_comm_gen_str_simple);
 	RUN_TEST(test_comm_gen_str_too_long);
 	RUN_TEST(test_comm_gen_str_escape);
 
-	RUN_TEST(test_comm_unpack_1);
-
-	//RUN_TEST(test_circ_unpack);
+	//Unpacking:
+	RUN_TEST(test_comm_unpack_simple);
+	//RUN_TEST(test_comm_unpack_2);
 
 	fflush(stdout);
 }

@@ -214,6 +214,7 @@ uint16_t unpack_payload_cb(circularBuffer_t *cb, uint8_t *packed, uint8_t unpack
 
 //Moving this to the new circ buf code - WIP
 //ToDo: define and document naming convention (packed, unpacked, frame, string...)
+//ToDo return number of bytes (pointers), and error code
 uint16_t unpack_payload_cb2(circ_buf_t *cb, uint8_t *packed, uint8_t unpacked[PACKAGED_PAYLOAD_LEN])
 {
 	int bufSize = circ_buf_get_size(cb);
@@ -308,10 +309,7 @@ uint16_t unpack_payload_cb2(circ_buf_t *cb, uint8_t *packed, uint8_t unpacked[PA
 			ret_val = circ_buf_read_byte(cb, &packed[i]);
 		}
 
-
-/*
-		circ_buff_read_section(cb, packed, headerPos, bytes + 4);
-
+		//Final step, we remove any ESCAPE chars
 		int k, skip = 0, unpacked_idx = 0;
 		for(k = 0; k < bytes; k++)
 		{
@@ -326,11 +324,10 @@ uint16_t unpack_payload_cb2(circ_buf_t *cb, uint8_t *packed, uint8_t unpacked[PA
 				unpacked[unpacked_idx++] = packed[index];
 			}
 		}
-		*/
 	}
 
 
-	return numBytesInPackedString;
+	return 0;
 }
 
 #ifdef __cplusplus
