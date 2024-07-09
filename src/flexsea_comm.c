@@ -91,9 +91,9 @@ uint32_t cmd_bad_checksum = 0;
 //****************************************************************************
 
 //Takes payload, adds ESCAPES, checksum, header, ...
+//ToDo: this needs to return an error code, not a number of bytes
 uint8_t comm_gen_str(uint8_t payload[], uint8_t *cstr, uint8_t bytes)
 {
-	//LOG(linfo,"Comm string too long, abort");
 	unsigned int i = 0, escapes = 0, idx = 0, total_bytes = 0;
 	uint8_t checksum = 0;
 
@@ -124,7 +124,7 @@ uint8_t comm_gen_str(uint8_t payload[], uint8_t *cstr, uint8_t bytes)
 
 	if((idx + 2) >= COMM_STR_BUF_LEN)
 	{
-		//LOG(lwarning,"Comm string too long, abort");
+		//Comm string too long, abort
 		memset(cstr, 0, COMM_STR_BUF_LEN);	//Clear string
 		return 0;
 	}
@@ -149,30 +149,77 @@ uint8_t comm_gen_str(uint8_t payload[], uint8_t *cstr, uint8_t bytes)
 	return (3 + total_bytes);
 }
 
-/*
-void initRandomGenerator(int seed)
-{
-	srand(seed);
-}
-
-uint8_t generateRandomUint8_t(void)
-{
-	int r = rand();
-	return (uint8_t)(r % 255);
-}
-
-void generateRandomUint8_tArray(uint8_t *arr, uint8_t size)
-{
-	int i = 0;
-
-	for(i = 0; i < size; i++)
-	{
-		arr[i] = generateRandomUint8_t();
-	}
-}
-*/
-
+//Original FlexSEA code - for reference only
 uint16_t unpack_payload_cb(circularBuffer_t *cb, uint8_t *packed, uint8_t unpacked[PACKAGED_PAYLOAD_LEN])
+{
+	//LOG(linfo,"unpack_payload_cb called");
+	int bufSize = circ_buff_get_size(cb);
+
+	int foundString = 0, foundFrame = 0, bytes, possibleFooterPos;
+	int lastPossibleHeaderIndex = bufSize - 4;
+	int headerPos = -1, lastHeaderPos = -1;
+	uint8_t checksum = 0;
+
+	int headers = 0, footers = 0;
+	while(!foundString && lastHeaderPos < lastPossibleHeaderIndex)
+	{
+		headerPos = circ_buff_search(cb, HEADER, lastHeaderPos+1);
+		//if we can't find a header, we quit searching for strings
+		if(headerPos == -1) break;
+
+		headers++;
+		foundFrame = 0;
+		if(headerPos <= lastPossibleHeaderIndex)
+		{
+			//LOG(ldebug2,"Last possible header");
+			bytes = circ_buff_peek(cb, headerPos + 1);
+			possibleFooterPos = headerPos + 3 + bytes;
+			foundFrame = (possibleFooterPos < bufSize && circ_buff_peek(cb, possibleFooterPos) == FOOTER);
+		}
+
+		if(foundFrame)
+		{
+			//LOG(ldebug2,"Frame found");
+			footers++;
+			checksum = circ_buff_checksum(cb, headerPos+2, possibleFooterPos-1);
+
+			//if checksum is valid than we found a valid string
+			foundString = (checksum == circ_buff_peek(cb, possibleFooterPos-1));
+		}
+
+		//either we found a frame and it had a valid checksum, or we want to try the next value of i
+		lastHeaderPos = headerPos;
+	}
+
+	int numBytesInPackedString = 0;
+	if(foundString)
+	{
+		//LOG(ldebug2,"String found");
+		numBytesInPackedString = headerPos + bytes + 4;
+
+		circ_buff_read_section(cb, packed, headerPos, bytes + 4);
+
+		int k, skip = 0, unpacked_idx = 0;
+		for(k = 0; k < bytes; k++)
+		{
+			int index = k+2; //first value is header, next value is bytes, next value is first data
+			if(packed[index] == ESCAPE && skip == 0)
+			{
+				skip = 1;
+			}
+			else
+			{
+				skip = 0;
+				unpacked[unpacked_idx++] = packed[index];
+			}
+		}
+	}
+
+	return numBytesInPackedString;
+}
+
+//Moving this to the new circ buf code - WIP
+uint16_t unpack_payload_cb2(circularBuffer_t *cb, uint8_t *packed, uint8_t unpacked[PACKAGED_PAYLOAD_LEN])
 {
 	//LOG(linfo,"unpack_payload_cb called");
 	int bufSize = circ_buff_get_size(cb);
