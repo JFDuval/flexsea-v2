@@ -47,7 +47,7 @@ extern "C" {
 //****************************************************************************
 
 uint8_t comm_gen_str(uint8_t payload[], uint8_t *cstr, uint8_t bytes);
-uint16_t unpack_payload_cb2(circ_buf_t *cb, uint8_t *packed, uint8_t unpacked[PACKAGED_PAYLOAD_LEN]);
+uint8_t unpack_payload_cb2(circ_buf_t *cb, uint8_t *packed, uint8_t unpacked[PACKAGED_PAYLOAD_LEN]);
 
 //****************************************************************************
 // Definition(s):
