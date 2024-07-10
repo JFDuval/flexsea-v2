@@ -3,17 +3,15 @@ extern "C" {
 #endif
 
 #include "main.h"
+#include "tests.h"
 #include "circ_buf.h"
-#include "unity.h"
 
 //Test writing (and overwriting) a full buffer
 void test_circ_buf_w(void)
 {
 	//Initialize new cir_buf
-	circ_buf_t cb = {.buffer = {0},        \
-	                 .length = 0,          \
-	                 .write_index = 0,     \
-	                 .read_index = 0};
+	circ_buf_t cb = {.buffer = {0}, .length = 0, .write_index = 0, .read_index =
+			0};
 
 	//Write sequential values to buffer, filling it
 	int i = 0;
@@ -45,10 +43,8 @@ void test_circ_buf_w(void)
 void test_circ_buf_rw(void)
 {
 	//Initialize new cir_buf
-	circ_buf_t cb = {.buffer = {0},        \
-	                 .length = 0,          \
-	                 .write_index = 0,     \
-	                 .read_index = 0};
+	circ_buf_t cb = {.buffer = {0}, .length = 0, .write_index = 0, .read_index =
+			0};
 	//Create two arrays of the same size:
 	uint8_t w_array[CIRC_BUF_SIZE] = {0};
 	uint8_t r_array[CIRC_BUF_SIZE] = {0};
@@ -107,10 +103,8 @@ void test_circ_buf_rw(void)
 void test_circ_buf_size(void)
 {
 	//Initialize new cir_buf
-	circ_buf_t cb = {.buffer = {0},        \
-	                 .length = 0,          \
-	                 .write_index = 0,     \
-	                 .read_index = 0};
+	circ_buf_t cb = {.buffer = {0}, .length = 0, .write_index = 0, .read_index =
+			0};
 
 	//New buffer should report a size of 0
 	TEST_ASSERT_EQUAL(0, circ_buf_get_size(&cb));
@@ -169,7 +163,8 @@ void test_circ_buf_size(void)
 		}
 	}
 	manual_counter -= remaining_bytes_to_read;
-	TEST_ASSERT_EQUAL_MESSAGE(0, manual_counter, "Test writer error, this should be zero.");
+	TEST_ASSERT_EQUAL_MESSAGE(0, manual_counter,
+			"Test writer error, this should be zero.");
 	TEST_ASSERT_EQUAL(manual_counter, circ_buf_get_size(&cb));
 
 	//And now we try to read from an empty buffer
@@ -185,10 +180,8 @@ void test_circ_buf_size(void)
 void test_circ_buf_peek(void)
 {
 	//Initialize new cir_buf
-	circ_buf_t cb = {.buffer = {0},        \
-	                 .length = 0,          \
-	                 .write_index = 0,     \
-	                 .read_index = 0};
+	circ_buf_t cb = {.buffer = {0}, .length = 0, .write_index = 0, .read_index =
+			0};
 
 	//Write sequential values to buffer, filling it
 	int i = 0;
@@ -213,7 +206,7 @@ void test_circ_buf_peek(void)
 	uint8_t p_byte = 0, offset = 10;
 	ret_val = circ_buf_peek(&cb, &p_byte, offset);
 	TEST_ASSERT_EQUAL(0, ret_val);	//Should be 0, we are within the size
-	TEST_ASSERT_EQUAL(offset, p_byte);	//Sequential values, offset should equal p_byte
+	TEST_ASSERT_EQUAL(offset, p_byte);//Sequential values, offset should equal p_byte
 	//Make sure we didn't change the size
 	TEST_ASSERT_EQUAL(CIRC_BUF_SIZE, circ_buf_get_size(&cb));
 }
@@ -222,10 +215,8 @@ void test_circ_buf_peek(void)
 void test_circ_buf_search(void)
 {
 	//Initialize new cir_buf
-	circ_buf_t cb = {.buffer = {0},        \
-	                 .length = 0,          \
-	                 .write_index = 0,     \
-	                 .read_index = 0};
+	circ_buf_t cb = {.buffer = {0}, .length = 0, .write_index = 0, .read_index =
+			0};
 
 	//Search an empty buffer. We should get an error.
 	uint8_t ret_val = 0;
@@ -311,10 +302,8 @@ void test_circ_buf_search(void)
 void test_circ_buf_checksum(void)
 {
 	//Initialize new cir_buf
-	circ_buf_t cb = {.buffer = {0},        \
-	                 .length = 0,          \
-	                 .write_index = 0,     \
-	                 .read_index = 0};
+	circ_buf_t cb = {.buffer = {0}, .length = 0, .write_index = 0, .read_index =
+			0};
 
 	//Create one array of the same size:
 	uint8_t w_array[CIRC_BUF_SIZE] = {0};
@@ -372,7 +361,7 @@ void test_circ_buf_checksum(void)
 	//We compare to our function
 	ret_val = 0;
 	checksum = 0;
-	cb.read_index = CIRC_BUF_SIZE - (len / 2);	//We manually change the read pointer
+	cb.read_index = CIRC_BUF_SIZE - (len / 2);//We manually change the read pointer
 	start_index = 0;
 	stop_index = len;
 	ret_val = circ_buf_checksum(&cb, &checksum, start_index, stop_index);
@@ -400,65 +389,6 @@ void test_circ_buf_checksum(void)
 	TEST_ASSERT_EQUAL(1, ret_val);
 }
 
-/*
-void test_buffer_circular_write_erase(void)
-{
-	circularBuffer_t buf;
-	circularBuffer_t* cb = &buf;
-	circ_buff_init(cb);
-
-	srand(time(NULL));
-	const int ALPHABET_LEN = 31;
-
-	int i;
-	uint8_t alphabet[ALPHABET_LEN];
-	for(i = 0; i < ALPHABET_LEN; i++)
-	{
-		alphabet[i] = rand() % 256;
-	}
-
-	int shouldWrite, lengthToErase;
-	int bufSize = circ_buff_get_size(cb);
-	for(i = 0; i < 5000 || bufSize < (CB_BUF_LEN / 2); i++)
-	{
-		bufSize = circ_buff_get_size(cb);
-		shouldWrite = rand() % 2;
-		if(shouldWrite || bufSize < 2)
-		{
-			circ_buff_write(cb, alphabet, ALPHABET_LEN);
-		}
-		else
-		{
-			lengthToErase = rand() % (circ_buff_get_size(cb)/2);
-			circ_buff_move_head(cb, lengthToErase);
-		}
-	}
-
-	bufSize = circ_buff_get_size(cb);
-	uint8_t outputBuf[CB_BUF_LEN];
-	circ_buff_read(cb, outputBuf, bufSize);
-	int j = ALPHABET_LEN-1;
-	for(i = bufSize - 1; i >= 0; i--)
-	{
-		TEST_ASSERT_EQUAL(alphabet[j], outputBuf[i]);
-		j--;
-		if(j < 0)
-			j+=ALPHABET_LEN;
-	}
-}
-
-int getIndexOf(uint8_t value, uint8_t* buf, uint16_t start, uint16_t length)
-{
-	int i;
-	for(i = start; i < length; i++)
-	{
-		if(buf[i] == value) return i;
-	}
-	return -1;
-}
-
-*/
-
 void test_circ_buf(void)
 {
 	RUN_TEST(test_circ_buf_w);
@@ -467,11 +397,9 @@ void test_circ_buf(void)
 	RUN_TEST(test_circ_buf_peek);
 	RUN_TEST(test_circ_buf_search);
 	RUN_TEST(test_circ_buf_checksum);
-	//RUN_TEST(test_buffer_circular_write_erase);
 
 	fflush(stdout);
 }
-
 
 #ifdef __cplusplus
 }

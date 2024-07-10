@@ -1,15 +1,9 @@
-#include <stdio.h>
-#include <stdint.h>
-#include <string.h>
-#include <stdlib.h>
-#include "flexsea_comm.h"
-#include "flexsea-comm_test-all.h"
-#include "unity.h"
+#include "tests.h"
 
 int main(void)
 {
-    printf("Welcome to the FlexSEA v2.0 Test Suite\n");
-    printf("======================================\n\n");
+	printf("Welcome to the FlexSEA v2.0 Test Suite\n");
+	printf("======================================\n\n");
 
 	UNITY_BEGIN();
 
