@@ -138,9 +138,72 @@ void test_comm_unpack_payload_simple(void)
 
 //Simple payload (no escape, short, etc.) preceded by some garbage in our
 //circular buffer
-void test_comm_unpack_payload_2(void)
+void test_comm_unpack_payload_with_garbage_before(void)
 {
-	//ToDo
+	//We start by packing a simple payload
+	uint8_t payload[] = "flexsea_v2";
+	uint8_t payload_len = sizeof(payload);
+	uint8_t packed_payload_len = 0;
+	uint8_t packed_payload[PACKAGED_PAYLOAD_LEN] = {0};
+	uint8_t ret_val = comm_pack_payload(payload, payload_len, packed_payload,
+			&packed_payload_len);
+	TEST_ASSERT_EQUAL_MESSAGE(0, ret_val,
+			"comm_pack_payload() is reporting an error");
+	TEST_ASSERT_EQUAL_MESSAGE(payload_len + 3, packed_payload_len,
+			"How many bytes does generating a string add?");
+
+	//We prepare a new circular buffer
+	circ_buf_t cb = {.buffer = {0}, .length = 0, .write_index = 0, .read_index =
+				0};
+
+	//Oh, there is noise on our bus! We get some bytes in, and some are
+	//key values used by our communication...
+	circ_buf_write_byte(&cb, 0);
+	circ_buf_write_byte(&cb, 0);
+	circ_buf_write_byte(&cb, HEADER);
+	circ_buf_write_byte(&cb, FOOTER);
+	circ_buf_write_byte(&cb, ESCAPE);
+	circ_buf_write_byte(&cb, 123);
+	circ_buf_write_byte(&cb, FOOTER);
+
+	//Our payload makes it into the circular buffer
+	int i = 0;
+	ret_val = 0;
+	for(i = 0; i < packed_payload_len + 1; i++)
+	{
+		//Write to circular buffer
+		ret_val = circ_buf_write_byte(&cb, packed_payload[i]);
+
+		//circ_buf_write() should always return 0 if we are not overwriting
+		if(ret_val)
+		{
+			TEST_FAIL_MESSAGE("CB indicates it's full while it shouldn't.");
+			break;
+		}
+	}
+
+	//At this point our packaged payload is in 'cb'. We unpack it.
+	uint8_t extracted_packed_payload[PACKAGED_PAYLOAD_LEN] = {0};
+	uint8_t extracted_unpacked_payload[PACKAGED_PAYLOAD_LEN] = {0};
+	ret_val = comm_unpack_payload(&cb, extracted_packed_payload,
+			extracted_unpacked_payload);
+	if(ret_val)
+	{
+		TEST_FAIL_MESSAGE("unpack_payload_cb2 encountered an error");
+	}
+
+	//Compare strings in & out
+	TEST_ASSERT_EQUAL_UINT8_ARRAY(packed_payload, extracted_packed_payload,
+			packed_payload_len + 1);
+	TEST_ASSERT_EQUAL_UINT8_ARRAY(payload, extracted_unpacked_payload,
+			payload_len + 1);
+}
+
+//Long payload (no escape, short, etc.) preceded by some garbage in our
+//circular buffer, and with a corrupted byte in the middle
+void test_comm_unpack_payload_with_garbage_before_and_corruption(void)
+{
+
 }
 
 void test_flexsea_comm(void)
@@ -152,7 +215,8 @@ void test_flexsea_comm(void)
 
 	//Unpacking:
 	RUN_TEST(test_comm_unpack_payload_simple);
-	//RUN_TEST(test_comm_unpack_2);
+	RUN_TEST(test_comm_unpack_payload_with_garbage_before);
+	//RUN_TEST(test_comm_unpack_payload_with_garbage_before_and_corruption);
 
 	fflush(stdout);
 }
