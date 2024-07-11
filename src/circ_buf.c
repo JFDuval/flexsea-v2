@@ -9,7 +9,6 @@
 
 //Return value convention: 0 is good, 1 means an error happened
 //Any numerical data that needs to be returned is passed via pointers
-//ToDo fix get_size
 
 //****************************************************************************
 // Variable(s)
@@ -200,8 +199,8 @@ uint8_t circ_buf_checksum(circ_buf_t *cb, uint8_t *checksum, uint16_t start,
 }
 
 //Get the buffer size
-//ToDo this doesn't follow our return convention
-uint16_t circ_buf_get_size(circ_buf_t *cb)
+uint8_t circ_buf_get_size(circ_buf_t *cb, uint16_t *cb_size)
 {
-	return cb->length;
+	*cb_size = cb->length;
+	return 0;
 }

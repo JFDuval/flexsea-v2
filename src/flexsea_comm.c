@@ -141,14 +141,16 @@ uint8_t comm_pack_payload(uint8_t *payload, uint8_t payload_bytes,
 uint8_t comm_unpack_payload(circ_buf_t *cb, uint8_t *packed,
 		uint8_t unpacked[PACKAGED_PAYLOAD_LEN])
 {
-	uint16_t cb_size = circ_buf_get_size(cb);
+	uint8_t ret_val = 0;
+	uint16_t cb_size = 0;
+	ret_val = circ_buf_get_size(cb, &cb_size);
 	uint16_t found_packed_payload = 0, found_footer = 0,
 			possible_footer_pos = 0;
 	uint16_t last_possible_header_index = cb_size - 4;
 	uint16_t header_pos = 0, last_header_pos = 0;
 	uint8_t first_time = 1;
 	uint8_t checksum = 0;
-	uint8_t ret_val = 0;
+
 	uint8_t bytes_in_packed_payload = 0;
 	uint8_t byte_peek = 0;
 

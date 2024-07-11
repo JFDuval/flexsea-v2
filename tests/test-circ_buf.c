@@ -106,12 +106,16 @@ void test_circ_buf_size(void)
 	circ_buf_t cb = {.buffer = {0}, .length = 0, .write_index = 0, .read_index =
 			0};
 
+	uint8_t ret_val = 0;
+	uint16_t cb_size = 0;
+
 	//New buffer should report a size of 0
-	TEST_ASSERT_EQUAL(0, circ_buf_get_size(&cb));
+	ret_val = circ_buf_get_size(&cb, &cb_size);
+	TEST_ASSERT_EQUAL(0, cb_size);
 
 	//Write sequential values to buffer
 	int i = 0;
-	uint8_t w_byte = 0, ret_val = 0;
+	uint8_t w_byte = 0;
 	int16_t manual_counter = 0;
 	int16_t bytes_to_write = CIRC_BUF_SIZE / 2;
 	for(i = 0; i < bytes_to_write; i++)
@@ -128,7 +132,8 @@ void test_circ_buf_size(void)
 		}
 	}
 	manual_counter = bytes_to_write;
-	TEST_ASSERT_EQUAL(manual_counter, circ_buf_get_size(&cb));
+	ret_val = circ_buf_get_size(&cb, &cb_size);
+	TEST_ASSERT_EQUAL(manual_counter, cb_size);
 
 	//Read some bytes out
 	int16_t bytes_to_read = bytes_to_write / 2;
@@ -147,7 +152,8 @@ void test_circ_buf_size(void)
 		}
 	}
 	manual_counter -= bytes_to_read;
-	TEST_ASSERT_EQUAL(manual_counter, circ_buf_get_size(&cb));
+	ret_val = circ_buf_get_size(&cb, &cb_size);
+	TEST_ASSERT_EQUAL(manual_counter, cb_size);
 
 	//Finish reading the buffer
 	for(i = 0; i < remaining_bytes_to_read; i++)
@@ -165,7 +171,8 @@ void test_circ_buf_size(void)
 	manual_counter -= remaining_bytes_to_read;
 	TEST_ASSERT_EQUAL_MESSAGE(0, manual_counter,
 			"Test writer error, this should be zero.");
-	TEST_ASSERT_EQUAL(manual_counter, circ_buf_get_size(&cb));
+	ret_val = circ_buf_get_size(&cb, &cb_size);
+	TEST_ASSERT_EQUAL(manual_counter, cb_size);
 
 	//And now we try to read from an empty buffer
 	ret_val = circ_buf_read_byte(&cb, &r_byte);
@@ -173,7 +180,8 @@ void test_circ_buf_size(void)
 	TEST_ASSERT_EQUAL(1, ret_val);
 	TEST_ASSERT_EQUAL(0, r_byte);
 	//Size should still be 0
-	TEST_ASSERT_EQUAL(0, circ_buf_get_size(&cb));
+	ret_val = circ_buf_get_size(&cb, &cb_size);
+	TEST_ASSERT_EQUAL(0, cb_size);
 }
 
 //Test the peek function
@@ -183,9 +191,12 @@ void test_circ_buf_peek(void)
 	circ_buf_t cb = {.buffer = {0}, .length = 0, .write_index = 0, .read_index =
 			0};
 
+	uint8_t ret_val = 0;
+	uint16_t cb_size = 0;
+
 	//Write sequential values to buffer, filling it
 	int i = 0;
-	uint8_t w_byte = 0, ret_val = 0;
+	uint8_t w_byte = 0;
 	for(i = 0; i < CIRC_BUF_SIZE; i++)
 	{
 		//Write to circular buffer
@@ -201,14 +212,16 @@ void test_circ_buf_peek(void)
 	}
 
 	//Confirm that our size is of a full buffer
-	TEST_ASSERT_EQUAL(CIRC_BUF_SIZE, circ_buf_get_size(&cb));
+	ret_val = circ_buf_get_size(&cb, &cb_size);
+	TEST_ASSERT_EQUAL(CIRC_BUF_SIZE, cb_size);
 	//Peek and confirm that we are seeing the correct value
 	uint8_t p_byte = 0, offset = 10;
 	ret_val = circ_buf_peek(&cb, &p_byte, offset);
 	TEST_ASSERT_EQUAL(0, ret_val);	//Should be 0, we are within the size
 	TEST_ASSERT_EQUAL(offset, p_byte);//Sequential values, offset should equal p_byte
 	//Make sure we didn't change the size
-	TEST_ASSERT_EQUAL(CIRC_BUF_SIZE, circ_buf_get_size(&cb));
+	ret_val = circ_buf_get_size(&cb, &cb_size);
+	TEST_ASSERT_EQUAL(CIRC_BUF_SIZE, cb_size);
 }
 
 //Test the search function

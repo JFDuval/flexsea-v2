@@ -20,7 +20,7 @@ typedef struct circ_buf
 	volatile uint8_t buffer[CIRC_BUF_SIZE];	//Empty circular buffer
 	volatile uint16_t read_index;			//Index of the read pointer
 	volatile uint16_t write_index;			//Index of the write pointer
-	volatile uint16_t length;			//Number of values in circular buffer
+	volatile uint16_t length;				//Number of values in circular buffer
 }circ_buf_t;
 
 //****************************************************************************
@@ -35,7 +35,7 @@ uint8_t circ_buf_search(circ_buf_t *cb, uint16_t *search_result, uint8_t value,
 		uint16_t start_offset);
 uint8_t circ_buf_checksum(circ_buf_t *cb, uint8_t *checksum, uint16_t start,
 		uint16_t end);
-uint16_t circ_buf_get_size(circ_buf_t *cb);
+uint8_t circ_buf_get_size(circ_buf_t *cb, uint16_t *cb_size);
 
 //****************************************************************************
 // Shared variable(s)
