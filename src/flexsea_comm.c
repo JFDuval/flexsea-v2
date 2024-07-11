@@ -72,6 +72,7 @@ extern "C" {
 
 //ToDo remove COMM_STR_BUF_LEN
 //ToDo optional byte filling, of a given length
+//ToDo clean/clarify last index vs string length (use the latter)
 
 uint8_t comm_pack_payload(uint8_t *payload, uint8_t payload_bytes,
 		uint8_t *packed_payload, uint8_t *packed_payload_bytes)
@@ -137,6 +138,7 @@ uint8_t comm_pack_payload(uint8_t *payload, uint8_t payload_bytes,
 
 //ToDo: return number of bytes (pointers), and error code
 //ToDo: is it useful to return the packed version?
+//ToDo: how do we handle a corrupted payload? Do we remove it from the buffer or not?
 
 uint8_t comm_unpack_payload(circ_buf_t *cb, uint8_t *packed,
 		uint8_t unpacked[PACKAGED_PAYLOAD_LEN])
