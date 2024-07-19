@@ -18,13 +18,13 @@ void test_comm_pack_payload_simple(void)
 			&packed_payload_len);
 	TEST_ASSERT_EQUAL_MESSAGE(0, ret_val,
 			"comm_pack_payload() is reporting an error");
-	TEST_ASSERT_EQUAL_MESSAGE(payload_len + 3, packed_payload_len,
+	TEST_ASSERT_EQUAL_MESSAGE(payload_len + MIN_OVERHEAD, packed_payload_len,
 			"How many bytes does generating a string add?");
 
 	//Check if our header and footer make sense, as well as our payload bytes
 	TEST_ASSERT_EQUAL(HEADER, packed_payload[0]);
 	TEST_ASSERT_EQUAL(payload_len, packed_payload[1]);
-	TEST_ASSERT_EQUAL(FOOTER, packed_payload[packed_payload_len]);
+	TEST_ASSERT_EQUAL(FOOTER, packed_payload[packed_payload_len - 1]);
 
 	//Manual checksum test:
 	uint16_t i = 0;
@@ -33,7 +33,7 @@ void test_comm_pack_payload_simple(void)
 	{
 		manual_checksum += payload[i];
 	}
-	TEST_ASSERT_EQUAL(manual_checksum, packed_payload[packed_payload_len - 1]);
+	TEST_ASSERT_EQUAL(manual_checksum, packed_payload[packed_payload_len - 2]);
 }
 
 void test_comm_pack_payload_too_long(void)
@@ -64,14 +64,14 @@ void test_comm_pack_payload_escape(void)
 			&packed_payload_len);
 	TEST_ASSERT_EQUAL_MESSAGE(0, ret_val,
 			"comm_pack_payload() is reporting an error");
-	TEST_ASSERT_EQUAL_MESSAGE(payload_len + 4, packed_payload_len,
+	TEST_ASSERT_EQUAL_MESSAGE(payload_len + MIN_OVERHEAD + 1, packed_payload_len,
 			"How many bytes does generating a string add?");
 
 	//Check if our header and footer make sense, as well as our payload bytes
 	//(including a shift for the escape char)
 	TEST_ASSERT_EQUAL(HEADER, packed_payload[0]);
 	TEST_ASSERT_EQUAL(payload_len + 1, packed_payload[1]);
-	TEST_ASSERT_EQUAL(FOOTER, packed_payload[packed_payload_len]);
+	TEST_ASSERT_EQUAL(FOOTER, packed_payload[packed_payload_len - 1]);
 	TEST_ASSERT_EQUAL(ESCAPE, packed_payload[12]); //Is the ESCAPE where it should be?
 
 	//Manual checksum test:
@@ -82,7 +82,7 @@ void test_comm_pack_payload_escape(void)
 		manual_checksum += payload[i];
 	}
 	manual_checksum += ESCAPE;	//Adding one ESCAPE char
-	TEST_ASSERT_EQUAL(manual_checksum, packed_payload[packed_payload_len - 1]);
+	TEST_ASSERT_EQUAL(manual_checksum, packed_payload[packed_payload_len - 2]);
 }
 
 //Simple payload (no escape, short, etc.) located right at the start of our
@@ -98,7 +98,7 @@ void test_comm_unpack_payload_simple(void)
 			&packed_payload_len);
 	TEST_ASSERT_EQUAL_MESSAGE(0, ret_val,
 			"comm_pack_payload() is reporting an error");
-	TEST_ASSERT_EQUAL_MESSAGE(payload_len + 3, packed_payload_len,
+	TEST_ASSERT_EQUAL_MESSAGE(payload_len + MIN_OVERHEAD, packed_payload_len,
 			"How many bytes does generating a string add?");
 
 	//We then feed it to a new circular buffer
@@ -106,7 +106,7 @@ void test_comm_unpack_payload_simple(void)
 			0};
 	int i = 0;
 	ret_val = 0;
-	for(i = 0; i < packed_payload_len + 1; i++)
+	for(i = 0; i < packed_payload_len; i++)
 	{
 		//Write to circular buffer
 		ret_val = circ_buf_write_byte(&cb, packed_payload[i]);
@@ -131,9 +131,9 @@ void test_comm_unpack_payload_simple(void)
 
 	//Compare strings in & out
 	TEST_ASSERT_EQUAL_UINT8_ARRAY(packed_payload, extracted_packed_payload,
-			packed_payload_len + 1);
+			packed_payload_len);
 	TEST_ASSERT_EQUAL_UINT8_ARRAY(payload, extracted_unpacked_payload,
-			payload_len + 1);
+			payload_len);
 }
 
 //Simple payload (no escape, short, etc.) preceded by some garbage in our
@@ -149,7 +149,7 @@ void test_comm_unpack_payload_with_garbage_before(void)
 			&packed_payload_len);
 	TEST_ASSERT_EQUAL_MESSAGE(0, ret_val,
 			"comm_pack_payload() is reporting an error");
-	TEST_ASSERT_EQUAL_MESSAGE(payload_len + 3, packed_payload_len,
+	TEST_ASSERT_EQUAL_MESSAGE(payload_len + MIN_OVERHEAD, packed_payload_len,
 			"How many bytes does generating a string add?");
 
 	//We prepare a new circular buffer
@@ -169,7 +169,7 @@ void test_comm_unpack_payload_with_garbage_before(void)
 	//Our payload makes it into the circular buffer
 	int i = 0;
 	ret_val = 0;
-	for(i = 0; i < packed_payload_len + 1; i++)
+	for(i = 0; i < packed_payload_len; i++)
 	{
 		//Write to circular buffer
 		ret_val = circ_buf_write_byte(&cb, packed_payload[i]);
@@ -194,7 +194,7 @@ void test_comm_unpack_payload_with_garbage_before(void)
 
 	//Compare strings in & out
 	TEST_ASSERT_EQUAL_UINT8_ARRAY(packed_payload, extracted_packed_payload,
-			packed_payload_len + 1);
+			packed_payload_len);
 	TEST_ASSERT_EQUAL_UINT8_ARRAY(payload, extracted_unpacked_payload,
 			payload_len);
 }
@@ -212,7 +212,7 @@ void test_comm_unpack_payload_with_garbage_before_and_corruption(void)
 			&packed_payload_len);
 	TEST_ASSERT_EQUAL_MESSAGE(0, ret_val,
 			"comm_pack_payload() is reporting an error");
-	TEST_ASSERT_EQUAL_MESSAGE(payload_len + 3, packed_payload_len,
+	TEST_ASSERT_EQUAL_MESSAGE(payload_len + MIN_OVERHEAD, packed_payload_len,
 			"How many bytes does generating a string add?");
 
 	//We prepare a new circular buffer
@@ -235,7 +235,7 @@ void test_comm_unpack_payload_with_garbage_before_and_corruption(void)
 	//Our payload makes it into the circular buffer
 	int i = 0;
 	ret_val = 0;
-	for(i = 0; i < packed_payload_len + 1; i++)
+	for(i = 0; i < packed_payload_len; i++)
 	{
 		//Write to circular buffer
 		ret_val = circ_buf_write_byte(&cb, packed_payload[i]);

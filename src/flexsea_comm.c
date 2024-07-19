@@ -72,7 +72,6 @@ extern "C" {
 
 //ToDo remove COMM_STR_BUF_LEN
 //ToDo optional byte filling, of a given length
-//ToDo clean/clarify last index vs string length (use the latter)
 
 uint8_t comm_pack_payload(uint8_t *payload, uint8_t payload_bytes,
 		uint8_t *packed_payload, uint8_t *packed_payload_bytes)
@@ -129,8 +128,8 @@ uint8_t comm_pack_payload(uint8_t *payload, uint8_t payload_bytes,
 	packed_payload[2 + total_bytes] = checksum;
 	packed_payload[3 + total_bytes] = FOOTER;
 
-	//Return the last index of the valid data
-	*packed_payload_bytes = (3 + total_bytes);
+	//Return the length of the valid data
+	*packed_payload_bytes = (MIN_OVERHEAD + total_bytes);
 	return 0;
 }
 
