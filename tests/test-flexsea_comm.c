@@ -13,9 +13,9 @@ void test_comm_pack_payload_simple(void)
 	uint8_t payload[] = "flexsea_v2";
 	uint8_t payload_len = sizeof(payload);
 	uint8_t packed_payload_len = 0;
-	uint8_t packed_payload[PACKAGED_PAYLOAD_LEN] = {0};
+	uint8_t packed_payload[MAX_PACKED_PAYLOAD_BYTES] = {0};
 	uint8_t ret_val = comm_pack_payload(payload, payload_len, packed_payload,
-			&packed_payload_len);
+			&packed_payload_len, MAX_PACKED_PAYLOAD_BYTES);
 	TEST_ASSERT_EQUAL_MESSAGE(0, ret_val,
 			"comm_pack_payload() is reporting an error");
 	TEST_ASSERT_EQUAL_MESSAGE(payload_len + MIN_OVERHEAD, packed_payload_len,
@@ -43,9 +43,9 @@ void test_comm_pack_payload_too_long(void)
 	uint8_t payload[48] = {[0 ... 47] = 'x'};
 	uint8_t payload_len = sizeof(payload);
 	uint8_t packed_payload_len = 0;
-	uint8_t packed_payload[PACKAGED_PAYLOAD_LEN] = {0};
+	uint8_t packed_payload[MAX_PACKED_PAYLOAD_BYTES] = {0};
 	uint8_t ret_val = comm_pack_payload(payload, payload_len, packed_payload,
-			&packed_payload_len);
+			&packed_payload_len, MAX_PACKED_PAYLOAD_BYTES);
 	TEST_ASSERT_NOT_EQUAL_MESSAGE(0, ret_val,
 			"comm_pack_payload() is not reporting an error when it should");
 	TEST_ASSERT_EQUAL(0, packed_payload_len);
@@ -59,13 +59,13 @@ void test_comm_pack_payload_escape(void)
 	payload[10] = HEADER; //Replace one 'x' by a char that will need to be escaped
 	uint8_t payload_len = sizeof(payload);
 	uint8_t packed_payload_len = 0;
-	uint8_t packed_payload[PACKAGED_PAYLOAD_LEN] = {0};
+	uint8_t packed_payload[MAX_PACKED_PAYLOAD_BYTES] = {0};
 	uint8_t ret_val = comm_pack_payload(payload, payload_len, packed_payload,
-			&packed_payload_len);
+			&packed_payload_len, MAX_PACKED_PAYLOAD_BYTES);
 	TEST_ASSERT_EQUAL_MESSAGE(0, ret_val,
 			"comm_pack_payload() is reporting an error");
-	TEST_ASSERT_EQUAL_MESSAGE(payload_len + MIN_OVERHEAD + 1, packed_payload_len,
-			"How many bytes does generating a string add?");
+	TEST_ASSERT_EQUAL_MESSAGE(payload_len + MIN_OVERHEAD + 1,
+			packed_payload_len, "How many bytes does generating a string add?");
 
 	//Check if our header and footer make sense, as well as our payload bytes
 	//(including a shift for the escape char)
@@ -93,9 +93,9 @@ void test_comm_unpack_payload_simple(void)
 	uint8_t payload[] = "flexsea_v2";
 	uint8_t payload_len = sizeof(payload);
 	uint8_t packed_payload_len = 0;
-	uint8_t packed_payload[PACKAGED_PAYLOAD_LEN] = {0};
+	uint8_t packed_payload[MAX_PACKED_PAYLOAD_BYTES] = {0};
 	uint8_t ret_val = comm_pack_payload(payload, payload_len, packed_payload,
-			&packed_payload_len);
+			&packed_payload_len, MAX_PACKED_PAYLOAD_BYTES);
 	TEST_ASSERT_EQUAL_MESSAGE(0, ret_val,
 			"comm_pack_payload() is reporting an error");
 	TEST_ASSERT_EQUAL_MESSAGE(payload_len + MIN_OVERHEAD, packed_payload_len,
@@ -120,14 +120,21 @@ void test_comm_unpack_payload_simple(void)
 	}
 
 	//At this point our packaged payload is in 'cb'. We unpack it.
-	uint8_t extracted_packed_payload[PACKAGED_PAYLOAD_LEN] = {0};
-	uint8_t extracted_unpacked_payload[PACKAGED_PAYLOAD_LEN] = {0};
+	uint8_t extracted_packed_payload[MAX_PACKED_PAYLOAD_BYTES] = {0};
+	uint8_t extracted_packed_payload_len = 0;
+	uint8_t extracted_unpacked_payload[MAX_PACKED_PAYLOAD_BYTES] = {0};
+	uint8_t extracted_unpacked_payload_len = 0;
 	ret_val = comm_unpack_payload(&cb, extracted_packed_payload,
-			extracted_unpacked_payload);
+			&extracted_packed_payload_len, extracted_unpacked_payload,
+			&extracted_unpacked_payload_len);
 	if(ret_val)
 	{
 		TEST_FAIL_MESSAGE("comm_unpack_payload encountered an error");
 	}
+
+	//Compare lengths in & out
+	TEST_ASSERT_EQUAL(payload_len, extracted_unpacked_payload_len);
+	TEST_ASSERT_EQUAL(packed_payload_len, extracted_packed_payload_len);
 
 	//Compare strings in & out
 	TEST_ASSERT_EQUAL_UINT8_ARRAY(packed_payload, extracted_packed_payload,
@@ -144,9 +151,9 @@ void test_comm_unpack_payload_with_garbage_before(void)
 	uint8_t payload[] = "flexsea_v2";
 	uint8_t payload_len = sizeof(payload);
 	uint8_t packed_payload_len = 0;
-	uint8_t packed_payload[PACKAGED_PAYLOAD_LEN] = {0};
+	uint8_t packed_payload[MAX_PACKED_PAYLOAD_BYTES] = {0};
 	uint8_t ret_val = comm_pack_payload(payload, payload_len, packed_payload,
-			&packed_payload_len);
+			&packed_payload_len, MAX_PACKED_PAYLOAD_BYTES);
 	TEST_ASSERT_EQUAL_MESSAGE(0, ret_val,
 			"comm_pack_payload() is reporting an error");
 	TEST_ASSERT_EQUAL_MESSAGE(payload_len + MIN_OVERHEAD, packed_payload_len,
@@ -154,7 +161,7 @@ void test_comm_unpack_payload_with_garbage_before(void)
 
 	//We prepare a new circular buffer
 	circ_buf_t cb = {.buffer = {0}, .length = 0, .write_index = 0, .read_index =
-				0};
+			0};
 
 	//Oh, there is noise on our bus! We get some bytes in, and some are
 	//key values used by our communication...
@@ -183,14 +190,21 @@ void test_comm_unpack_payload_with_garbage_before(void)
 	}
 
 	//At this point our packaged payload is in 'cb'. We unpack it.
-	uint8_t extracted_packed_payload[PACKAGED_PAYLOAD_LEN] = {0};
-	uint8_t extracted_unpacked_payload[PACKAGED_PAYLOAD_LEN] = {0};
+	uint8_t extracted_packed_payload[MAX_PACKED_PAYLOAD_BYTES] = {0};
+	uint8_t extracted_packed_payload_len = 0;
+	uint8_t extracted_unpacked_payload[MAX_PACKED_PAYLOAD_BYTES] = {0};
+	uint8_t extracted_unpacked_payload_len = 0;
 	ret_val = comm_unpack_payload(&cb, extracted_packed_payload,
-			extracted_unpacked_payload);
+			&extracted_packed_payload_len, extracted_unpacked_payload,
+			&extracted_unpacked_payload_len);
 	if(ret_val)
 	{
 		TEST_FAIL_MESSAGE("comm_unpack_payload encountered an error");
 	}
+
+	//Compare lengths in & out
+	TEST_ASSERT_EQUAL(payload_len, extracted_unpacked_payload_len);
+	TEST_ASSERT_EQUAL(packed_payload_len, extracted_packed_payload_len);
 
 	//Compare strings in & out
 	TEST_ASSERT_EQUAL_UINT8_ARRAY(packed_payload, extracted_packed_payload,
@@ -207,9 +221,9 @@ void test_comm_unpack_payload_with_garbage_before_and_corruption(void)
 	uint8_t payload[] = "the flexsea_v2 comm protocol is awesome!";
 	uint8_t payload_len = sizeof(payload);
 	uint8_t packed_payload_len = 0;
-	uint8_t packed_payload[PACKAGED_PAYLOAD_LEN] = {0};
+	uint8_t packed_payload[MAX_PACKED_PAYLOAD_BYTES] = {0};
 	uint8_t ret_val = comm_pack_payload(payload, payload_len, packed_payload,
-			&packed_payload_len);
+			&packed_payload_len, MAX_PACKED_PAYLOAD_BYTES);
 	TEST_ASSERT_EQUAL_MESSAGE(0, ret_val,
 			"comm_pack_payload() is reporting an error");
 	TEST_ASSERT_EQUAL_MESSAGE(payload_len + MIN_OVERHEAD, packed_payload_len,
@@ -217,7 +231,7 @@ void test_comm_unpack_payload_with_garbage_before_and_corruption(void)
 
 	//We prepare a new circular buffer
 	circ_buf_t cb = {.buffer = {0}, .length = 0, .write_index = 0, .read_index =
-				0};
+			0};
 
 	//Oh, there is noise on our bus! We get some bytes in, and some are
 	//key values used by our communication...
@@ -249,24 +263,32 @@ void test_comm_unpack_payload_with_garbage_before_and_corruption(void)
 	}
 
 	//While in transit, a byte gets corrupted
-	cb.buffer[cb.read_index + (cb.length / 2)] = (cb.buffer[cb.read_index + (cb.length / 2)] + 1);
+	cb.buffer[cb.read_index + (cb.length / 2)] = (cb.buffer[cb.read_index
+			+ (cb.length / 2)] + 1);
 
 	//At this point our packaged payload is in 'cb'. Due to the byte corruption, we should not be able to unpack it.
-	uint8_t extracted_packed_payload[PACKAGED_PAYLOAD_LEN] = {0};
-	uint8_t extracted_unpacked_payload[PACKAGED_PAYLOAD_LEN] = {0};
+	uint8_t extracted_packed_payload[MAX_PACKED_PAYLOAD_BYTES] = {0};
+	uint8_t extracted_packed_payload_len = 0;
+	uint8_t extracted_unpacked_payload[MAX_PACKED_PAYLOAD_BYTES] = {0};
+	uint8_t extracted_unpacked_payload_len = 0;
 	ret_val = comm_unpack_payload(&cb, extracted_packed_payload,
-			extracted_unpacked_payload);
+			&extracted_packed_payload_len, extracted_unpacked_payload,
+			&extracted_unpacked_payload_len);
 	if(!ret_val)
 	{
 		TEST_FAIL_MESSAGE("comm_unpack_payload should have thrown an error!");
 	}
 
+	//Make sure our reported lengths are 0
+	TEST_ASSERT_EQUAL(0, extracted_unpacked_payload_len);
+	TEST_ASSERT_EQUAL(0, extracted_packed_payload_len);
+
 	//Make sure return payloads are empty
-	uint8_t empty_payload[PACKAGED_PAYLOAD_LEN] = {0};
+	uint8_t empty_payload[MAX_PACKED_PAYLOAD_BYTES] = {0};
 	TEST_ASSERT_EQUAL_UINT8_ARRAY(empty_payload, extracted_packed_payload,
-			PACKAGED_PAYLOAD_LEN);
+			MAX_PACKED_PAYLOAD_BYTES);
 	TEST_ASSERT_EQUAL_UINT8_ARRAY(empty_payload, extracted_unpacked_payload,
-			PACKAGED_PAYLOAD_LEN);
+			MAX_PACKED_PAYLOAD_BYTES);
 }
 
 void test_flexsea_comm(void)

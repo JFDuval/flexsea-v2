@@ -50,30 +50,19 @@ extern "C" {
 #define FOOTER  						0xEE	//238d
 #define ESCAPE  						0xE9	//233d
 
-//Return codes:
-#define UNPACK_ERR_HEADER				-1
-#define UNPACK_ERR_FOOTER				-2
-#define UNPACK_ERR_LEN					-3
-#define UNPACK_ERR_CHECKSUM				-4
-
 //Buffers and packets:
 #define MIN_OVERHEAD					4		//Header + Footer + Checksum + # bytes
-#define RX_BUF_LEN						150		//Reception buffer (flexsea_comm)
-#define PAYLOAD_BUF_LEN					36		//Number of bytes in a payload string
-#define PAYLOAD_BYTES					(PAYLOAD_BUF_LEN - 4)
-#define COMM_STR_BUF_LEN				48		//Number of bytes in a comm. string
-#define PACKAGED_PAYLOAD_LEN			48		//Temporary
-#define PACKET_WRAPPER_LEN				RX_BUF_LEN
-#define COMM_PERIPH_ARR_LEN				RX_BUF_LEN
+#define MAX_PACKED_PAYLOAD_BYTES		48		//Max number of bytes in a packed payload
 
 //****************************************************************************
 // Public Function Prototype(s):
 //****************************************************************************
 
-uint8_t comm_pack_payload(uint8_t *payload, uint8_t payload_bytes,
-		uint8_t *packed_payload, uint8_t *packed_payload_bytes);
-uint8_t comm_unpack_payload(circ_buf_t *cb, uint8_t *packed,
-		uint8_t unpacked[PACKAGED_PAYLOAD_LEN]);
+uint8_t comm_pack_payload(uint8_t *payload, uint8_t payload_len,
+		uint8_t *packed_payload, uint8_t *packed_payload_len,
+				uint8_t max_packed_payload_len);
+uint8_t comm_unpack_payload(circ_buf_t *cb, uint8_t *packed, uint8_t *packed_len,
+		uint8_t *unpacked, uint8_t *unpacked_len);
 
 //****************************************************************************
 // Structure(s):

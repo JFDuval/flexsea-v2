@@ -65,27 +65,25 @@ extern "C" {
 //Takes a payload (raw data) and packs it so it can be sent on the wire
 //Packing means adding a header, a footer, escape chars (if needed), and a checksum
 //'uint8_t *payload': the data you want to send, stored in an array
-//'uint8_t payload_bytes': number of bytes in 'payload' (could be shorter than sizeof())
+//'uint8_t payload_len': number of bytes in 'payload' (could be shorter than sizeof())
 //'uint8_t *packed_ payload': array used to return a packed payload (this is your output)
-//'uint8_t *packed_payload_bytes': number of bytes in 'packed_payload'
+//'uint8_t *packed_payload_len': number of bytes in 'packed_payload'
+//'uint8_t max_packed_payload_len' maximum allowed length of 'packed_payload_bytes'
 //Returns 0 if it was able to pack it, 1 otherwise
-
-//ToDo remove COMM_STR_BUF_LEN
-//ToDo optional byte filling, of a given length
-
-uint8_t comm_pack_payload(uint8_t *payload, uint8_t payload_bytes,
-		uint8_t *packed_payload, uint8_t *packed_payload_bytes)
+uint8_t comm_pack_payload(uint8_t *payload, uint8_t payload_len,
+		uint8_t *packed_payload, uint8_t *packed_payload_len,
+		uint8_t max_packed_payload_len)
 {
 	uint16_t i = 0, escapes = 0, idx = 0, total_bytes = 0;
 	uint8_t checksum = 0;
 
-	//Fill packaged_payload with known values ('a')
-	memset(packed_payload, 0xAA, COMM_STR_BUF_LEN);
+	//Fill packaged_payload with known values ('a'), up to 'max_packed_payload_bytes'
+	memset(packed_payload, 0xAA, max_packed_payload_len);
 
 	//Fill packaged_payload with payload and add ESCAPE characters when necessary
 	escapes = 0;
 	idx = 2;
-	for(i = 0; i < payload_bytes && idx < COMM_STR_BUF_LEN; i++)
+	for(i = 0; i < payload_len && idx < max_packed_payload_len; i++)
 	{
 		if((payload[i] == HEADER) || (payload[i] == FOOTER)
 				|| (payload[i] == ESCAPE))
@@ -105,20 +103,20 @@ uint8_t comm_pack_payload(uint8_t *payload, uint8_t payload_bytes,
 		idx++;
 	}
 
-	if((idx + 2) >= COMM_STR_BUF_LEN)
+	if((idx + 2) >= max_packed_payload_len)
 	{
 		//Packaged payload too long, abort
-		memset(packed_payload, 0, COMM_STR_BUF_LEN);	//Clear string
+		memset(packed_payload, 0, max_packed_payload_len);	//Clear string
 		return 1;
 	}
 
-	total_bytes = payload_bytes + escapes;
+	total_bytes = payload_len + escapes;
 
 	//String length?
-	if(total_bytes >= COMM_STR_BUF_LEN)
+	if(total_bytes >= max_packed_payload_len)
 	{
 		//Too long, abort:
-		memset(packed_payload, 0, COMM_STR_BUF_LEN);	//Clear string
+		memset(packed_payload, 0, max_packed_payload_len);	//Clear string
 		return 1;
 	}
 
@@ -129,18 +127,19 @@ uint8_t comm_pack_payload(uint8_t *payload, uint8_t payload_bytes,
 	packed_payload[3 + total_bytes] = FOOTER;
 
 	//Return the length of the valid data
-	*packed_payload_bytes = (MIN_OVERHEAD + total_bytes);
+	*packed_payload_len = (MIN_OVERHEAD + total_bytes);
 	return 0;
 }
 
 //Takes data from the wire (stored in a circular buffer) and extracts the first valid payload
+//'circ_buf_t *cb': circular buffer than contains the bytes received over a given physical interface
+//'uint8_t *packed': array that will store the extracted packed payload.
+//'uint8_t *unpacked': array that will store the extracted unpacked payload (no header/footer/....)
 
-//ToDo: return number of bytes (pointers), and error code
-//ToDo: is it useful to return the packed version?
 //ToDo: how do we handle a corrupted payload? Do we remove it from the buffer or not?
 
-uint8_t comm_unpack_payload(circ_buf_t *cb, uint8_t *packed,
-		uint8_t unpacked[PACKAGED_PAYLOAD_LEN])
+uint8_t comm_unpack_payload(circ_buf_t *cb, uint8_t *packed, uint8_t *packed_len,
+		uint8_t *unpacked, uint8_t *unpacked_len)
 {
 	uint8_t ret_val = 0;
 	uint16_t cb_size = 0;
@@ -151,9 +150,12 @@ uint8_t comm_unpack_payload(circ_buf_t *cb, uint8_t *packed,
 	uint16_t header_pos = 0, last_header_pos = 0;
 	uint8_t first_time = 1;
 	uint8_t checksum = 0;
-
 	uint8_t bytes_in_packed_payload = 0;
 	uint8_t byte_peek = 0;
+
+	*packed_len = 0;
+	*unpacked_len = 0;
+
 
 	//We look for a packed payload, starting by searching for a header
 	uint16_t headers = 0, footers = 0;
@@ -189,7 +191,7 @@ uint8_t comm_unpack_payload(circ_buf_t *cb, uint8_t *packed,
 			if(!ret_val)
 			{
 				//Is there a footer?
-				possible_footer_pos = header_pos + 3 + bytes_in_packed_payload;
+				possible_footer_pos = header_pos + bytes_in_packed_payload + MIN_OVERHEAD - 1;
 				ret_val = circ_buf_peek(cb, &byte_peek, possible_footer_pos);
 				if(!ret_val)
 				{
@@ -224,11 +226,10 @@ uint8_t comm_unpack_payload(circ_buf_t *cb, uint8_t *packed,
 	}
 
 	//A correct packaged payload was found in the circular buffer, and we can now extract it
-	int numBytesInPackedString = 0;
 	uint16_t i = 0;
 	if(found_packed_payload)
 	{
-		numBytesInPackedString = header_pos + bytes_in_packed_payload + 4;
+		*packed_len = bytes_in_packed_payload + MIN_OVERHEAD;
 
 		//Our circular buffer is first in first out. If our header wasn't at index = 0 we need to dump some bytes to clear any build-up.
 		if(header_pos)
@@ -241,7 +242,7 @@ uint8_t comm_unpack_payload(circ_buf_t *cb, uint8_t *packed,
 		}
 
 		//At this point our header is at index 0. We grab the following bytes and save them.
-		for(i = 0; i < (bytes_in_packed_payload + 4); i++)
+		for(i = 0; i < (bytes_in_packed_payload + MIN_OVERHEAD); i++)
 		{
 			ret_val = circ_buf_read_byte(cb, &packed[i]);
 		}
@@ -263,6 +264,7 @@ uint8_t comm_unpack_payload(circ_buf_t *cb, uint8_t *packed,
 		}
 
 		//Success, we are done! The user will be able to access the data in 'unpacked'
+		*unpacked_len = unpacked_idx;
 		return 0;
 	}
 

@@ -14,7 +14,7 @@ int main()
 
 	printf("Original payload: '%s' (length: %i bytes)\n", payload, payload_len);
 	uint8_t ret_val = comm_pack_payload(payload, payload_len, packed_payload,
-			&packed_payload_len);
+			&packed_payload_len, MAX_PACKED_PAYLOAD_BYTES);
 
 	if(!ret_val)
 	{
@@ -52,11 +52,14 @@ int main()
 	}
 
 	//At this point our packaged payload is in 'cb'. We unpack it.
-	uint8_t extracted_packed_payload[PACKAGED_PAYLOAD_LEN] = {0};
-	uint8_t extracted_unpacked_payload[PACKAGED_PAYLOAD_LEN] = {0};
+
+	uint8_t extracted_packed_payload[MAX_PACKED_PAYLOAD_BYTES] = {0};
+	uint8_t extracted_packed_payload_len = 0;
+	uint8_t extracted_unpacked_payload[MAX_PACKED_PAYLOAD_BYTES] = {0};
+	uint8_t extracted_unpacked_payload_len = 0;
 	ret_val = comm_unpack_payload(&cb, extracted_packed_payload,
-			extracted_unpacked_payload);
-	uint8_t extracted_unpacked_payload_len = sizeof(extracted_unpacked_payload);
+			&extracted_packed_payload_len, extracted_unpacked_payload,
+			&extracted_unpacked_payload_len);
 	if(ret_val)
 	{
 		printf("An error occurred while unpacking our payload from the circular buffer!\n");
@@ -65,7 +68,7 @@ int main()
 			extracted_unpacked_payload, extracted_unpacked_payload_len);
 
 	//The stack is padding up to 48 bytes. Are the actual payload bytes identical?
-	if(!strncmp(payload, extracted_unpacked_payload, payload_len))
+	if(!strncmp((char *)payload, (char *)extracted_unpacked_payload, payload_len))
 	{
 		printf("The first %i bytes of 'extracted_unpacked_payload' are identical to 'payload'. "
 				"Success!", payload_len);
