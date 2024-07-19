@@ -291,6 +291,75 @@ void test_comm_unpack_payload_with_garbage_before_and_corruption(void)
 			MAX_PACKED_PAYLOAD_BYTES);
 }
 
+//Long payload (no escape, short, etc.) received periodically
+//We decode as soon as we receive
+void test_comm_continuous_receive_unpack(void)
+{
+	//We start by packing a long payload
+	int i = 0, loop = 0;
+	uint8_t payload[] = "the flexsea_v2 comm protocol is reliable!";
+	uint8_t payload_len = sizeof(payload);
+	uint8_t packed_payload_len = 0;
+	uint8_t packed_payload[MAX_PACKED_PAYLOAD_BYTES] = {0};
+	uint8_t ret_val = comm_pack_payload(payload, payload_len, packed_payload,
+			&packed_payload_len, MAX_PACKED_PAYLOAD_BYTES);
+	TEST_ASSERT_EQUAL_MESSAGE(0, ret_val,
+			"comm_pack_payload() is reporting an error");
+	TEST_ASSERT_EQUAL_MESSAGE(payload_len + MIN_OVERHEAD, packed_payload_len,
+			"How many bytes does generating a string add?");
+
+	//We prepare a new circular buffer
+	circ_buf_t cb = {.buffer = {0}, .length = 0, .write_index = 0, .read_index =
+			0};
+
+	//We want to make sure we go around our circular buffer a few times.
+	int iterations = (10 * CIRC_BUF_SIZE) / MAX_PACKED_PAYLOAD_BYTES;
+	uint8_t extracted_packed_payload[MAX_PACKED_PAYLOAD_BYTES] = {0};
+	uint8_t extracted_packed_payload_len = 0;
+	uint8_t extracted_unpacked_payload[MAX_PACKED_PAYLOAD_BYTES] = {0};
+	uint8_t extracted_unpacked_payload_len = 0;
+	for(loop = 0; loop < iterations; loop++)
+	{
+		//Our payload makes it into the circular buffer
+		ret_val = 0;
+		for(i = 0; i < packed_payload_len; i++)
+		{
+			//Write to circular buffer
+			ret_val = circ_buf_write_byte(&cb, packed_payload[i]);
+
+			//circ_buf_write() should always return 0 if we are not overwriting
+			if(ret_val)
+			{
+				TEST_FAIL_MESSAGE("CB indicates it's full while it shouldn't.");
+				break;
+			}
+		}
+
+		//At this point our packaged payload is in 'cb'. We unpack it.
+		extracted_packed_payload_len = 0;
+		extracted_unpacked_payload_len = 0;
+		memset(extracted_packed_payload, 0, MAX_PACKED_PAYLOAD_BYTES);
+		memset(extracted_unpacked_payload, 0, MAX_PACKED_PAYLOAD_BYTES);
+		ret_val = comm_unpack_payload(&cb, extracted_packed_payload,
+				&extracted_packed_payload_len, extracted_unpacked_payload,
+				&extracted_unpacked_payload_len);
+		if(ret_val)
+		{
+			TEST_FAIL_MESSAGE("comm_unpack_payload encountered an error");
+		}
+
+		//Compare lengths in & out
+		TEST_ASSERT_EQUAL(payload_len, extracted_unpacked_payload_len);
+		TEST_ASSERT_EQUAL(packed_payload_len, extracted_packed_payload_len);
+
+		//Compare strings in & out
+		TEST_ASSERT_EQUAL_UINT8_ARRAY(packed_payload, extracted_packed_payload,
+				packed_payload_len);
+		TEST_ASSERT_EQUAL_UINT8_ARRAY(payload, extracted_unpacked_payload,
+				payload_len);
+	}
+}
+
 void test_flexsea_comm(void)
 {
 	//Packing:
@@ -302,6 +371,9 @@ void test_flexsea_comm(void)
 	RUN_TEST(test_comm_unpack_payload_simple);
 	RUN_TEST(test_comm_unpack_payload_with_garbage_before);
 	RUN_TEST(test_comm_unpack_payload_with_garbage_before_and_corruption);
+
+	//Continous data stream:
+	RUN_TEST(test_comm_continuous_receive_unpack);
 
 	fflush(stdout);
 }

@@ -63,7 +63,7 @@ void test_circ_buf_rw(void)
 		//circ_buf_write() should always return 0 if we are not overwriting
 		if(ret_val)
 		{
-			TEST_FAIL_MESSAGE("CB indicates it's full while it shouldn't.");
+			TEST_FAIL_MESSAGE("CB write indicates it's full while it shouldn't.");
 			break;
 		}
 	}
@@ -77,10 +77,10 @@ void test_circ_buf_rw(void)
 		//Save the same info in a regular buffer
 		r_array[i] = r_byte;
 
-		//circ_buf_read() should always return 0 if we are not overwriting
+		//circ_buf_read() should always return 0 if we are not reading from an empty buffer
 		if(ret_val)
 		{
-			TEST_FAIL_MESSAGE("CB indicates it's full while it shouldn't.");
+			TEST_FAIL_MESSAGE("CB read indicates it's empty while it shouldn't.");
 			break;
 		}
 	}
@@ -127,7 +127,7 @@ void test_circ_buf_size(void)
 		//circ_buf_write() should always return 0 if we are not overwriting
 		if(ret_val)
 		{
-			TEST_FAIL_MESSAGE("CB indicates it's full while it shouldn't.");
+			TEST_FAIL_MESSAGE("CB write indicates it's full while it shouldn't.");
 			break;
 		}
 	}
@@ -161,10 +161,10 @@ void test_circ_buf_size(void)
 		//Read from circular buffer
 		ret_val = circ_buf_read_byte(&cb, &r_byte);
 
-		//circ_buf_read() should always return 0 if we are not overwriting
+		//circ_buf_read() should always return 0 if we are not reading from an empty buffer
 		if(ret_val)
 		{
-			TEST_FAIL_MESSAGE("CB indicates it's full while it shouldn't.");
+			TEST_FAIL_MESSAGE("CB read indicates it's empty while it shouldn't.");
 			break;
 		}
 	}
@@ -206,7 +206,7 @@ void test_circ_buf_peek(void)
 		//circ_buf_write() should always return 0 if we are not overwriting
 		if(ret_val)
 		{
-			TEST_FAIL_MESSAGE("CB indicates it's full while it shouldn't.");
+			TEST_FAIL_MESSAGE("CB write indicates it's full while it shouldn't.");
 			break;
 		}
 	}
@@ -224,8 +224,8 @@ void test_circ_buf_peek(void)
 	TEST_ASSERT_EQUAL(CIRC_BUF_SIZE, cb_size);
 }
 
-//Test the search function
-void test_circ_buf_search(void)
+//Test the search function after writing various data (but never reading)
+void test_circ_buf_search_after_write(void)
 {
 	//Initialize new cir_buf
 	circ_buf_t cb = {.buffer = {0}, .length = 0, .write_index = 0, .read_index =
@@ -238,7 +238,7 @@ void test_circ_buf_search(void)
 	ret_val = circ_buf_search(&cb, &search_result, value, start_index);
 	//circ_buf_search() should always return 0 if it contains our value, 1 otherwise
 	TEST_ASSERT_EQUAL(1, ret_val);
-	//DDid we get search_result = 0?
+	//Did we get search_result = 0?
 	TEST_ASSERT_EQUAL(0, search_result);
 
 	//Write sequential values to buffer, filling it
@@ -253,7 +253,7 @@ void test_circ_buf_search(void)
 		//circ_buf_write() should always return 0 if we are not overwriting
 		if(ret_val)
 		{
-			TEST_FAIL_MESSAGE("CB indicates it's full while it shouldn't.");
+			TEST_FAIL_MESSAGE("CB write indicates it's full while it shouldn't.");
 			break;
 		}
 	}
@@ -309,6 +309,115 @@ void test_circ_buf_search(void)
 	TEST_ASSERT_EQUAL(1, ret_val);
 	//Is our value where it should be based on our sequential writing? 0 when not found
 	TEST_ASSERT_EQUAL(0, search_result);
+}
+
+//Test the search function after writing and reading various data
+//This will ensure that we are dealing with the read_pointer correctly
+void test_circ_buf_search_after_read(void)
+{
+	uint8_t ret_val = 0;
+	uint8_t value = 255;
+	uint16_t search_result = 0, start_index = 0;
+	uint16_t bytes_to_read = 0;
+
+	//Initialize new cir_buf
+	circ_buf_t cb = {.buffer = {0}, .length = 0, .write_index = 0, .read_index =
+			0};
+
+	//Write sequential values to buffer, filling it
+	int i = 0;
+	uint8_t w_byte = 0;
+	for(i = 0; i < CIRC_BUF_SIZE; i++)
+	{
+		//Write to circular buffer
+		ret_val = circ_buf_write_byte(&cb, w_byte);
+		w_byte++;
+
+		//circ_buf_write() should always return 0 if we are not overwriting
+		if(ret_val)
+		{
+			TEST_FAIL_MESSAGE("CB write indicates it's full while it shouldn't.");
+			break;
+		}
+	}
+
+	//We should find '255' at index 255
+	ret_val = 0;
+	value = 255;
+	search_result = 0;
+	start_index = 0;
+	ret_val = circ_buf_search(&cb, &search_result, value, start_index);
+	//circ_buf_search() should always return 0 if it contains our value
+	TEST_ASSERT_EQUAL(0, ret_val);
+	//Is our value where it should be based on our sequential writing?
+	TEST_ASSERT_EQUAL(value, search_result);
+
+	//Our read pointer should be at 0 because we have yet to read
+	TEST_ASSERT_EQUAL(0, cb.read_index);
+
+	//Read the first chunk of data
+	uint8_t r_byte = 0;
+	bytes_to_read = 256;
+	for(i = 0; i < bytes_to_read; i++)
+	{
+		//Read from circular buffer
+		ret_val = circ_buf_read_byte(&cb, &r_byte);
+
+		//circ_buf_read() should always return 0 if we are not reading from an empty buffer
+		if(ret_val)
+		{
+			TEST_FAIL_MESSAGE("CB read indicates it's empty while it shouldn't.");
+			break;
+		}
+	}
+
+	//Our read pointer should be at 'bytes_to_read' after this read, and write should be at 0.
+	TEST_ASSERT_EQUAL(bytes_to_read, cb.read_index);
+	TEST_ASSERT_EQUAL(0, cb.write_index);
+
+	//If we start searching we should find our value again at index 255
+	ret_val = 0;
+	value = 255;
+	search_result = 0;
+	start_index = 0;
+	ret_val = circ_buf_search(&cb, &search_result, value, start_index);
+	//circ_buf_search() should always return 0 if it contains our value
+	TEST_ASSERT_EQUAL(0, ret_val);
+	//Is our value where it should be based on our sequential writing?
+	TEST_ASSERT_EQUAL(255, search_result);
+
+	//We re-insert the same number of bytes in the CB. This will shift our write pointer, and
+	//get our size back to the maximum.
+	w_byte = 0;
+	for(i = 0; i < bytes_to_read; i++)
+	{
+		//Write to circular buffer
+		ret_val = circ_buf_write_byte(&cb, w_byte);
+		w_byte++;
+
+		//circ_buf_write() should always return 0 if we are not overwriting
+		if(ret_val)
+		{
+			TEST_FAIL_MESSAGE("CB write indicates it's full while it shouldn't.");
+			break;
+		}
+	}
+	//Just checking that our pointers are where they should be
+	TEST_ASSERT_EQUAL(bytes_to_read, cb.read_index); 	//(Unchanged)
+	TEST_ASSERT_EQUAL(bytes_to_read, cb.write_index); 	//(Moved by 'bytes_to_read')
+
+	//Start searching at the very end to make sure our search function wraps around correctly
+	ret_val = 0;
+	value = 100;
+	search_result = 0;
+	start_index = CIRC_BUF_SIZE - cb.read_index - 1;
+	ret_val = circ_buf_search(&cb, &search_result, value, start_index);
+	//circ_buf_search() should always return 0 if it contains our value
+	TEST_ASSERT_EQUAL(0, ret_val);
+	//Does peek agree with this location?
+	uint8_t p_byte = 0;
+	circ_buf_peek(&cb, &p_byte, search_result);
+	TEST_ASSERT_EQUAL(value, p_byte);
 }
 
 //Test the checksum calculation
@@ -408,7 +517,8 @@ void test_circ_buf(void)
 	RUN_TEST(test_circ_buf_rw);
 	RUN_TEST(test_circ_buf_size);
 	RUN_TEST(test_circ_buf_peek);
-	RUN_TEST(test_circ_buf_search);
+	RUN_TEST(test_circ_buf_search_after_write);
+	RUN_TEST(test_circ_buf_search_after_read);
 	RUN_TEST(test_circ_buf_checksum);
 
 	fflush(stdout);

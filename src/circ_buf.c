@@ -111,6 +111,7 @@ uint8_t circ_buf_peek(circ_buf_t *cb, uint8_t *read_value, uint16_t offset)
 }
 
 //Find the index of a given value
+//The index is an offset from the read pointer
 uint8_t circ_buf_search(circ_buf_t *cb, uint16_t *search_result, uint8_t value,
 		uint16_t start_offset)
 {
@@ -129,8 +130,8 @@ uint8_t circ_buf_search(circ_buf_t *cb, uint16_t *search_result, uint8_t value,
 	{
 		if(cb->buffer[index] == value)
 		{
-			//We found our value, we return
-			*search_result = index;
+			//We found our value, we return a position
+			*search_result = (index - cb->read_index);
 			return 0;
 		}
 		i++;
@@ -143,8 +144,8 @@ uint8_t circ_buf_search(circ_buf_t *cb, uint16_t *search_result, uint8_t value,
 	{
 		if(cb->buffer[index] == value)
 		{
-			//We found our value, we return
-			*search_result = index;
+			//We found our value, we return a position
+			*search_result = (CIRC_BUF_SIZE - cb->read_index + index) % CIRC_BUF_SIZE;
 			return 0;
 		}
 		i++;
