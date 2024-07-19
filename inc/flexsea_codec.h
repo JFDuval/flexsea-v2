@@ -1,7 +1,6 @@
 /****************************************************************************
- [Project] FlexSEA: Flexible & Scalable Electronics Architecture
- [Sub-project] 'flexsea-comm' Communication stack
- Copyright (C) 2016 Dephy, Inc. <http://dephy.com/>
+ [Project] FlexSEA: Flexible & Scalable Electronics Architecture v2
+ Copyright (C) 2024 JFDuval Engineering LLC
 
  This program is free software: you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -16,20 +15,17 @@
  You should have received a copy of the GNU General Public License
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************
- [Lead developper] Jean-Francois (JF) Duval, jfduval at dephy dot com.
+ [Lead developer] Jean-Francois (JF) Duval, jfduval at jfduvaleng dot com.
  [Origin] Based on Jean-Francois Duval's work at the MIT Media Lab
- Biomechatronics research group <http://biomech.media.mit.edu/>
- [Contributors]
+ Biomechatronics research group <http://biomech.media.mit.edu/> (2013-2015)
+ [Contributors to v1] Work maintained and expended by Dephy, Inc. (2015-20xx)
+ [v2.0] Complete re-write based on the original idea. (2024)
  *****************************************************************************
- [This file] flexsea_comm: Data-Link layer of the FlexSEA protocol
- *****************************************************************************
- [Change log] (Convention: YYYY-MM-DD | author | comment)
- * 2016-09-09 | jfduval | Initial GPL-3.0 release
- *
+ [This file] flexsea_codec: Data-Link layer of the FlexSEA protocol v2.0
  ****************************************************************************/
 
-#ifndef INC_FX_COMM_H
-#define INC_FX_COMM_H
+#ifndef INC_FX_CODEC_H
+#define INC_FX_CODEC_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -76,4 +72,4 @@ uint8_t comm_unpack_payload(circ_buf_t *cb, uint8_t *packed, uint8_t *packed_len
 }
 #endif
 
-#endif	//INC_FX_COMM_H
+#endif	//INC_FX_CODEC_H

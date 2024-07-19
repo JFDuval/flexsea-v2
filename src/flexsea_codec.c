@@ -1,7 +1,6 @@
 /****************************************************************************
- [Project] FlexSEA: Flexible & Scalable Electronics Architecture
- [Sub-project] 'flexsea-comm' Communication stack
- Copyright (C) 2016 Dephy, Inc. <http://dephy.com/>
+ [Project] FlexSEA: Flexible & Scalable Electronics Architecture v2
+ Copyright (C) 2024 JFDuval Engineering LLC
 
  This program is free software: you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -16,29 +15,31 @@
  You should have received a copy of the GNU General Public License
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************
- [Lead developer] Jean-Francois (JF) Duval, jfduval at dephy dot com.
+ [Lead developer] Jean-Francois (JF) Duval, jfduval at jfduvaleng dot com.
  [Origin] Based on Jean-Francois Duval's work at the MIT Media Lab
- Biomechatronics research group <http://biomech.media.mit.edu/>
- [Contributors]
+ Biomechatronics research group <http://biomech.media.mit.edu/> (2013-2015)
+ [Contributors to v1] Work maintained and expended by Dephy, Inc. (2015-20xx)
+ [v2.0] Complete re-write based on the original idea. (2024)
  *****************************************************************************
- [This file] flexsea_comm: Data-Link layer of the FlexSEA protocol
- *****************************************************************************
- [Change log] (Convention: YYYY-MM-DD | author | comment)
- * 2016-09-09 | jfduval | Initial GPL-3.0 release
- *
+ [This file] flexsea_codec: Data-Link layer of the FlexSEA protocol v2.0
  ****************************************************************************/
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-//ToDo: update this documentation
-
-//FlexSEA comm. prototype:
-//=======================
+//FlexSEA Communication String Prototype:
+//=======================================
 //[HEADER][# of BYTES][PAYLOAD (DATA)...][CHECKSUM][FOOTER]
 //=> Number of bytes includes the ESCAPE bytes
 //=> Checksum is done on the payload (data + ESCAPEs) and on the BYTES byte.
+
+//This file is all about coding and decoding (CODEC) the data you want to
+//exchange between two systems. Encode your data using comm_pack_payload(),
+//send it on a serial bus, receive it and decode it with comm_unpack_payload().
+
+//The data you pack can be anything you desire, but it is typically a
+//FlexSEA Command Packet. See flexsea_command for more info.
 
 //****************************************************************************
 // Include(s)
@@ -47,7 +48,7 @@ extern "C" {
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <flexsea_comm.h>
+#include <flexsea_codec.h>
 #include "circ_buf.h"
 
 //****************************************************************************

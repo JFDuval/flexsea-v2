@@ -1,7 +1,9 @@
 #include "main.h"
 
-//We use this main to test the comm API and functionality outside of the test framework.
-//If this works, we know we can integrate the comm stack into any C project.
+//We use this main to test the communication API and functionality outside of the test framework.
+//If this works, we know we can integrate the communication stack into any C project.
+//This should always use the highest level API available; the goal isn't to duplicate other
+//unit tests, but to do a quick integration test on the full system.
 int main()
 {
 	printf("Hello world! This is a FlexSEA Comm v0.2 test.\n\n");

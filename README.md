@@ -13,6 +13,7 @@
   - New repo (https://github.com/JFDuval/flexsea-v2) to get a clean start
   - This project is exclusively a communication stack
   - Goals: simpler code, improved API, easier integration with various projects, better unit test coverage
+  - Same GPL-3.0 license, updated copyright to capture the full re-write
 
 ## Setup - Unit tests
 

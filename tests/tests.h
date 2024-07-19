@@ -6,14 +6,14 @@ extern "C" {
 #define INC_TEST_H
 
 #include "unity.h"
-#include "../inc/flexsea_comm.h"
+#include "../inc/flexsea_codec.h"
 
 int flexsea_comm_test(void);
 
 //Prototypes for public functions defined in individual test files:
 void test_circ_buf(void);
 //void test_flexsea(void);
-void test_flexsea_comm(void);
+void test_flexsea_codec(void);
 
 #endif	//INC_TEST_H
 

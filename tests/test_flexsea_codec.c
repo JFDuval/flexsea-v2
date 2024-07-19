@@ -4,7 +4,7 @@ extern "C" {
 
 #include "main.h"
 #include "tests.h"
-#include "flexsea_comm.h"
+#include "flexsea_codec.h"
 
 void test_comm_pack_payload_simple(void)
 {
@@ -360,7 +360,7 @@ void test_comm_continuous_receive_unpack(void)
 	}
 }
 
-void test_flexsea_comm(void)
+void test_flexsea_codec(void)
 {
 	//Packing:
 	RUN_TEST(test_comm_pack_payload_simple);
@@ -372,7 +372,7 @@ void test_flexsea_comm(void)
 	RUN_TEST(test_comm_unpack_payload_with_garbage_before);
 	RUN_TEST(test_comm_unpack_payload_with_garbage_before_and_corruption);
 
-	//Continous data stream:
+	//Continuous data stream:
 	RUN_TEST(test_comm_continuous_receive_unpack);
 
 	fflush(stdout);
