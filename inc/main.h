@@ -10,6 +10,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <flexsea_codec.h>
+#include <flexsea_command.h>
 
 //****************************************************************************
 // Definition(s):

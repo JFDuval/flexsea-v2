@@ -6,7 +6,7 @@ extern "C" {
 #include "tests.h"
 #include "flexsea_codec.h"
 
-void test_comm_pack_payload_simple(void)
+void test_codec_pack_payload_simple(void)
 {
 	//Simple test: if we pack a short payload (text string), do we get the
 	//correct length (including the \0) + 3 bytes for the header/footer/checksum?
@@ -36,7 +36,7 @@ void test_comm_pack_payload_simple(void)
 	TEST_ASSERT_EQUAL(manual_checksum, packed_payload[packed_payload_len - 2]);
 }
 
-void test_comm_pack_payload_too_long(void)
+void test_codec_pack_payload_too_long(void)
 {
 	//We pack 48 chars, knowing that with overhead it will be too long. It should
 	//return  an error, and no packed payload.
@@ -51,7 +51,7 @@ void test_comm_pack_payload_too_long(void)
 	TEST_ASSERT_EQUAL(0, packed_payload_len);
 }
 
-void test_comm_pack_payload_escape(void)
+void test_codec_pack_payload_escape(void)
 {
 	//We make sure that escape chars are added where they should be, and that the
 	//string length is correct
@@ -87,7 +87,7 @@ void test_comm_pack_payload_escape(void)
 
 //Simple payload (no escape, short, etc.) located right at the start of our
 //circular buffer
-void test_comm_unpack_payload_simple(void)
+void test_codec_unpack_payload_simple(void)
 {
 	//We start by packing a simple payload
 	uint8_t payload[] = "flexsea_v2";
@@ -145,7 +145,7 @@ void test_comm_unpack_payload_simple(void)
 
 //Simple payload (no escape, short, etc.) preceded by some garbage in our
 //circular buffer
-void test_comm_unpack_payload_with_garbage_before(void)
+void test_codec_unpack_payload_with_garbage_before(void)
 {
 	//We start by packing a simple payload
 	uint8_t payload[] = "flexsea_v2";
@@ -215,7 +215,7 @@ void test_comm_unpack_payload_with_garbage_before(void)
 
 //Long payload (no escape, short, etc.) preceded by some garbage in our
 //circular buffer, and with a corrupted byte in the middle
-void test_comm_unpack_payload_with_garbage_before_and_corruption(void)
+void test_codec_unpack_payload_with_garbage_before_and_corruption(void)
 {
 	//We start by packing a long payload
 	uint8_t payload[] = "the flexsea_v2 comm protocol is awesome!";
@@ -293,7 +293,7 @@ void test_comm_unpack_payload_with_garbage_before_and_corruption(void)
 
 //Long payload (no escape, short, etc.) received periodically
 //We decode as soon as we receive
-void test_comm_continuous_receive_unpack(void)
+void test_codec_continuous_receive_unpack(void)
 {
 	//We start by packing a long payload
 	int i = 0, loop = 0;
@@ -363,17 +363,17 @@ void test_comm_continuous_receive_unpack(void)
 void test_flexsea_codec(void)
 {
 	//Packing:
-	RUN_TEST(test_comm_pack_payload_simple);
-	RUN_TEST(test_comm_pack_payload_too_long);
-	RUN_TEST(test_comm_pack_payload_escape);
+	RUN_TEST(test_codec_pack_payload_simple);
+	RUN_TEST(test_codec_pack_payload_too_long);
+	RUN_TEST(test_codec_pack_payload_escape);
 
 	//Unpacking:
-	RUN_TEST(test_comm_unpack_payload_simple);
-	RUN_TEST(test_comm_unpack_payload_with_garbage_before);
-	RUN_TEST(test_comm_unpack_payload_with_garbage_before_and_corruption);
+	RUN_TEST(test_codec_unpack_payload_simple);
+	RUN_TEST(test_codec_unpack_payload_with_garbage_before);
+	RUN_TEST(test_codec_unpack_payload_with_garbage_before_and_corruption);
 
 	//Continuous data stream:
-	RUN_TEST(test_comm_continuous_receive_unpack);
+	RUN_TEST(test_codec_continuous_receive_unpack);
 
 	fflush(stdout);
 }
