@@ -41,6 +41,7 @@ extern "C" {
 //**********************************************************************1******
 
 //6 bits for command codes, 2 bits for the R/W bits
+#define MIN_CMD_CODE	1	//We use CMD=0 as a way to detect an incorrect cmd
 #define MAX_CMD_CODE	63
 
 typedef enum{

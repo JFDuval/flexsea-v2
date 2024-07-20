@@ -61,44 +61,31 @@ void test_command_cmd_rw_byte_invalid(void)
 	uint8_t payload[10] = "\0payload"; //The first char will be replaced by our cmd/rw code
 	uint16_t payload_len = sizeof(payload);
 
-	//Test #1: command higher than maximum allowed
-	uint8_t cmd_6bits_in = MAX_CMD_CODE + 1;
+	//Test #1: command code of 0 (smaller than MIN_CMD_CODE)
+	uint8_t cmd_6bits_in = 0;
 	uint8_t cmd_8bits = CMD_SET_W(cmd_6bits_in); //Write
 	payload[CMD_CODE_INDEX] = cmd_8bits;
 	uint8_t ret_val = 0, cmd_6bits_out = 0;
 	ReadWrite rw = CmdInvalid;
 	ret_val = payload_parse_str(payload, payload_len, &cmd_6bits_out, &rw);
-	TEST_ASSERT_EQUAL(0, ret_val);	//ret_val = 0 when valid ToDo when sending 64, it extracts 0 and calls it valid... how do we handle this?
-	TEST_ASSERT_EQUAL(cmd_6bits_in, cmd_6bits_out);
-	TEST_ASSERT_EQUAL(CmdWrite, rw);
+	TEST_ASSERT_EQUAL(1, ret_val);	//1 means it detected the problem
+	TEST_ASSERT_EQUAL(0, cmd_6bits_out); //Invalid returns 0
+	TEST_ASSERT_EQUAL(0, rw); //Invalid returns 0
 
-	/*
-	//Test #2: Read
-	cmd_6bits_in = 33;
-	cmd_8bits = CMD_SET_R(cmd_6bits_in); //Read
-	TEST_ASSERT_EQUAL(CMD_GET_6BITS(cmd_8bits), cmd_6bits_in);	//Quick macro test
+	//Test #2: RW = CmdInvalid
+	cmd_6bits_in = MAX_CMD_CODE;
+	cmd_8bits = ((cmd_6bits_in << 2) & 0xFC);	//Force the 2 LSB to 0
 	payload[CMD_CODE_INDEX] = cmd_8bits;
-	ret_val = 0;
-	cmd_6bits_out = 0;
+	ret_val = 0, cmd_6bits_out = 0;
 	rw = CmdInvalid;
 	ret_val = payload_parse_str(payload, payload_len, &cmd_6bits_out, &rw);
-	TEST_ASSERT_EQUAL(0, ret_val);	//ret_val = 0 when valid
-	TEST_ASSERT_EQUAL(cmd_6bits_in, cmd_6bits_out);
-	TEST_ASSERT_EQUAL(CmdRead, rw);
+	TEST_ASSERT_EQUAL(1, ret_val);	//1 means it detected the problem
+	TEST_ASSERT_EQUAL(0, cmd_6bits_out); //Invalid returns 0
+	TEST_ASSERT_EQUAL(0, rw); //Invalid returns 0
 
-	//Test #3: Read Write
-	cmd_6bits_in = 44;
-	cmd_8bits = CMD_SET_RW(cmd_6bits_in); //Read Write
-	TEST_ASSERT_EQUAL(CMD_GET_6BITS(cmd_8bits), cmd_6bits_in);	//Quick macro test
-	payload[CMD_CODE_INDEX] = cmd_8bits;
-	ret_val = 0;
-	cmd_6bits_out = 0;
-	rw = CmdInvalid;
-	ret_val = payload_parse_str(payload, payload_len, &cmd_6bits_out, &rw);
-	TEST_ASSERT_EQUAL(0, ret_val);	//ret_val = 0 when valid
-	TEST_ASSERT_EQUAL(cmd_6bits_in, cmd_6bits_out);
-	TEST_ASSERT_EQUAL(CmdReadWrite, rw);
-	*/
+	//Note: testing a command code above MAX_CMD_CODE doesn't work, as the bits just
+	//get shifted (ex.: 64 becomes 0, 65 becomes 1). That check will be done when
+	//transmitting, not here at reception.
 }
 
 //Can the parse command identify a valid string?

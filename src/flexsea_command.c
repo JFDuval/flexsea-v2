@@ -139,7 +139,7 @@ uint8_t payload_parse_str(uint8_t* unpacked, uint16_t unpacked_len, uint8_t *cmd
 	_rw = CMD_GET_RW(_cmd);
 	valid = CMD_IS_VALID(_cmd);
 
-	if((_cmd_6bits <= MAX_CMD_CODE) && valid)
+	if((_cmd_6bits >= MIN_CMD_CODE) && (_cmd_6bits <= MAX_CMD_CODE) && valid)
 	{
 		//Valid function!
 		*cmd_6bits = _cmd_6bits;
@@ -156,7 +156,7 @@ uint8_t payload_parse_str(uint8_t* unpacked, uint16_t unpacked_len, uint8_t *cmd
 	{
 		//Invalid function!
 		*cmd_6bits = 0;
-		*rw = 0;
+		*rw = CmdInvalid;
 		return 1;
 	}
 }
