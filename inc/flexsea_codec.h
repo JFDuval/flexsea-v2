@@ -48,17 +48,17 @@ extern "C" {
 
 //Buffers and packets:
 #define MIN_OVERHEAD					4		//Header + Footer + Checksum + # bytes
-#define MAX_PACKED_PAYLOAD_BYTES		48		//Max number of bytes in a packed payload
+#define MAX_ENCODED_PAYLOAD_BYTES		48		//Max number of bytes in a packed payload
 
 //****************************************************************************
 // Public Function Prototype(s):
 //****************************************************************************
 
-uint8_t comm_pack_payload(uint8_t *payload, uint8_t payload_len,
-		uint8_t *packed_payload, uint8_t *packed_payload_len,
-				uint8_t max_packed_payload_len);
-uint8_t comm_unpack_payload(circ_buf_t *cb, uint8_t *packed, uint8_t *packed_len,
-		uint8_t *unpacked, uint8_t *unpacked_len);
+uint8_t fx_encode(uint8_t *payload, uint8_t payload_len,
+		uint8_t *encoded_payload, uint8_t *encoded_payload_len,
+				uint8_t max_encoded_payload_len);
+uint8_t fx_decode(circ_buf_t *cb, uint8_t *encoded, uint8_t *encoded_len,
+		uint8_t *decoded, uint8_t *decoded_len);
 
 //****************************************************************************
 // Structure(s):
