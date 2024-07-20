@@ -7,10 +7,9 @@ extern "C" {
 #include "flexsea_command.h"
 
 //Make sure we can code/decode the 6-bit command and 2-bit RW in one byte when they are valid
+//Commands are created manually (not using tx_cmd)
 void test_command_cmd_rw_byte_valid(void)
 {
-	init_flexsea_payload_ptr();
-
 	uint8_t payload[10] = "\0payload"; //The first char will be replaced by our cmd/rw code
 	uint16_t payload_len = sizeof(payload);
 
@@ -54,10 +53,9 @@ void test_command_cmd_rw_byte_valid(void)
 }
 
 //Make sure we can detect errors when coding/decoding the 6-bit command and 2-bit RW in one byte
+//Commands are created manually (not using tx_cmd)
 void test_command_cmd_rw_byte_invalid(void)
 {
-	init_flexsea_payload_ptr();
-
 	uint8_t payload[10] = "\0payload"; //The first char will be replaced by our cmd/rw code
 	uint16_t payload_len = sizeof(payload);
 
@@ -88,23 +86,96 @@ void test_command_cmd_rw_byte_invalid(void)
 	//transmitting, not here at reception.
 }
 
+//We pass a valid command code and RW to the function. Is it happy?
+void test_command_tx_cmd_basic_good_cmd_rw(void)
+{
+	uint8_t payload_in[10] = "payload";
+	uint16_t payload_in_len = 7;	//Just the chars we want
+	uint8_t payload_out[10] = {0};
+	uint16_t payload_out_len = 0;
+	uint8_t cmd_6bits_in = 33;
+	uint8_t ret_val = 0;
+	ReadWrite rw = CmdWrite;
+
+	ret_val = tx_cmd(cmd_6bits_in, rw, payload_in, payload_in_len,
+			payload_out, &payload_out_len);
+	TEST_ASSERT_EQUAL(0, ret_val);
+	TEST_ASSERT_EQUAL(payload_in_len + 1, payload_out_len);
+	TEST_ASSERT_EQUAL(CMD_SET_W(cmd_6bits_in), payload_out[CMD_CODE_INDEX]);
+}
+
+//We pass invalid command codes and RW to the function. Does it notice?
+void test_command_tx_cmd_basic_bad_cmd_rw(void)
+{
+	//Test #1: command code too low
+	uint8_t payload_in[10] = "payload";
+	uint16_t payload_in_len = 7;	//Just the chars we want
+	uint8_t payload_out[10] = {0};
+	uint16_t payload_out_len = 0;
+	uint8_t cmd_6bits_in = 0;
+	uint8_t ret_val = 0;
+	ReadWrite rw = CmdWrite;
+
+	ret_val = tx_cmd(cmd_6bits_in, rw, payload_in, payload_in_len,
+			payload_out, &payload_out_len);
+	TEST_ASSERT_EQUAL(1, ret_val);
+	TEST_ASSERT_EQUAL(0, payload_out_len);
+	TEST_ASSERT_EQUAL(0, payload_out[CMD_CODE_INDEX]);
+
+	//Test #2: command code too high
+	payload_in_len = 7;
+	memcpy(payload_in, "payload", payload_in_len);
+	memset(payload_out, 0, 10);
+	payload_out_len = 0;
+	cmd_6bits_in = MAX_CMD_CODE + 1;
+	ret_val = 0;
+	rw = CmdWrite;
+
+	ret_val = tx_cmd(cmd_6bits_in, rw, payload_in, payload_in_len,
+			payload_out, &payload_out_len);
+	TEST_ASSERT_EQUAL(1, ret_val);
+	TEST_ASSERT_EQUAL(0, payload_out_len);
+	TEST_ASSERT_EQUAL(0, payload_out[CMD_CODE_INDEX]);
+
+	//Test #3: valid command code but invalid RW
+	payload_in_len = 7;
+	memcpy(payload_in, "payload", payload_in_len);
+	memset(payload_out, 0, 10);
+	payload_out_len = 0;
+	cmd_6bits_in = MAX_CMD_CODE - 1;
+	ret_val = 0;
+	rw = CmdInvalid;
+
+	ret_val = tx_cmd(cmd_6bits_in, rw, payload_in, payload_in_len,
+			payload_out, &payload_out_len);
+	TEST_ASSERT_EQUAL(1, ret_val);
+	TEST_ASSERT_EQUAL(0, payload_out_len);
+	TEST_ASSERT_EQUAL(0, payload_out[CMD_CODE_INDEX]);
+}
+
 //Can the parse command identify a valid string? Send it to the catch-all?
 void test_command_parse_catchall(void)
 {
 	init_flexsea_payload_ptr();
 
-	uint8_t payload[10] = "\0payload"; //The first char will be replaced by our cmd/rw code
+	uint8_t payload[10] = "payload"; //The first char will be replaced by our cmd/rw code
 	uint16_t payload_len = sizeof(payload);
-
+	uint8_t payload_out[10] = {0};
+	uint16_t payload_out_len = 0;
+	ReadWrite rw = CmdWrite;
+	uint8_t ret_val = 0;
 	uint8_t cmd = 22;
-	payload[CMD_CODE_INDEX] = CMD_SET_W(cmd);	//Write
-	uint8_t ret_val = 0, cmd_6bits = 0;
-	ReadWrite rw = CmdInvalid;
+
+	ret_val = tx_cmd(cmd, rw, payload, payload_len,
+				payload_out, &payload_out_len);
+
+	uint8_t cmd_6bits = 0;
+	rw = CmdInvalid;
 	uint8_t ret_val_cmd = 0;
-	ret_val = payload_parse_str(payload, payload_len, &cmd_6bits, &rw);
+	ret_val = payload_parse_str(payload_out, payload_out_len, &cmd_6bits, &rw);
 	if(!ret_val)
 	{
-		ret_val_cmd = flexsea_payload(cmd_6bits, rw, payload, payload_len);
+		ret_val_cmd = flexsea_payload(cmd_6bits, rw, payload_out, payload_out_len);
 		if(ret_val_cmd == CATCHALL_RETURN)
 		{
 			TEST_PASS(); //As expected, we reached our catch-all
@@ -177,6 +248,8 @@ void test_flexsea_command(void)
 {
 	RUN_TEST(test_command_cmd_rw_byte_valid);
 	RUN_TEST(test_command_cmd_rw_byte_invalid);
+	RUN_TEST(test_command_tx_cmd_basic_good_cmd_rw);
+	RUN_TEST(test_command_tx_cmd_basic_bad_cmd_rw);
 	RUN_TEST(test_command_parse_catchall);
 	RUN_TEST(test_command_parse_registered_command);
 

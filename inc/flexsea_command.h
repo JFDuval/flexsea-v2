@@ -73,6 +73,8 @@ typedef enum{
 void init_flexsea_payload_ptr(void);
 uint8_t payload_parse_str(uint8_t* unpacked, uint16_t unpacked_len,
 		uint8_t *cmd_6bits, ReadWrite *rw);
+uint8_t tx_cmd(uint8_t cmd_6bits, ReadWrite rw, uint8_t *buf_in,
+		uint16_t buf_in_len, uint8_t *buf_out, uint16_t *buf_out_len);
 uint8_t flexsea_payload(uint8_t cmd_6bits, ReadWrite rw,
 		uint8_t *buf, uint16_t len);
 uint8_t register_command(uint8_t cmd, uint8_t(*fct_prt)(uint8_t, ReadWrite, uint8_t *, uint16_t));

@@ -28,16 +28,18 @@
 extern "C" {
 #endif
 
-//FlexSEA Command Prototype:  WWWWWIIIIIPPPP
+//FlexSEA Command Prototype:
 //==========================
-//[CMD][R/W][DATA...]
+//[CMD + R/W][DATA...]
 //=> CMD is a 6-bit command code
 //=> R/W is a 2-bit code to determine if this command is a Read, Write, or
 //   Read/Write
-//=> CMD and R/W share a byte. CMD has the 6 MSBs, and RW has the 2 LSBs
+//=> CMD and R/W share a byte. CMD has the 6 MSBs, and RW has the 2 LSBs.
 //=> Data is a byte array
 
-//This file is all TODO TODO TODO
+//This file is all about TODO TODO TODO
+
+//ToDo rename pretty much everything to unify and clarify
 
 //****************************************************************************
 // Include(s)
@@ -78,50 +80,47 @@ void init_flexsea_payload_ptr(void)
 		flexsea_payload_ptr[i] = &flexsea_payload_catchall;
 	}
 
-	//Attach pointers to your project-specific functions:
-	//(index = command code)
-	//======================================================
-
-	//ToDo
+	//In the user-space, pair command codes and functions by
+	//using register_command()
 }
 
-/*
-//Generic TX command
-//ToDo: this function crashes if len is too long! (35 is too much...)
-uint16_t tx_cmd(uint8_t *payloadData, uint8_t cmdCode, uint8_t cmd_type, \
-				uint32_t len, uint8_t receiver, uint8_t *buf)
+uint8_t tx_cmd(uint8_t cmd_6bits, ReadWrite rw, uint8_t *buf_in,
+		uint16_t buf_in_len, uint8_t *buf_out, uint16_t *buf_out_len)
 {
-	uint16_t bytes = 0;
-	uint16_t index = 0;
-	uint32_t length = 0;
+	uint8_t cmd_rw = 0;
 
-	//Protection against long len:
-	length = (len > PAYLOAD_BYTES) ? PAYLOAD_BYTES : len;
-
-	prepare_empty_payload(getBoardID(), receiver, buf, sizeof(buf));
-	buf[P_CMDS] = 1;	//Fixed, 1 command
-
-	if(cmd_type == CMD_READ)
+	if((cmd_6bits >= MIN_CMD_CODE) && (cmd_6bits <= MAX_CMD_CODE) &&
+			(rw != CmdInvalid))
 	{
-		buf[P_CMD1] = CMD_R(cmdCode);
-	}
-	else if(cmd_type == CMD_WRITE)
-	{
-		buf[P_CMD1] = CMD_W(cmdCode);
+		//Create the CMD + R/W byte
+		switch(rw)
+		{
+			case CmdRead:
+				cmd_rw = CMD_SET_R(cmd_6bits);
+				break;
+			case CmdWrite:
+				cmd_rw = CMD_SET_W(cmd_6bits);
+				break;
+			case CmdReadWrite:
+				cmd_rw = CMD_SET_RW(cmd_6bits);
+				break;
+			default:
+				//Invalid!
+				return 1;
+		}
+
+		buf_out[CMD_CODE_INDEX] = cmd_rw;
+		memcpy(&buf_out[CMD_CODE_INDEX + 1], buf_in, buf_in_len);
+		*buf_out_len = buf_in_len + 1;
+
+		return 0;
 	}
 	else
 	{
-		flexsea_error(SE_INVALID_READ_TYPE);
-		return 0;
+		*buf_out_len = 0;
+		return 1;
 	}
-
-	index = P_DATA1;
-	memcpy(&buf[index], payloadData, length);
-	bytes = index+length;
-
-	return bytes;
 }
-*/
 
 //This function takes an unpacked payload as an input, and determines what the command code and R/W is
 //It doesn't do much at this point, but it is ready to be expanded (addressing, etc.)
