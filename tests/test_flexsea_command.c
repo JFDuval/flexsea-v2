@@ -88,8 +88,8 @@ void test_command_cmd_rw_byte_invalid(void)
 	//transmitting, not here at reception.
 }
 
-//Can the parse command identify a valid string?
-void test_command_parse_valid(void)
+//Can the parse command identify a valid string? Send it to the catch-all?
+void test_command_parse_catchall(void)
 {
 	init_flexsea_payload_ptr();
 
@@ -100,12 +100,72 @@ void test_command_parse_valid(void)
 	payload[CMD_CODE_INDEX] = CMD_SET_W(cmd);	//Write
 	uint8_t ret_val = 0, cmd_6bits = 0;
 	ReadWrite rw = CmdInvalid;
+	uint8_t ret_val_cmd = 0;
+	ret_val = payload_parse_str(payload, payload_len, &cmd_6bits, &rw);
+	if(!ret_val)
+	{
+		ret_val_cmd = flexsea_payload(cmd_6bits, rw, payload, payload_len);
+		if(ret_val_cmd == CATCHALL_RETURN)
+		{
+			TEST_PASS(); //As expected, we reached our catch-all
+		}
+		else
+		{
+			TEST_FAIL_MESSAGE("Our return value doesn't match with the expected catch-all.");
+		}
+	}
+	else
+	{
+		TEST_FAIL_MESSAGE("payload_parse_str() did not return 0, it detected an invalid command.");
+	}
+}
+
+//This is a FlexSEA test command
+uint8_t test_command_22a(uint8_t cmd_6bits, ReadWrite rw, uint8_t *buf, uint16_t len)
+{
+	//We check a few parameters
+	if((cmd_6bits == 22) && (rw == CmdWrite) && (len >= 1) &&
+			(cmd_6bits == CMD_GET_6BITS(buf[CMD_CODE_INDEX])))
+	{
+			//Valid
+			return TEST_CMD_RETURN;
+	}
+	else
+	{
+		//Problem
+		return 1;
+	}
+}
+
+//Can the parse command identify a valid string? Send it to the registered command?
+void test_command_parse_registered_command(void)
+{
+	init_flexsea_payload_ptr();
+
+	uint8_t payload[10] = "\0payload"; //The first char will be replaced by our cmd/rw code
+	uint16_t payload_len = sizeof(payload);
+
+	uint8_t cmd = 22;
+	payload[CMD_CODE_INDEX] = CMD_SET_W(cmd);	//Write
+	uint8_t ret_val = 0, cmd_6bits = 0;
+	ReadWrite rw = CmdInvalid;
+	uint8_t ret_val_cmd = 0;
+
+	//Register test function:
+	register_command(cmd, &test_command_22a);
 
 	ret_val = payload_parse_str(payload, payload_len, &cmd_6bits, &rw);
 	if(!ret_val)
 	{
-		TEST_PASS(); //payload_parse_str() returned 0, it detected a valid command.
-		flexsea_payload(cmd_6bits, rw, payload, payload_len);
+		ret_val_cmd = flexsea_payload(cmd_6bits, rw, payload, payload_len);
+		if(ret_val_cmd == TEST_CMD_RETURN)
+		{
+			TEST_PASS(); //As expected, we reached our test function
+		}
+		else
+		{
+			TEST_FAIL_MESSAGE("Our return value doesn't match with the expected test function.");
+		}
 	}
 	else
 	{
@@ -117,7 +177,8 @@ void test_flexsea_command(void)
 {
 	RUN_TEST(test_command_cmd_rw_byte_valid);
 	RUN_TEST(test_command_cmd_rw_byte_invalid);
-	RUN_TEST(test_command_parse_valid);
+	RUN_TEST(test_command_parse_catchall);
+	RUN_TEST(test_command_parse_registered_command);
 
 	fflush(stdout);
 }

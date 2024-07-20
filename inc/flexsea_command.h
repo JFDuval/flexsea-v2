@@ -61,6 +61,11 @@ typedef enum{
 
 #define CMD_CODE_INDEX		0
 
+//To detect when a command gets trapped by our catch-all we use a special
+//return code. Same for our test command.
+#define CATCHALL_RETURN		255
+#define TEST_CMD_RETURN		127
+
 //****************************************************************************
 // Public Function Prototype(s):
 //****************************************************************************
@@ -68,8 +73,9 @@ typedef enum{
 void init_flexsea_payload_ptr(void);
 uint8_t payload_parse_str(uint8_t* unpacked, uint16_t unpacked_len,
 		uint8_t *cmd_6bits, ReadWrite *rw);
-void flexsea_payload(uint8_t cmd_6bits, ReadWrite rw,
+uint8_t flexsea_payload(uint8_t cmd_6bits, ReadWrite rw,
 		uint8_t *buf, uint16_t len);
+uint8_t register_command(uint8_t cmd, uint8_t(*fct_prt)(uint8_t, ReadWrite, uint8_t *, uint16_t));
 
 //****************************************************************************
 // Structure(s):

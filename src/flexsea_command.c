@@ -53,14 +53,14 @@ extern "C" {
 //****************************************************************************
 
 //Function pointer array:
-void (*flexsea_payload_ptr[MAX_CMD_CODE])(uint8_t cmd_6bits, ReadWrite rw,
+uint8_t (*flexsea_payload_ptr[MAX_CMD_CODE])(uint8_t cmd_6bits, ReadWrite rw,
 		uint8_t *buf, uint16_t len);
 
 //****************************************************************************
 // Private Function Prototype(s):
 //****************************************************************************
 
-static void flexsea_payload_catchall(uint8_t cmd_6bits, ReadWrite rw,
+static uint8_t flexsea_payload_catchall(uint8_t cmd_6bits, ReadWrite rw,
 		uint8_t *buf, uint16_t len);
 
 //****************************************************************************
@@ -162,10 +162,24 @@ uint8_t payload_parse_str(uint8_t* unpacked, uint16_t unpacked_len, uint8_t *cmd
 }
 
 //To avoid exposing flexsea_payload_ptr we wrap it in this function
-void flexsea_payload(uint8_t cmd_6bits, ReadWrite rw,
+uint8_t flexsea_payload(uint8_t cmd_6bits, ReadWrite rw,
 		uint8_t *buf, uint16_t len)
 {
-	(*flexsea_payload_ptr[cmd_6bits]) (cmd_6bits, rw, buf, len);
+	return (*flexsea_payload_ptr[cmd_6bits]) (cmd_6bits, rw, buf, len);
+}
+
+//Pair a function and a command code together
+uint8_t register_command(uint8_t cmd, uint8_t (*fct_prt) (uint8_t, ReadWrite, uint8_t *, uint16_t))
+{
+	if((cmd > MIN_CMD_CODE) && (cmd < MAX_CMD_CODE))
+	{
+		flexsea_payload_ptr[cmd] = fct_prt;
+		return 0;
+	}
+	else
+	{
+		return 1;
+	}
 }
 
 //****************************************************************************
@@ -177,14 +191,15 @@ void flexsea_payload(uint8_t cmd_6bits, ReadWrite rw,
 //'uint8_t rw': 2-bit Read / Write / Read-Write code
 //'uint8_t *buf': serialized data
 //'uint16_t len': length of the serialized data
-static void flexsea_payload_catchall(uint8_t cmd_6bits, ReadWrite rw,
+static uint8_t flexsea_payload_catchall(uint8_t cmd_6bits, ReadWrite rw,
 		uint8_t *buf, uint16_t len)
 {
 	(void)cmd_6bits;
 	(void)rw;
 	(void)buf;
 	(void)len;
-	return;
+
+	return CATCHALL_RETURN;
 }
 
 #ifdef __cplusplus
