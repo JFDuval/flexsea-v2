@@ -54,37 +54,46 @@ extern "C" {
 // Variable(s)
 //****************************************************************************
 
-//Function pointer array:
-uint8_t (*flexsea_payload_ptr[MAX_CMD_CODE])(uint8_t cmd_6bits, ReadWrite rw,
+//Function pointer array that points to the command handlers
+uint8_t (*fx_rx_cmd_handler_ptr[MAX_CMD_CODE])(uint8_t cmd_6bits, ReadWrite rw,
 		uint8_t *buf, uint16_t len);
 
 //****************************************************************************
 // Private Function Prototype(s):
 //****************************************************************************
 
-static uint8_t flexsea_payload_catchall(uint8_t cmd_6bits, ReadWrite rw,
+static uint8_t fx_rx_cmd_handler_catchall(uint8_t cmd_6bits, ReadWrite rw,
 		uint8_t *buf, uint16_t len);
 
 //****************************************************************************
 // Public Function(s)
 //****************************************************************************
 
-//Initialize function pointer array
-void init_flexsea_payload_ptr(void)
+//Initialize function pointer array. Without this we hard-fault.
+uint8_t fx_rx_cmd_init(void)
 {
 	int i = 0;
 
 	//By default, they all point to 'flexsea_payload_catchall()'
 	for(i = 0; i < MAX_CMD_CODE; i++)
 	{
-		flexsea_payload_ptr[i] = &flexsea_payload_catchall;
+		fx_rx_cmd_handler_ptr[i] = &fx_rx_cmd_handler_catchall;
 	}
 
 	//In the user-space, pair command codes and functions by
 	//using register_command()
+
+	return 0;
 }
 
-uint8_t tx_cmd(uint8_t cmd_6bits, ReadWrite rw, uint8_t *buf_in,
+//Creates a TX command by adding a command code and RW to a data string
+//'uint8_t cmd_6bits': 6-bit command code
+//'ReadWrite rw': 2-bit R/W message type
+//'uint8_t *buf_in': input data
+//'uint16_t buf_in_len': input data length
+//'uint8_t *buf_out': output data
+//'uint16_t buf_out_len': output data length
+uint8_t fx_create_tx_cmd(uint8_t cmd_6bits, ReadWrite rw, uint8_t *buf_in,
 		uint16_t buf_in_len, uint8_t *buf_out, uint16_t *buf_out_len)
 {
 	uint8_t cmd_rw = 0;
@@ -109,6 +118,7 @@ uint8_t tx_cmd(uint8_t cmd_6bits, ReadWrite rw, uint8_t *buf_in,
 				return 1;
 		}
 
+		//Create the output data string
 		buf_out[CMD_CODE_INDEX] = cmd_rw;
 		memcpy(&buf_out[CMD_CODE_INDEX + 1], buf_in, buf_in_len);
 		*buf_out_len = buf_in_len + 1;
@@ -122,19 +132,19 @@ uint8_t tx_cmd(uint8_t cmd_6bits, ReadWrite rw, uint8_t *buf_in,
 	}
 }
 
-//This function takes an unpacked payload as an input, and determines what the command code and R/W is
+//This function takes a decoded payload as an input, and determines what the command code and R/W is
 //It doesn't do much at this point, but it is ready to be expanded (addressing, etc.)
-//'uint8_t *unpacked': serialized data
-//'uint8_t unpacked_len': serialized data length
+//'uint8_t *decoded': serialized data, typically obtained from fx_decode()
+//'uint8_t decoded_len': serialized data length
 //'uint8_t *cmd_6bits': 6-bit command code (if valid, 0 otherwise)
-//'uint8_t *rw': 2-bit R/W (if valid, 0 otherwise)
-uint8_t payload_parse_str(uint8_t* unpacked, uint16_t unpacked_len, uint8_t *cmd_6bits, ReadWrite *rw)
+//'ReadWrite *rw': 2-bit R/W (if valid, 0 otherwise)
+uint8_t fx_parse_rx_cmd(uint8_t* decoded, uint16_t decoded_len, uint8_t *cmd_6bits, ReadWrite *rw)
 {
 	uint8_t _cmd = 0, _cmd_6bits = 0, valid = 0;
 	ReadWrite _rw = CmdInvalid;
 	//Command
-	_cmd = unpacked[CMD_CODE_INDEX];		//CMD w/ R/W bit
-	_cmd_6bits = CMD_GET_6BITS(_cmd);		//CMD code, no R/W information
+	_cmd = decoded[CMD_CODE_INDEX];		//CMD w/ R/W bit
+	_cmd_6bits = CMD_GET_6BITS(_cmd);	//CMD code, no R/W information
 	_rw = CMD_GET_RW(_cmd);
 	valid = CMD_IS_VALID(_cmd);
 
@@ -147,7 +157,11 @@ uint8_t payload_parse_str(uint8_t* unpacked, uint16_t unpacked_len, uint8_t *cmd
 		//At this point we are ready to use the function pointer array to call a
 		//specific command function. We do not call it here as it would prevent us
 		//from unit testing this function. The use needs to do that next.
-		//Ex.: (*flexsea_payload_ptr[cmd_6bits]) (cmd_6bits, rw, unpacked, unpacked_len);
+		//Usage:
+		//  If calling from this file:
+		//    (*fx_rx_cmd_handler_ptr[cmd_6bits]) (cmd_6bits, rw, unpacked, unpacked_len);
+		//  If calling from another file:
+		//    ToDo
 
 		return 0;
 	}
@@ -160,19 +174,19 @@ uint8_t payload_parse_str(uint8_t* unpacked, uint16_t unpacked_len, uint8_t *cmd
 	}
 }
 
-//To avoid exposing flexsea_payload_ptr we wrap it in this function
-uint8_t flexsea_payload(uint8_t cmd_6bits, ReadWrite rw,
+//To avoid exposing fx_rx_cmd_handler_ptr we wrap it in this function
+uint8_t fx_call_rx_cmd_handler(uint8_t cmd_6bits, ReadWrite rw,
 		uint8_t *buf, uint16_t len)
 {
-	return (*flexsea_payload_ptr[cmd_6bits]) (cmd_6bits, rw, buf, len);
+	return (*fx_rx_cmd_handler_ptr[cmd_6bits]) (cmd_6bits, rw, buf, len);
 }
 
 //Pair a function and a command code together
-uint8_t register_command(uint8_t cmd, uint8_t (*fct_prt) (uint8_t, ReadWrite, uint8_t *, uint16_t))
+uint8_t fx_register_rx_cmd_handler(uint8_t cmd, uint8_t (*fct_prt) (uint8_t, ReadWrite, uint8_t *, uint16_t))
 {
 	if((cmd > MIN_CMD_CODE) && (cmd < MAX_CMD_CODE))
 	{
-		flexsea_payload_ptr[cmd] = fct_prt;
+		fx_rx_cmd_handler_ptr[cmd] = fct_prt;
 		return 0;
 	}
 	else
@@ -190,7 +204,7 @@ uint8_t register_command(uint8_t cmd, uint8_t (*fct_prt) (uint8_t, ReadWrite, ui
 //'uint8_t rw': 2-bit Read / Write / Read-Write code
 //'uint8_t *buf': serialized data
 //'uint16_t len': length of the serialized data
-static uint8_t flexsea_payload_catchall(uint8_t cmd_6bits, ReadWrite rw,
+static uint8_t fx_rx_cmd_handler_catchall(uint8_t cmd_6bits, ReadWrite rw,
 		uint8_t *buf, uint16_t len)
 {
 	(void)cmd_6bits;

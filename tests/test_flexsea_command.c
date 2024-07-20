@@ -8,7 +8,7 @@ extern "C" {
 
 //Make sure we can code/decode the 6-bit command and 2-bit RW in one byte when they are valid
 //Commands are created manually (not using tx_cmd)
-void test_command_cmd_rw_byte_valid(void)
+void test_command_parse_rx_rw_byte_valid(void)
 {
 	uint8_t payload[10] = "\0payload"; //The first char will be replaced by our cmd/rw code
 	uint16_t payload_len = sizeof(payload);
@@ -20,7 +20,7 @@ void test_command_cmd_rw_byte_valid(void)
 	payload[CMD_CODE_INDEX] = cmd_8bits;
 	uint8_t ret_val = 0, cmd_6bits_out = 0;
 	ReadWrite rw = CmdInvalid;
-	ret_val = payload_parse_str(payload, payload_len, &cmd_6bits_out, &rw);
+	ret_val = fx_parse_rx_cmd(payload, payload_len, &cmd_6bits_out, &rw);
 	TEST_ASSERT_EQUAL(0, ret_val);	//ret_val = 0 when valid
 	TEST_ASSERT_EQUAL(cmd_6bits_in, cmd_6bits_out);
 	TEST_ASSERT_EQUAL(CmdWrite, rw);
@@ -33,7 +33,7 @@ void test_command_cmd_rw_byte_valid(void)
 	ret_val = 0;
 	cmd_6bits_out = 0;
 	rw = CmdInvalid;
-	ret_val = payload_parse_str(payload, payload_len, &cmd_6bits_out, &rw);
+	ret_val = fx_parse_rx_cmd(payload, payload_len, &cmd_6bits_out, &rw);
 	TEST_ASSERT_EQUAL(0, ret_val);	//ret_val = 0 when valid
 	TEST_ASSERT_EQUAL(cmd_6bits_in, cmd_6bits_out);
 	TEST_ASSERT_EQUAL(CmdRead, rw);
@@ -46,7 +46,7 @@ void test_command_cmd_rw_byte_valid(void)
 	ret_val = 0;
 	cmd_6bits_out = 0;
 	rw = CmdInvalid;
-	ret_val = payload_parse_str(payload, payload_len, &cmd_6bits_out, &rw);
+	ret_val = fx_parse_rx_cmd(payload, payload_len, &cmd_6bits_out, &rw);
 	TEST_ASSERT_EQUAL(0, ret_val);	//ret_val = 0 when valid
 	TEST_ASSERT_EQUAL(cmd_6bits_in, cmd_6bits_out);
 	TEST_ASSERT_EQUAL(CmdReadWrite, rw);
@@ -54,7 +54,7 @@ void test_command_cmd_rw_byte_valid(void)
 
 //Make sure we can detect errors when coding/decoding the 6-bit command and 2-bit RW in one byte
 //Commands are created manually (not using tx_cmd)
-void test_command_cmd_rw_byte_invalid(void)
+void test_command_parse_rx_rw_byte_invalid(void)
 {
 	uint8_t payload[10] = "\0payload"; //The first char will be replaced by our cmd/rw code
 	uint16_t payload_len = sizeof(payload);
@@ -65,7 +65,7 @@ void test_command_cmd_rw_byte_invalid(void)
 	payload[CMD_CODE_INDEX] = cmd_8bits;
 	uint8_t ret_val = 0, cmd_6bits_out = 0;
 	ReadWrite rw = CmdInvalid;
-	ret_val = payload_parse_str(payload, payload_len, &cmd_6bits_out, &rw);
+	ret_val = fx_parse_rx_cmd(payload, payload_len, &cmd_6bits_out, &rw);
 	TEST_ASSERT_EQUAL(1, ret_val);	//1 means it detected the problem
 	TEST_ASSERT_EQUAL(0, cmd_6bits_out); //Invalid returns 0
 	TEST_ASSERT_EQUAL(0, rw); //Invalid returns 0
@@ -76,7 +76,7 @@ void test_command_cmd_rw_byte_invalid(void)
 	payload[CMD_CODE_INDEX] = cmd_8bits;
 	ret_val = 0, cmd_6bits_out = 0;
 	rw = CmdInvalid;
-	ret_val = payload_parse_str(payload, payload_len, &cmd_6bits_out, &rw);
+	ret_val = fx_parse_rx_cmd(payload, payload_len, &cmd_6bits_out, &rw);
 	TEST_ASSERT_EQUAL(1, ret_val);	//1 means it detected the problem
 	TEST_ASSERT_EQUAL(0, cmd_6bits_out); //Invalid returns 0
 	TEST_ASSERT_EQUAL(0, rw); //Invalid returns 0
@@ -87,7 +87,7 @@ void test_command_cmd_rw_byte_invalid(void)
 }
 
 //We pass a valid command code and RW to the function. Is it happy?
-void test_command_tx_cmd_basic_good_cmd_rw(void)
+void test_command_create_tx_basic_good_cmd_rw(void)
 {
 	uint8_t payload_in[10] = "payload";
 	uint16_t payload_in_len = 7;	//Just the chars we want
@@ -97,7 +97,7 @@ void test_command_tx_cmd_basic_good_cmd_rw(void)
 	uint8_t ret_val = 0;
 	ReadWrite rw = CmdWrite;
 
-	ret_val = tx_cmd(cmd_6bits_in, rw, payload_in, payload_in_len,
+	ret_val = fx_create_tx_cmd(cmd_6bits_in, rw, payload_in, payload_in_len,
 			payload_out, &payload_out_len);
 	TEST_ASSERT_EQUAL(0, ret_val);
 	TEST_ASSERT_EQUAL(payload_in_len + 1, payload_out_len);
@@ -105,7 +105,7 @@ void test_command_tx_cmd_basic_good_cmd_rw(void)
 }
 
 //We pass invalid command codes and RW to the function. Does it notice?
-void test_command_tx_cmd_basic_bad_cmd_rw(void)
+void test_command_create_tx_basic_bad_cmd_rw(void)
 {
 	//Test #1: command code too low
 	uint8_t payload_in[10] = "payload";
@@ -116,7 +116,7 @@ void test_command_tx_cmd_basic_bad_cmd_rw(void)
 	uint8_t ret_val = 0;
 	ReadWrite rw = CmdWrite;
 
-	ret_val = tx_cmd(cmd_6bits_in, rw, payload_in, payload_in_len,
+	ret_val = fx_create_tx_cmd(cmd_6bits_in, rw, payload_in, payload_in_len,
 			payload_out, &payload_out_len);
 	TEST_ASSERT_EQUAL(1, ret_val);
 	TEST_ASSERT_EQUAL(0, payload_out_len);
@@ -131,7 +131,7 @@ void test_command_tx_cmd_basic_bad_cmd_rw(void)
 	ret_val = 0;
 	rw = CmdWrite;
 
-	ret_val = tx_cmd(cmd_6bits_in, rw, payload_in, payload_in_len,
+	ret_val = fx_create_tx_cmd(cmd_6bits_in, rw, payload_in, payload_in_len,
 			payload_out, &payload_out_len);
 	TEST_ASSERT_EQUAL(1, ret_val);
 	TEST_ASSERT_EQUAL(0, payload_out_len);
@@ -146,7 +146,7 @@ void test_command_tx_cmd_basic_bad_cmd_rw(void)
 	ret_val = 0;
 	rw = CmdInvalid;
 
-	ret_val = tx_cmd(cmd_6bits_in, rw, payload_in, payload_in_len,
+	ret_val = fx_create_tx_cmd(cmd_6bits_in, rw, payload_in, payload_in_len,
 			payload_out, &payload_out_len);
 	TEST_ASSERT_EQUAL(1, ret_val);
 	TEST_ASSERT_EQUAL(0, payload_out_len);
@@ -154,9 +154,9 @@ void test_command_tx_cmd_basic_bad_cmd_rw(void)
 }
 
 //Can the parse command identify a valid string? Send it to the catch-all?
-void test_command_parse_catchall(void)
+void test_command_parse_rx_catchall(void)
 {
-	init_flexsea_payload_ptr();
+	fx_rx_cmd_init();
 
 	uint8_t payload[10] = "payload"; //The first char will be replaced by our cmd/rw code
 	uint16_t payload_len = sizeof(payload);
@@ -166,16 +166,16 @@ void test_command_parse_catchall(void)
 	uint8_t ret_val = 0;
 	uint8_t cmd = 22;
 
-	ret_val = tx_cmd(cmd, rw, payload, payload_len,
+	ret_val = fx_create_tx_cmd(cmd, rw, payload, payload_len,
 				payload_out, &payload_out_len);
 
 	uint8_t cmd_6bits = 0;
 	rw = CmdInvalid;
 	uint8_t ret_val_cmd = 0;
-	ret_val = payload_parse_str(payload_out, payload_out_len, &cmd_6bits, &rw);
+	ret_val = fx_parse_rx_cmd(payload_out, payload_out_len, &cmd_6bits, &rw);
 	if(!ret_val)
 	{
-		ret_val_cmd = flexsea_payload(cmd_6bits, rw, payload_out, payload_out_len);
+		ret_val_cmd = fx_call_rx_cmd_handler(cmd_6bits, rw, payload_out, payload_out_len);
 		if(ret_val_cmd == CATCHALL_RETURN)
 		{
 			TEST_PASS(); //As expected, we reached our catch-all
@@ -209,9 +209,9 @@ uint8_t test_command_22a(uint8_t cmd_6bits, ReadWrite rw, uint8_t *buf, uint16_t
 }
 
 //Can the parse command identify a valid string? Send it to the registered command?
-void test_command_parse_registered_command(void)
+void test_command_parse_rx_registered_command(void)
 {
-	init_flexsea_payload_ptr();
+	fx_rx_cmd_init();
 
 	uint8_t payload[10] = "\0payload"; //The first char will be replaced by our cmd/rw code
 	uint16_t payload_len = sizeof(payload);
@@ -223,12 +223,12 @@ void test_command_parse_registered_command(void)
 	uint8_t ret_val_cmd = 0;
 
 	//Register test function:
-	register_command(cmd, &test_command_22a);
+	fx_register_rx_cmd_handler(cmd, &test_command_22a);
 
-	ret_val = payload_parse_str(payload, payload_len, &cmd_6bits, &rw);
+	ret_val = fx_parse_rx_cmd(payload, payload_len, &cmd_6bits, &rw);
 	if(!ret_val)
 	{
-		ret_val_cmd = flexsea_payload(cmd_6bits, rw, payload, payload_len);
+		ret_val_cmd = fx_call_rx_cmd_handler(cmd_6bits, rw, payload, payload_len);
 		if(ret_val_cmd == TEST_CMD_RETURN)
 		{
 			TEST_PASS(); //As expected, we reached our test function
@@ -246,12 +246,12 @@ void test_command_parse_registered_command(void)
 
 void test_flexsea_command(void)
 {
-	RUN_TEST(test_command_cmd_rw_byte_valid);
-	RUN_TEST(test_command_cmd_rw_byte_invalid);
-	RUN_TEST(test_command_tx_cmd_basic_good_cmd_rw);
-	RUN_TEST(test_command_tx_cmd_basic_bad_cmd_rw);
-	RUN_TEST(test_command_parse_catchall);
-	RUN_TEST(test_command_parse_registered_command);
+	RUN_TEST(test_command_parse_rx_rw_byte_valid);
+	RUN_TEST(test_command_parse_rx_rw_byte_invalid);
+	RUN_TEST(test_command_create_tx_basic_good_cmd_rw);
+	RUN_TEST(test_command_create_tx_basic_bad_cmd_rw);
+	RUN_TEST(test_command_parse_rx_catchall);
+	RUN_TEST(test_command_parse_rx_registered_command);
 
 	fflush(stdout);
 }

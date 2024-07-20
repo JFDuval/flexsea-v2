@@ -35,21 +35,20 @@ extern "C" {
 // Include(s)
 //****************************************************************************
 
-
 //****************************************************************************
 // Definition(s):
-//**********************************************************************1******
+//****************************************************************************
 
 //6 bits for command codes, 2 bits for the R/W bits
 #define MIN_CMD_CODE	1	//We use CMD=0 as a way to detect an incorrect cmd
 #define MAX_CMD_CODE	63
 
-typedef enum{
-  CmdInvalid,		//00b: Invalid
-  CmdRead,			//01b: Read
-  CmdWrite,			//10b: Write
-  CmdReadWrite		//11b: Read/Write
-}ReadWrite;
+typedef enum {
+	CmdInvalid,		//00b: Invalid
+	CmdRead,			//01b: Read
+	CmdWrite,			//10b: Write
+	CmdReadWrite		//11b: Read/Write
+} ReadWrite;
 
 //Macros to deal with the R/W bits
 #define CMD_SET_R(x)		((x << 2) | CmdRead)
@@ -70,14 +69,15 @@ typedef enum{
 // Public Function Prototype(s):
 //****************************************************************************
 
-void init_flexsea_payload_ptr(void);
-uint8_t payload_parse_str(uint8_t* unpacked, uint16_t unpacked_len,
-		uint8_t *cmd_6bits, ReadWrite *rw);
-uint8_t tx_cmd(uint8_t cmd_6bits, ReadWrite rw, uint8_t *buf_in,
+uint8_t fx_rx_cmd_init(void);
+uint8_t fx_create_tx_cmd(uint8_t cmd_6bits, ReadWrite rw, uint8_t *buf_in,
 		uint16_t buf_in_len, uint8_t *buf_out, uint16_t *buf_out_len);
-uint8_t flexsea_payload(uint8_t cmd_6bits, ReadWrite rw,
-		uint8_t *buf, uint16_t len);
-uint8_t register_command(uint8_t cmd, uint8_t(*fct_prt)(uint8_t, ReadWrite, uint8_t *, uint16_t));
+uint8_t fx_parse_rx_cmd(uint8_t *decoded, uint16_t decoded_len,
+		uint8_t *cmd_6bits, ReadWrite *rw);
+uint8_t fx_call_rx_cmd_handler(uint8_t cmd_6bits, ReadWrite rw, uint8_t *buf,
+		uint16_t len);
+uint8_t fx_register_rx_cmd_handler(uint8_t cmd,
+		uint8_t (*fct_prt)(uint8_t, ReadWrite, uint8_t*, uint16_t));
 
 //****************************************************************************
 // Structure(s):
