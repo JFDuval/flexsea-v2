@@ -35,6 +35,7 @@ extern "C" {
 // Include(s)
 //****************************************************************************
 
+#include "circ_buf.h"
 #include <flexsea_codec.h>
 #include <flexsea_command.h>
 
@@ -49,6 +50,9 @@ extern "C" {
 uint8_t fx_create_bytestream_from_cmd(uint8_t cmd_6bits, ReadWrite rw,
 		uint8_t *buf_in, uint8_t buf_in_len, uint8_t* bytestream,
 		uint8_t *bytestream_len);
+uint8_t fx_get_cmd_handler_from_bytestream(circ_buf_t *cb,
+		uint8_t *cmd_6bits, ReadWrite *rw, uint8_t *buf,
+		uint8_t *buf_len);
 
 //****************************************************************************
 // Structure(s):

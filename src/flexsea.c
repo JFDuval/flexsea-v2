@@ -80,6 +80,41 @@ uint8_t fx_create_bytestream_from_cmd(uint8_t cmd_6bits, ReadWrite rw, uint8_t *
 	return 1;
 }
 
+//Our input bytestream comes in the form of a circular buffer
+//We decode it, and get ready to call a function handler
+uint8_t fx_get_cmd_handler_from_bytestream(circ_buf_t *cb,
+		uint8_t *cmd_6bits, ReadWrite *rw, uint8_t *buf,
+		uint8_t *buf_len)
+{
+	uint8_t encoded_payload[MAX_ENCODED_PAYLOAD_BYTES] = {0};
+	uint8_t encoded_payload_len = 0;
+	uint8_t decoded_payload[MAX_ENCODED_PAYLOAD_BYTES] = {0};
+	uint8_t decoded_payload_len = 0;
+
+	//Decode payload
+	if(!fx_decode(cb, encoded_payload, &encoded_payload_len,
+			decoded_payload, &decoded_payload_len))
+	{
+		//This function takes a decoded payload as an input,
+		//and determines what the command code and R/W is
+		if(!fx_parse_rx_cmd(decoded_payload, decoded_payload_len,
+				cmd_6bits, rw))
+		{
+			//Share data with the caller
+			memcpy(buf, decoded_payload, decoded_payload_len);
+			*buf_len = decoded_payload_len;
+			//(cmd_6bits & rw are already set, nothing to do)
+			return 0;
+		}
+
+		*buf_len = 0;
+		return 1;
+	}
+
+	*buf_len = 0;
+	return 1;
+}
+
 #ifdef __cplusplus
 }
 #endif

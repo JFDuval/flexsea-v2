@@ -47,11 +47,8 @@ extern "C" {
 // Include(s)
 //****************************************************************************
 
-#include <string.h>
-#include <stdlib.h>
-#include <stdint.h>
+#include "main.h"
 #include <flexsea_codec.h>
-#include "circ_buf.h"
 
 //****************************************************************************
 // Variable(s)
