@@ -43,8 +43,6 @@ extern "C" {
 //The data you encode can be anything you desire, but it is typically a
 //FlexSEA Command Packet. See flexsea_command for more info.
 
-//ToDo consider replacing pack/unpack with code/decode
-
 //****************************************************************************
 // Include(s)
 //****************************************************************************

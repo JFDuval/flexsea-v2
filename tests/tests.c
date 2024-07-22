@@ -10,6 +10,7 @@ int main(void)
 	RUN_TEST(test_circ_buf);
 	RUN_TEST(test_flexsea_codec);
 	RUN_TEST(test_flexsea_command);
+	RUN_TEST(test_flexsea);
 
 	return UNITY_END();
 }

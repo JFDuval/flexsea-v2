@@ -37,9 +37,8 @@ extern "C" {
 //=> CMD and R/W share a byte. CMD has the 6 MSBs, and RW has the 2 LSBs.
 //=> Data is a byte array
 
-//This file is all about TODO TODO TODO
-
-//ToDo rename pretty much everything to unify and clarify
+//This file is all about sending and receiving commands. The command code and
+//R/W coding is determined, but the data structure is left to the user.
 
 //****************************************************************************
 // Include(s)
@@ -56,14 +55,14 @@ extern "C" {
 
 //Function pointer array that points to the command handlers
 uint8_t (*fx_rx_cmd_handler_ptr[MAX_CMD_CODE])(uint8_t cmd_6bits, ReadWrite rw,
-		uint8_t *buf, uint16_t len);
+		uint8_t *buf, uint8_t buf_len);
 
 //****************************************************************************
 // Private Function Prototype(s):
 //****************************************************************************
 
 static uint8_t fx_rx_cmd_handler_catchall(uint8_t cmd_6bits, ReadWrite rw,
-		uint8_t *buf, uint16_t len);
+		uint8_t *buf, uint8_t buf_len);
 
 //****************************************************************************
 // Public Function(s)
@@ -90,11 +89,11 @@ uint8_t fx_rx_cmd_init(void)
 //'uint8_t cmd_6bits': 6-bit command code
 //'ReadWrite rw': 2-bit R/W message type
 //'uint8_t *buf_in': input data
-//'uint16_t buf_in_len': input data length
+//'uint8_t buf_in_len': input data length
 //'uint8_t *buf_out': output data
-//'uint16_t buf_out_len': output data length
+//'uint8_t buf_out_len': output data length
 uint8_t fx_create_tx_cmd(uint8_t cmd_6bits, ReadWrite rw, uint8_t *buf_in,
-		uint16_t buf_in_len, uint8_t *buf_out, uint16_t *buf_out_len)
+		uint8_t buf_in_len, uint8_t *buf_out, uint8_t *buf_out_len)
 {
 	uint8_t cmd_rw = 0;
 
@@ -138,7 +137,7 @@ uint8_t fx_create_tx_cmd(uint8_t cmd_6bits, ReadWrite rw, uint8_t *buf_in,
 //'uint8_t decoded_len': serialized data length
 //'uint8_t *cmd_6bits': 6-bit command code (if valid, 0 otherwise)
 //'ReadWrite *rw': 2-bit R/W (if valid, 0 otherwise)
-uint8_t fx_parse_rx_cmd(uint8_t* decoded, uint16_t decoded_len, uint8_t *cmd_6bits, ReadWrite *rw)
+uint8_t fx_parse_rx_cmd(uint8_t* decoded, uint8_t decoded_len, uint8_t *cmd_6bits, ReadWrite *rw)
 {
 	uint8_t _cmd = 0, _cmd_6bits = 0, valid = 0;
 	ReadWrite _rw = CmdInvalid;
@@ -176,13 +175,13 @@ uint8_t fx_parse_rx_cmd(uint8_t* decoded, uint16_t decoded_len, uint8_t *cmd_6bi
 
 //To avoid exposing fx_rx_cmd_handler_ptr we wrap it in this function
 uint8_t fx_call_rx_cmd_handler(uint8_t cmd_6bits, ReadWrite rw,
-		uint8_t *buf, uint16_t len)
+		uint8_t *buf, uint8_t len)
 {
 	return (*fx_rx_cmd_handler_ptr[cmd_6bits]) (cmd_6bits, rw, buf, len);
 }
 
 //Pair a function and a command code together
-uint8_t fx_register_rx_cmd_handler(uint8_t cmd, uint8_t (*fct_prt) (uint8_t, ReadWrite, uint8_t *, uint16_t))
+uint8_t fx_register_rx_cmd_handler(uint8_t cmd, uint8_t (*fct_prt) (uint8_t, ReadWrite, uint8_t *, uint8_t))
 {
 	if((cmd > MIN_CMD_CODE) && (cmd < MAX_CMD_CODE))
 	{
@@ -203,9 +202,9 @@ uint8_t fx_register_rx_cmd_handler(uint8_t cmd, uint8_t (*fct_prt) (uint8_t, Rea
 //'uint8_t cmd': 6-bit command code
 //'uint8_t rw': 2-bit Read / Write / Read-Write code
 //'uint8_t *buf': serialized data
-//'uint16_t len': length of the serialized data
+//'uint8_t len': length of the serialized data
 static uint8_t fx_rx_cmd_handler_catchall(uint8_t cmd_6bits, ReadWrite rw,
-		uint8_t *buf, uint16_t len)
+		uint8_t *buf, uint8_t len)
 {
 	(void)cmd_6bits;
 	(void)rw;

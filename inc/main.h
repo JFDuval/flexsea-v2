@@ -9,8 +9,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
-#include <flexsea_codec.h>
-#include <flexsea_command.h>
+#include <flexsea.h>
 
 //****************************************************************************
 // Definition(s):

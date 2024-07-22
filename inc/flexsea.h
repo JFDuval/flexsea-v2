@@ -21,11 +21,11 @@
  [Contributors to v1] Work maintained and expended by Dephy, Inc. (2015-20xx)
  [v2.0] Complete re-write based on the original idea. (2024)
  *****************************************************************************
- [This file] flexsea_command: OSI layers 4-7 of the FlexSEA protocol v2.0
+ [This file] flexsea: top-level FlexSEA protocol v2.0
  ****************************************************************************/
 
-#ifndef INC_FX_COMMAND_H
-#define INC_FX_COMMAND_H
+#ifndef INC_FX_FLEXSEA_H
+#define INC_FX_FLEXSEA_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -35,50 +35,20 @@ extern "C" {
 // Include(s)
 //****************************************************************************
 
+#include <flexsea_codec.h>
+#include <flexsea_command.h>
+
 //****************************************************************************
 // Definition(s):
 //****************************************************************************
-
-//6 bits for command codes, 2 bits for the R/W bits
-#define MIN_CMD_CODE	1	//We use CMD=0 as a way to detect an incorrect cmd
-#define MAX_CMD_CODE	63
-
-typedef enum {
-	CmdInvalid,		//00b: Invalid
-	CmdRead,			//01b: Read
-	CmdWrite,			//10b: Write
-	CmdReadWrite		//11b: Read/Write
-} ReadWrite;
-
-//Macros to deal with the R/W bits
-#define CMD_SET_R(x)		((x << 2) | CmdRead)
-#define CMD_SET_W(x)		((x << 2) | CmdWrite)
-#define CMD_SET_RW(x)		((x << 2) | CmdReadWrite)
-#define CMD_GET_6BITS(x)	((x & 0xFF) >> 2)
-#define CMD_GET_RW(x)		(x & 3)
-#define CMD_IS_VALID(x)		(x & 3) ? 1 : 0
-
-#define CMD_CODE_INDEX		0
-#define CMD_OVERHEAD		1	//Only one byte is added at this point
-
-//To detect when a command gets trapped by our catch-all we use a special
-//return code. Same for our test command.
-#define CATCHALL_RETURN		255
-#define TEST_CMD_RETURN		127
 
 //****************************************************************************
 // Public Function Prototype(s):
 //****************************************************************************
 
-uint8_t fx_rx_cmd_init(void);
-uint8_t fx_create_tx_cmd(uint8_t cmd_6bits, ReadWrite rw, uint8_t *buf_in,
-		uint8_t buf_in_len, uint8_t *buf_out, uint8_t *buf_out_len);
-uint8_t fx_parse_rx_cmd(uint8_t *decoded, uint8_t decoded_len,
-		uint8_t *cmd_6bits, ReadWrite *rw);
-uint8_t fx_call_rx_cmd_handler(uint8_t cmd_6bits, ReadWrite rw, uint8_t *buf,
-		uint8_t len);
-uint8_t fx_register_rx_cmd_handler(uint8_t cmd,
-		uint8_t (*fct_prt)(uint8_t, ReadWrite, uint8_t*, uint8_t));
+uint8_t fx_create_bytestream_from_cmd(uint8_t cmd_6bits, ReadWrite rw,
+		uint8_t *buf_in, uint8_t buf_in_len, uint8_t* bytestream,
+		uint8_t *bytestream_len);
 
 //****************************************************************************
 // Structure(s):
@@ -92,4 +62,4 @@ uint8_t fx_register_rx_cmd_handler(uint8_t cmd,
 }
 #endif
 
-#endif	//INC_FX_COMMAND_H
+#endif	//INC_FX_FLEXSEA_H

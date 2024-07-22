@@ -90,9 +90,9 @@ void test_command_parse_rx_rw_byte_invalid(void)
 void test_command_create_tx_basic_good_cmd_rw(void)
 {
 	uint8_t payload_in[10] = "payload";
-	uint16_t payload_in_len = 7;	//Just the chars we want
+	uint8_t payload_in_len = 7;	//Just the chars we want
 	uint8_t payload_out[10] = {0};
-	uint16_t payload_out_len = 0;
+	uint8_t payload_out_len = 0;
 	uint8_t cmd_6bits_in = 33;
 	uint8_t ret_val = 0;
 	ReadWrite rw = CmdWrite;
@@ -109,9 +109,9 @@ void test_command_create_tx_basic_bad_cmd_rw(void)
 {
 	//Test #1: command code too low
 	uint8_t payload_in[10] = "payload";
-	uint16_t payload_in_len = 7;	//Just the chars we want
+	uint8_t payload_in_len = 7;	//Just the chars we want
 	uint8_t payload_out[10] = {0};
-	uint16_t payload_out_len = 0;
+	uint8_t payload_out_len = 0;
 	uint8_t cmd_6bits_in = 0;
 	uint8_t ret_val = 0;
 	ReadWrite rw = CmdWrite;
@@ -161,7 +161,7 @@ void test_command_parse_rx_catchall(void)
 	uint8_t payload[10] = "payload"; //The first char will be replaced by our cmd/rw code
 	uint16_t payload_len = sizeof(payload);
 	uint8_t payload_out[10] = {0};
-	uint16_t payload_out_len = 0;
+	uint8_t payload_out_len = 0;
 	ReadWrite rw = CmdWrite;
 	uint8_t ret_val = 0;
 	uint8_t cmd = 22;
@@ -192,7 +192,7 @@ void test_command_parse_rx_catchall(void)
 }
 
 //This is a FlexSEA test command
-uint8_t test_command_22a(uint8_t cmd_6bits, ReadWrite rw, uint8_t *buf, uint16_t len)
+uint8_t test_command_22a(uint8_t cmd_6bits, ReadWrite rw, uint8_t *buf, uint8_t len)
 {
 	//We check a few parameters
 	if((cmd_6bits == 22) && (rw == CmdWrite) && (len >= 1) &&
