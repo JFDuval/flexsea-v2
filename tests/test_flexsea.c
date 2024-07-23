@@ -75,13 +75,90 @@ void test_fx_get_cmd_handler_from_bytestream(void)
 	TEST_ASSERT_EQUAL(0, ret_val);
 	TEST_ASSERT_EQUAL(cmd_6bits_in, cmd_6bits_out);
 	TEST_ASSERT_EQUAL(rw, rw_out);
-	//ToDo more tests
+	TEST_ASSERT_EQUAL(CMD_SET_W(cmd_6bits_out), buf[0]);
+	TEST_ASSERT_EQUAL_UINT8_ARRAY(payload, &buf[1], payload_len);
+}
+
+//Test structure
+typedef struct
+{
+	uint8_t field1;
+	int16_t field2;
+	uint8_t field3[9];
+	int32_t field4;
+} __attribute__((__packed__)) FlexSEA_Cmd_Test_s;
+
+//Can we serialize a structure, send it over a serial interface, then reconstruct it?
+void test_structure_serialize_deserialize(void)
+{
+	//We create a structure
+	FlexSEA_Cmd_Test_s fx_test_struct1;
+	fx_test_struct1.field1 = 123;
+	fx_test_struct1.field2 = -1234;
+	memset(fx_test_struct1.field3, 0, 9);
+	fx_test_struct1.field3[0] = 237;
+	fx_test_struct1.field3[8] = 238;
+	fx_test_struct1.field4 = 100000;
+
+	uint8_t s = sizeof(fx_test_struct1);
+	TEST_ASSERT_EQUAL(16, s);
+
+	//We serialize it and feed it to a CB
+	circ_buf_t cb = {.buffer = {0}, .length = 0, .write_index = 0, .read_index =
+			0};
+	uint8_t ret_val = 0;
+	uint8_t* ptr= (uint8_t*)&fx_test_struct1;
+
+	int i = 0;
+	for(i = 0; i < s; i++)
+	{
+		//Write to circular buffer
+		ret_val = circ_buf_write_byte(&cb, ptr[i]);
+
+		//circ_buf_write() should always return 0 if we are not overwriting
+		if(ret_val)
+		{
+			TEST_FAIL_MESSAGE("CB indicates it's full while it shouldn't.");
+			break;
+		}
+	}
+
+	uint16_t cb_size = 0;
+	ret_val = circ_buf_get_size(&cb, &cb_size);
+	TEST_ASSERT_EQUAL(0, ret_val);
+	TEST_ASSERT_EQUAL(s, cb_size);
+
+	//We then read it back from the CB, and re-create a structure from it.
+	uint8_t r_array[CIRC_BUF_SIZE] = {0};
+	uint8_t r_byte = 0;
+	for(i = 0; i < cb_size; i++)
+	{
+		//Read from circular buffer
+		ret_val = circ_buf_read_byte(&cb, &r_byte);
+		//Save the same info in a regular buffer
+		r_array[i] = r_byte;
+
+		//circ_buf_read() should always return 0 if we are not reading from an empty buffer
+		if(ret_val)
+		{
+			TEST_FAIL_MESSAGE("CB read indicates it's empty while it shouldn't.");
+			break;
+		}
+	}
+
+	//We create a new structure
+	FlexSEA_Cmd_Test_s fx_test_struct2;
+	memcpy(&fx_test_struct2, (FlexSEA_Cmd_Test_s*)&r_array, sizeof(fx_test_struct2));
+	TEST_ASSERT_EQUAL(fx_test_struct1.field1, fx_test_struct2.field1);
+	TEST_ASSERT_EQUAL(fx_test_struct1.field2, fx_test_struct2.field2);
+	TEST_ASSERT_EQUAL(fx_test_struct1.field4, fx_test_struct2.field4);
 }
 
 void test_flexsea(void)
 {
 	RUN_TEST(test_fx_create_bytestream_from_cmd);
 	RUN_TEST(test_fx_get_cmd_handler_from_bytestream);
+	RUN_TEST(test_structure_serialize_deserialize);
 
 	fflush(stdout);
 }
