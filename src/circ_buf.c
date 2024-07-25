@@ -2,7 +2,7 @@
 // Include(s)
 //****************************************************************************
 
-#include "main.h"
+#include "flexsea.h"
 #include "circ_buf.h"
 
 //This code was adapted from https://github.com/charlesdobson/circular-buffer

@@ -14,6 +14,11 @@ environment/project/cdt.managedbuild.config.gnu.cross.exe.debug.569193110/MINGW_
 environment/project/cdt.managedbuild.config.gnu.cross.exe.debug.569193110/MINGW_HOME/value=C\:\\Program Files\\CodeBlocks\\MinGW
 environment/project/cdt.managedbuild.config.gnu.cross.exe.debug.569193110/append=true
 environment/project/cdt.managedbuild.config.gnu.cross.exe.debug.569193110/appendContributed=true
+environment/project/cdt.managedbuild.config.gnu.cross.exe.release.1016323619.350389252/MINGW_HOME/delimiter=;
+environment/project/cdt.managedbuild.config.gnu.cross.exe.release.1016323619.350389252/MINGW_HOME/operation=replace
+environment/project/cdt.managedbuild.config.gnu.cross.exe.release.1016323619.350389252/MINGW_HOME/value=C\:\\Program Files\\CodeBlocks\\MinGW
+environment/project/cdt.managedbuild.config.gnu.cross.exe.release.1016323619.350389252/append=true
+environment/project/cdt.managedbuild.config.gnu.cross.exe.release.1016323619.350389252/appendContributed=true
 environment/project/cdt.managedbuild.config.gnu.cross.exe.release.1016323619/MINGW_HOME/delimiter=;
 environment/project/cdt.managedbuild.config.gnu.cross.exe.release.1016323619/MINGW_HOME/operation=replace
 environment/project/cdt.managedbuild.config.gnu.cross.exe.release.1016323619/MINGW_HOME/value=C\:\\Program Files\\CodeBlocks\\MinGW
