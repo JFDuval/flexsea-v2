@@ -181,7 +181,7 @@ uint8_t fx_call_rx_cmd_handler(uint8_t cmd_6bits, ReadWrite rw,
 //Pair a function and a command code together
 uint8_t fx_register_rx_cmd_handler(uint8_t cmd, uint8_t (*fct_prt) (uint8_t, ReadWrite, uint8_t *, uint8_t))
 {
-	if((cmd > MIN_CMD_CODE) && (cmd < MAX_CMD_CODE))
+	if((cmd >= MIN_CMD_CODE) && (cmd < MAX_CMD_CODE))
 	{
 		fx_rx_cmd_handler_ptr[cmd] = fct_prt;
 		return 0;
