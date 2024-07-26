@@ -2,7 +2,6 @@
 extern "C" {
 #endif
 
-#include "main.h"
 #include "tests.h"
 #include "flexsea_command.h"
 

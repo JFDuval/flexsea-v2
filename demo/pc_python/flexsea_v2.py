@@ -1,6 +1,6 @@
 from ctypes import *
 print('Demo code - Python project with FlexSEA v2.0 DLL\n')
-flexsea = cdll.LoadLibrary('DynamicLib/libflexsea-v2.dll')
+flexsea = cdll.LoadLibrary('../../DynamicLib/libflexsea-v2.dll')
 ret_val = flexsea.fx_rx_cmd_init()
 if ret_val:
     print("Problem initializing the FlexSEA stack - quit.")

@@ -25,9 +25,24 @@
 	</natures>
 	<linkedResources>
 		<link>
+			<name>inc</name>
+			<type>2</type>
+			<location>PARENT-2-PROJECT_LOC/inc</location>
+		</link>
+		<link>
+			<name>src</name>
+			<type>2</type>
+			<locationURI>PARENT-2-PROJECT_LOC/src</locationURI>
+		</link>
+		<link>
+			<name>tests</name>
+			<type>2</type>
+			<location>PARENT-2-PROJECT_LOC/tests</location>
+		</link>
+		<link>
 			<name>unity</name>
 			<type>2</type>
-			<locationURI>PARENT-1-PROJECT_LOC/unity</locationURI>
+			<locationURI>PARENT-3-PROJECT_LOC/unity</locationURI>
 		</link>
 	</linkedResources>
 </projectDescription>
