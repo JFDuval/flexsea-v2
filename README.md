@@ -21,7 +21,6 @@
 
 This project was developed using Eclipse IDE for C/C++ Developers, Version 2024-06 (4.32.0). I used a copy of MinGW I already had.
 
-
 ### Unit Tests
 
 1. Download Unity (https://www.throwtheswitch.org/unity), or clone the git repository
