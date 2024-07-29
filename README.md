@@ -15,11 +15,25 @@
   - Goals: simpler code, improved API, easier integration with various projects, better unit test coverage
   - Same GPL-3.0 license, updated copyright to capture the full re-write
 
+## Repository organization
+
+- src/: Communication stack, source files
+- inc/: Communication stack, header files
+- tests/: Unit tests
+- projects/:
+  - eclipse_pc/: Eclipse C project that can be used to compile the communication stack (static and dynamic libs) and run unit tests.
+- demo/:
+  - pc_c/: Demo/test code written in C, with Eclipse C project
+  - pc_python/: Demo/test code written in Python, with PyCharm project 
+
 ## Setup - Tools
 
-### Eclipse and MINGW (PC)
+### PC tools
 
-This project was developed using Eclipse IDE for C/C++ Developers, Version 2024-06 (4.32.0). I used a copy of MinGW I already had.
+- C IDE: Eclipse IDE for C/C++ Developers, Version 2024-06 (4.32.0)
+- C compiler: MinGW-W64-builds-4.3.5
+- Python IDE: PyCharm 2022.2.4 Community Edition
+- Python interpreter: Python 3.9
 
 ### Unit Tests
 
@@ -27,6 +41,4 @@ This project was developed using Eclipse IDE for C/C++ Developers, Version 2024-
 1. Create a folder named 'unity' and place it at the same level as your flexsea_v2 project
 1. Copy unity.c, unity.h and unity_internals.h from the Unity/src folder into unity/ 
 1. Open unity.c. If setUp() and tearDown() are not implemented, add "void setUp(void) {};" & "void tearDown(void) {};" to the file.
-1. Exclude 'main.c' from your build, and run tests.c instead
-
-Note: this is not the best way of integrating Unity into our project, but until we setup a build system this is far easier than any other way.
+1. Run tests.c. If needed, exclude your project's main().
