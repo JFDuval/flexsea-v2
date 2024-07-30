@@ -15,7 +15,12 @@ obj/
 *.layout
 *.depend
 
+#Eclipse build folders:
 
 /Debug/
 /Release/
 /Test/
+/demo/pc_c/Debug/
+/projects/eclipse_pc/DynamicLib/
+/projects/eclipse_pc/StaticLib/
+/projects/eclipse_pc/Test/
