@@ -34,6 +34,7 @@
 - C compiler: MinGW-W64-builds-4.3.5
 - Python IDE: PyCharm 2022.2.4 Community Edition
 - Python interpreter: Python 3.9
+  - Packages to install: 'pyserial'
 
 ### Unit Tests
 

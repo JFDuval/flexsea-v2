@@ -15,7 +15,7 @@ obj/
 *.layout
 *.depend
 
-#Eclipse build folders:
+#Eclipse (PC) build folders:
 
 /Debug/
 /Release/
@@ -24,5 +24,10 @@ obj/
 /projects/eclipse_pc/DynamicLib/
 /projects/eclipse_pc/StaticLib/
 /projects/eclipse_pc/Test/
+
+#Eclipse (STM32):
+
 /demo/stm32_c/Debug/
 /demo/stm32_c/Release/
+*.launch
+*.prefs

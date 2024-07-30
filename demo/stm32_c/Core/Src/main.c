@@ -44,6 +44,11 @@
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
+volatile uint8_t pc_rx_data[10] = {0};
+//We prepare a new circular buffer
+circ_buf_t cb = {.buffer = {0}, .length = 0, .write_index = 0, .read_index =
+		0};
+volatile uint8_t new_bytes = 0;
 
 /* USER CODE END PV */
 
@@ -74,6 +79,17 @@ uint8_t test_command_1a(uint8_t cmd_6bits, ReadWrite rw, uint8_t *buf, uint8_t l
 		return 1;
 	}
 }
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+	if(huart->Instance == USART2)
+	{
+		circ_buf_write_byte(&cb, pc_rx_data[0]);
+		HAL_UART_Receive_IT(&huart2, &pc_rx_data, 1);
+		new_bytes++;
+	}
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -114,34 +130,8 @@ int main(void)
   fx_rx_cmd_init();
   fx_register_rx_cmd_handler(1, &test_command_1a);
 
-  //This code will need to move. For now I'm just making sure it builds.
+  HAL_UART_Receive_IT(&huart2, &pc_rx_data, 1);
 
-	//We prepare a new circular buffer
-	circ_buf_t cb = {.buffer = {0}, .length = 0, .write_index = 0, .read_index =
-			0};
-
-	//At this point our encoded command is in the circular buffer
-
-	ret_val = fx_get_cmd_handler_from_bytestream(&cb, &cmd_6bits_out, &rw_out,
-			buf, &buf_len);
-
-	//Call handler
-	if(!ret_val)
-	{
-		ret_val_cmd = fx_call_rx_cmd_handler(cmd_6bits_out, rw_out, buf, buf_len);
-		if(ret_val_cmd == TEST_CMD_RETURN)
-		{
-			printf("Success!\n");
-		}
-		else
-		{
-			printf("Our return value doesn't match with the expected test function.\n");
-		}
-	}
-	else
-	{
-		printf("payload_parse_str() did not return 0, it detected an invalid command.\n");
-	}
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -151,6 +141,31 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	  if(new_bytes)
+	  {
+			//At this point our encoded command is in the circular buffer
+
+			ret_val = fx_get_cmd_handler_from_bytestream(&cb, &cmd_6bits_out, &rw_out,
+					buf, &buf_len);
+
+			//Call handler
+			if(!ret_val)
+			{
+				ret_val_cmd = fx_call_rx_cmd_handler(cmd_6bits_out, rw_out, buf, buf_len);
+				if(ret_val_cmd == TEST_CMD_RETURN)
+				{
+					printf("Success!\n");
+				}
+				else
+				{
+					printf("Our return value doesn't match with the expected test function.\n");
+				}
+			}
+			else
+			{
+				printf("payload_parse_str() did not return 0, it detected an invalid command.\n");
+			}
+	  }
   }
   /* USER CODE END 3 */
 }
