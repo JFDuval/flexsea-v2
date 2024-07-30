@@ -39,6 +39,4 @@ uint8_t circ_buf_get_size(circ_buf_t *cb, uint16_t *cb_size);
 // Shared variable(s)
 //****************************************************************************
 
-extern circ_buf_t circ_buf_serial_rx;
-
 #endif // INC_CIRC_BUF_H_
