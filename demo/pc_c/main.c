@@ -92,7 +92,7 @@ int main()
 	//Call handler
 	if(!ret_val)
 	{
-		ret_val_cmd = fx_call_rx_cmd_handler(cmd_6bits_out, rw, buf, buf_len);
+		ret_val_cmd = fx_call_rx_cmd_handler(cmd_6bits_out, rw_out, buf, buf_len);
 		if(ret_val_cmd == TEST_CMD_RETURN)
 		{
 			printf("Success!\n");

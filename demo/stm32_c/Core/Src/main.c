@@ -21,6 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <flexsea.h>
 
 /* USER CODE END Includes */
 
@@ -56,7 +57,23 @@ static void MX_USART2_UART_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+//This is a FlexSEA test command
+uint8_t test_command_1a(uint8_t cmd_6bits, ReadWrite rw, uint8_t *buf, uint8_t len)
+{
+	//We check a few parameters
+	if((cmd_6bits == 1) && (rw == CmdWrite) && (len >= 1) &&
+			(cmd_6bits == CMD_GET_6BITS(buf[CMD_CODE_INDEX])))
+	{
+		//Valid
+		printf("If you see this, test_command_1a() has been successfully called!\n\n");
+		return TEST_CMD_RETURN;
+	}
+	else
+	{
+		//Problem
+		return 1;
+	}
+}
 /* USER CODE END 0 */
 
 /**
@@ -66,7 +83,11 @@ static void MX_USART2_UART_Init(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
+	uint8_t cmd_6bits_out = 0;
+	ReadWrite rw_out = CmdInvalid;
+	uint8_t buf[MAX_ENCODED_PAYLOAD_BYTES] = {0};
+	uint8_t buf_len = 0;
+	uint8_t ret_val = 0, ret_val_cmd = 0;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -89,7 +110,38 @@ int main(void)
   MX_GPIO_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
+	//Init stack & register test function:
+  fx_rx_cmd_init();
+  fx_register_rx_cmd_handler(1, &test_command_1a);
 
+  //This code will need to move. For now I'm just making sure it builds.
+
+	//We prepare a new circular buffer
+	circ_buf_t cb = {.buffer = {0}, .length = 0, .write_index = 0, .read_index =
+			0};
+
+	//At this point our encoded command is in the circular buffer
+
+	ret_val = fx_get_cmd_handler_from_bytestream(&cb, &cmd_6bits_out, &rw_out,
+			buf, &buf_len);
+
+	//Call handler
+	if(!ret_val)
+	{
+		ret_val_cmd = fx_call_rx_cmd_handler(cmd_6bits_out, rw_out, buf, buf_len);
+		if(ret_val_cmd == TEST_CMD_RETURN)
+		{
+			printf("Success!\n");
+		}
+		else
+		{
+			printf("Our return value doesn't match with the expected test function.\n");
+		}
+	}
+	else
+	{
+		printf("payload_parse_str() did not return 0, it detected an invalid command.\n");
+	}
   /* USER CODE END 2 */
 
   /* Infinite loop */
