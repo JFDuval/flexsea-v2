@@ -24,3 +24,5 @@ obj/
 /projects/eclipse_pc/DynamicLib/
 /projects/eclipse_pc/StaticLib/
 /projects/eclipse_pc/Test/
+/demo/stm32_c/Debug/
+/demo/stm32_c/Release/
