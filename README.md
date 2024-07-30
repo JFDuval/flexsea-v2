@@ -19,12 +19,12 @@
 
 - src/: Communication stack, source files
 - inc/: Communication stack, header files
-- tests/: Unit tests
+- tests/: Unit tests for the communication stack
 - projects/:
   - eclipse_pc/: Eclipse C project that can be used to compile the communication stack (static and dynamic libs) and run unit tests.
 - demo/:
-  - pc_c/: Demo/test code written in C, with Eclipse C project
-  - pc_python/: Demo/test code written in Python, with PyCharm project 
+  - pc_c/: Demo/test code written in C, with Eclipse C project. It compiles the stack (it doesn't use the static lib)
+  - pc_python/: Demo/test code written in Python, with PyCharm project. You need to compile a DLL first.
 
 ## Setup - Tools
 
