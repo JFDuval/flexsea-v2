@@ -31,3 +31,6 @@ obj/
 /demo/stm32_c/Release/
 *.launch
 *.prefs
+
+#Python and PyCharm:
+*__pycache__
