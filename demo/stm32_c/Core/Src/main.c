@@ -15,6 +15,14 @@
   *
   ******************************************************************************
   */
+
+//This is a basic demo project, started from a the auto-generated Nucleo-G431KB
+//code. I did not attempt to organize the files or clean the style.
+
+//You will see printf() statements throughout the code. They won't print. They
+//act as a comment for you, the dev, and as a location where you can place a
+//breakpoint while debugging.
+
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
@@ -44,11 +52,15 @@
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
+//Temporary buffer for our UART reception
 volatile uint8_t pc_rx_data[10] = {0};
 //We prepare a new circular buffer
 circ_buf_t cb = {.buffer = {0}, .length = 0, .write_index = 0, .read_index =
 		0};
 volatile uint8_t new_bytes = 0;
+//UART transmission
+uint8_t bytestream[MAX_ENCODED_PAYLOAD_BYTES] = {0};
+uint8_t bytestream_len = 0;
 
 /* USER CODE END PV */
 
@@ -84,6 +96,9 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	if(huart->Instance == USART2)
 	{
+		//Minimalist code. We deal with one byte at a time (let's hope
+		//we service this ISR quickly!) and we feed it to the circular
+		//buffer.
 		circ_buf_write_byte(&cb, pc_rx_data[0]);
 		HAL_UART_Receive_IT(&huart2, &pc_rx_data, 1);
 		new_bytes++;
@@ -99,11 +114,14 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-	uint8_t cmd_6bits_out = 0;
-	ReadWrite rw_out = CmdInvalid;
-	uint8_t buf[MAX_ENCODED_PAYLOAD_BYTES] = {0};
-	uint8_t buf_len = 0;
-	uint8_t ret_val = 0, ret_val_cmd = 0;
+
+  //Variables used by the FlexSEA stack
+  uint8_t cmd_6bits_out = 0;
+  ReadWrite rw_out = CmdInvalid;
+  uint8_t buf[MAX_ENCODED_PAYLOAD_BYTES] = {0};
+  uint8_t buf_len = 0;
+  uint8_t ret_val = 0, ret_val_cmd = 0;
+  uint8_t send_reply = 0;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -126,10 +144,11 @@ int main(void)
   MX_GPIO_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-	//Init stack & register test function:
+
+  //Init stack & register test function:
   fx_rx_cmd_init();
   fx_register_rx_cmd_handler(1, &test_command_1a);
-
+  //Start UART reception
   HAL_UART_Receive_IT(&huart2, &pc_rx_data, 1);
 
   /* USER CODE END 2 */
@@ -141,10 +160,11 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
+	  //Receive commands
 	  if(new_bytes)
 	  {
 			//At this point our encoded command is in the circular buffer
-
 			ret_val = fx_get_cmd_handler_from_bytestream(&cb, &cmd_6bits_out, &rw_out,
 					buf, &buf_len);
 
@@ -155,6 +175,7 @@ int main(void)
 				if(ret_val_cmd == TEST_CMD_RETURN)
 				{
 					printf("Success!\n");
+					send_reply = 1;
 				}
 				else
 				{
@@ -165,6 +186,19 @@ int main(void)
 			{
 				printf("payload_parse_str() did not return 0, it detected an invalid command.\n");
 			}
+	  }
+
+	  //Send commands
+	  if(send_reply)
+	  {
+		  uint8_t payload[] = "Embedded Loopback!";
+		  uint8_t payload_len = 19;
+
+          ret_val = fx_create_bytestream_from_cmd(23, CmdWrite, payload,
+                      payload_len, bytestream, &bytestream_len);
+
+          HAL_UART_Transmit_IT(&huart2, &bytestream, bytestream_len);
+          send_reply = 0;
 	  }
   }
   /* USER CODE END 3 */
