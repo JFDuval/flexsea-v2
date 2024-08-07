@@ -1,5 +1,9 @@
 import serial
 import time
+import sys
+
+# Add the FlexSEA path to this project
+sys.path.append('../../')
 from flexsea_python.flexsea_python import FlexSEAPython
 
 dll_filename = '../../projects/eclipse_pc/DynamicLib/libflexsea-v2.dll'
