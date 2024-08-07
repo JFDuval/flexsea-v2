@@ -1,6 +1,7 @@
 import serial
 import time
 import sys
+#from ctypes import *
 
 # Add the FlexSEA path to this project
 sys.path.append('../../')
@@ -36,6 +37,13 @@ def serial_write(bytestream):
 def fx_rx_cmd_handler_23(cmd_6bits, rw, buf):
     print(f'Handler #23 received: cmd={cmd_6bits}, rw={rw}, buf={buf}.')
     print(f'This confirms the reception of our command, and the success of our demo code.')
+    battery_mv = int.from_bytes(buf[1:4], 'little')
+    uvlo = int(buf[5])
+    last_uvlo = int(buf[6])
+    lim_sw_1 = int(buf[7])
+    lim_sw_2 = int(buf[8])
+    print(f'battery_mv = {battery_mv}, uvlo = {uvlo}, last_uvlo = {last_uvlo}, lim_sw_1 = {lim_sw_1},'
+          f'lim_sw_2 = {lim_sw_2}')
 
 
 # Loopback demo: we create a bytestream, shuffle it around, then decode it
@@ -49,7 +57,7 @@ def flexsea_demo_local_loopback():
     fx = FlexSEAPython(dll_filename)
 
     # Generate bytestream from text string (payload):
-    ret_val, bytestream, bytestream_len = fx.create_bytestream_from_cmd(cmd=23)
+    ret_val, bytestream, bytestream_len = fx.create_bytestream_from_cmd(cmd=23, payload_string="FlexSEA")
 
     if not ret_val:
         print("We successfully created a bytestream.")
@@ -97,7 +105,7 @@ def flexsea_demo_serial():
     fx.register_cmd_handler(23, fx_rx_cmd_handler_23)
 
     # Generate bytestream from text string (payload):
-    ret_val, bytestream, bytestream_len = fx.create_bytestream_from_cmd(cmd=1)
+    ret_val, bytestream, bytestream_len = fx.create_bytestream_from_cmd(cmd=1, payload_string="FlexSEA")
 
     if not ret_val:
         print("We successfully created a bytestream.")

@@ -30,10 +30,9 @@ class FlexSEAPython:
         self.cmd_handler_dict = {}
         self.init_cmd_handler()
 
-    def create_bytestream_from_cmd(self, cmd):
-        payload_string = "FlexSEA"
+    def create_bytestream_from_cmd(self, cmd, payload_string):
         payload_in = c_char_p(payload_string.encode())
-        payload_in_len = c_uint8(7)
+        payload_in_len = c_uint8(len(payload_string))
         bytestream_ba = (c_uint8 * MAX_ENCODED_PAYLOAD_BYTES)()
         bytestream_len = c_uint8(0)
         cmd_6bits_in = c_uint8(cmd)

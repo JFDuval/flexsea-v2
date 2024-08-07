@@ -51,7 +51,7 @@ int main()
 	fx_test_struct1.another_array[0] = 100;
 	fx_test_struct1.another_array[5] = 200;
 	uint8_t payload_in_len = sizeof(fx_test_struct1);
-	uint8_t* payload_in= (uint8_t*)&fx_test_struct1;
+	uint8_t* payload_in = (uint8_t*)&fx_test_struct1;
 
 	uint8_t bytestream[MAX_ENCODED_PAYLOAD_BYTES] = {0};
 	uint8_t bytestream_len = 0;
