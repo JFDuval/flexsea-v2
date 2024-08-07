@@ -4,6 +4,7 @@ from ctypes import *
 # Only edit if you have changed the code used to generate the DLL!
 
 MAX_ENCODED_PAYLOAD_BYTES = 48
+MAX_CMD_CODE = 127
 
 # This structure holds all the info about a given circular buffer
 # This needs to match circ_buf.h!
@@ -26,6 +27,8 @@ class FlexSEAPython:
         if ret_val:
             print("Problem initializing the FlexSEA stack - quit.")
             exit()
+        self.cmd_handler_dict = {}
+        self.init_cmd_handler()
 
     def create_bytestream_from_cmd(self, cmd):
         payload_string = "FlexSEA"
@@ -70,28 +73,23 @@ class FlexSEAPython:
 
     def cmd_handler_catchall(self, cmd_6bits, rw, buf):
         print(f'Handler Catch-All received: cmd={cmd_6bits}, rw={rw}, buf={buf}.')
+        print(f'If you are running a demo, you should not be seeing this!')
+
+    def init_cmd_handler(self):
+        index = 0
+        for i in range(MAX_CMD_CODE):
+            self.cmd_handler_dict[index] = {index, self.cmd_handler_catchall}
+            index += 1
+
+    def register_cmd_handler(self, cmd, handler):
+        self.cmd_handler_dict.update({cmd: handler})
 
     def call_cmd_handler(self, cmd_6bits, rw, buf):
-        if cmd_6bits == 23:
-            fx_rx_cmd_handler_23(cmd_6bits, rw, buf)
+        my_cmd = self.cmd_handler_dict[cmd_6bits]
+        # Member functions come as a set, but user callbacks do not
+        if isinstance(my_cmd, set):
+            # If it's a set, we get the first member
+            my_cmd.pop()(cmd_6bits, rw, buf)
         else:
-            self.cmd_handler_catchall(cmd_6bits, rw, buf)
-
-
-
-
-
-
-def fx_rx_cmd_handler_23(cmd_6bits, rw, buf):
-    print(f'Handler #23 received: cmd={cmd_6bits}, rw={rw}, buf={buf}.')
-    print(f'This confirms the reception of our command, and the success of our demo code.')
-
-
-def python_flexsea_cmd_handler(cmd_6bits, rw, buf):
-    if cmd_6bits == 23:
-        fx_rx_cmd_handler_23(cmd_6bits, rw, buf)
-    else:
-        fx_rx_cmd_handler_catchall(cmd_6bits, rw, buf)
-
-
-
+            # Call without popping
+            my_cmd(cmd_6bits, rw, buf)

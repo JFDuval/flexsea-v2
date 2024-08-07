@@ -1,4 +1,3 @@
-from ctypes import *
 import serial
 import time
 from flexsea_python.flexsea_python import FlexSEAPython
@@ -27,6 +26,12 @@ def serial_write(bytestream):
         serial_port.write(bytestream)
     else:
         print("No serial port object, can't write!")
+
+
+# Custom command handler used by the serial demo code
+def fx_rx_cmd_handler_23(cmd_6bits, rw, buf):
+    print(f'Handler #23 received: cmd={cmd_6bits}, rw={rw}, buf={buf}.')
+    print(f'This confirms the reception of our command, and the success of our demo code.')
 
 
 # Loopback demo: we create a bytestream, shuffle it around, then decode it
@@ -69,6 +74,7 @@ def flexsea_demo_local_loopback():
 
 # Serial demo: we create and send commands to a serial peripheral
 # (typically an STM32). Our peripheral will send a reply.
+# This code will run until you stop it.
 def flexsea_demo_serial():
 
     print('Demo code - Python project with FlexSEA v2.0 DLL')
@@ -82,6 +88,9 @@ def flexsea_demo_serial():
     if ret_val:
         print(f"Problem opening the {com_port} serial port - quit.")
         exit()
+
+    # Prepare for reception:
+    fx.register_cmd_handler(23, fx_rx_cmd_handler_23)
 
     # Generate bytestream from text string (payload):
     ret_val, bytestream, bytestream_len = fx.create_bytestream_from_cmd(cmd=1)
@@ -140,6 +149,7 @@ def flexsea_demo_serial():
                 send_new_tx_cmd_timestamp = round(time.time() * 1000)
 
             time.sleep(0.01)
+
     except KeyboardInterrupt:
         print('Interrupted! End or demo code.')
 
