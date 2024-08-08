@@ -8,7 +8,7 @@ sys.path.append('../../')
 from flexsea_python.flexsea_python import FlexSEAPython
 
 dll_filename = '../../projects/eclipse_pc/DynamicLib/libflexsea-v2.dll'
-com_port = 'COM6'
+com_port = 'COM7'
 serial_port = 0  # Holds the serial port object
 new_tx_delay_ms = 2000
 
@@ -37,13 +37,15 @@ def serial_write(bytestream):
 def fx_rx_cmd_handler_23(cmd_6bits, rw, buf):
     print(f'Handler #23 received: cmd={cmd_6bits}, rw={rw}, buf={buf}.')
     print(f'This confirms the reception of our command, and the success of our demo code.')
-    battery_mv = int.from_bytes(buf[1:4], 'little')
-    uvlo = int(buf[5])
-    last_uvlo = int(buf[6])
-    lim_sw_1 = int(buf[7])
-    lim_sw_2 = int(buf[8])
-    print(f'battery_mv = {battery_mv}, uvlo = {uvlo}, last_uvlo = {last_uvlo}, lim_sw_1 = {lim_sw_1},'
-          f'lim_sw_2 = {lim_sw_2}')
+    var1_uint32 = int.from_bytes(buf[1:5], 'little')
+    var2_uint8 = int(buf[5])
+    var3_uint8 = int(buf[6])
+    var4_uint8 = int(buf[7])
+    var5_uint8 = int(buf[8])
+    var6_uint16 = int.from_bytes(buf[9:11], 'little')
+    var7_uint8 = int(buf[11])
+    print(f'var1_uint32 = {var1_uint32}, var2_uint8 = {var2_uint8}, var3_uint8 = {var3_uint8}, var4_uint8 = '
+          f'{var4_uint8}, var5_uint8 = {var5_uint8}, var6_uint16 = {var6_uint16}, var7_uint8 = {var7_uint8}')
 
 
 # Loopback demo: we create a bytestream, shuffle it around, then decode it

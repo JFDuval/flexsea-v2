@@ -62,6 +62,20 @@ volatile uint8_t new_bytes = 0;
 uint8_t bytestream[MAX_ENCODED_PAYLOAD_BYTES] = {0};
 uint8_t bytestream_len = 0;
 
+//Demo structure
+typedef struct DemoStructure
+{
+	uint32_t var1_uint32;
+	uint8_t var2_uint8;
+	uint8_t var3_uint8;
+	uint8_t var4_uint8;
+	uint8_t var5_uint8;
+	uint16_t var6_uint16;
+	uint8_t var7_uint8;
+}__attribute__((__packed__))DemoStructure;
+
+DemoStructure my_demo_structure = {0};
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -191,8 +205,17 @@ int main(void)
 	  //Send commands
 	  if(send_reply)
 	  {
-		  uint8_t payload[] = "Embedded Loopback!";
-		  uint8_t payload_len = 19;
+		  //Send known, fixed values
+		  my_demo_structure.var1_uint32 = 123456;
+		  my_demo_structure.var2_uint8 = 10;
+		  my_demo_structure.var3_uint8 = 11;
+		  my_demo_structure.var4_uint8 = 12;
+		  my_demo_structure.var5_uint8 = 13;
+		  my_demo_structure.var6_uint16 = 54321;
+		  my_demo_structure.var7_uint8 = 14;
+
+		  uint8_t payload_len = sizeof(my_demo_structure);
+		  uint8_t* payload = (uint8_t*)&my_demo_structure;
 
           ret_val = fx_create_bytestream_from_cmd(23, CmdWrite, payload,
                       payload_len, bytestream, &bytestream_len);
