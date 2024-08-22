@@ -31,7 +31,11 @@ class FlexSEAPython:
         self.init_cmd_handler()
 
     def create_bytestream_from_cmd(self, cmd, payload_string):
-        payload_in = c_char_p(payload_string.encode())
+        if isinstance(payload_string, str):
+            payload_in = c_char_p(payload_string.encode())
+        else:
+            # Data is already in the form of a byte array
+            payload_in = payload_string
         payload_in_len = c_uint8(len(payload_string))
         bytestream_ba = (c_uint8 * MAX_ENCODED_PAYLOAD_BYTES)()
         bytestream_len = c_uint8(0)

@@ -24,9 +24,6 @@
  [This file] flexsea: top-level FlexSEA protocol v2.0
  ****************************************************************************/
 
-#ifndef INC_FX_FLEXSEA_H
-#define INC_FX_FLEXSEA_H
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -35,40 +32,57 @@ extern "C" {
 // Include(s)
 //****************************************************************************
 
-#include <stdio.h>
-#include <stdint.h>
-#include <string.h>
-#include <stdlib.h>
-#include "circ_buf.h"
-#include <flexsea_codec.h>
-#include <flexsea_command.h>
 #include <flexsea_tools.h>
 
 //****************************************************************************
-// Definition(s):
+// Variable(s)
 //****************************************************************************
 
 //****************************************************************************
-// Public Function Prototype(s):
-//****************************************************************************
-
-uint8_t fx_create_bytestream_from_cmd(uint8_t cmd_6bits, ReadWrite rw,
-		uint8_t *buf_in, uint8_t buf_in_len, uint8_t* bytestream,
-		uint8_t *bytestream_len);
-uint8_t fx_get_cmd_handler_from_bytestream(circ_buf_t *cb,
-		uint8_t *cmd_6bits, ReadWrite *rw, uint8_t *buf,
-		uint8_t *buf_len);
-
-//****************************************************************************
-// Structure(s):
+// Private Function Prototype(s):
 //****************************************************************************
 
 //****************************************************************************
-// Shared variable(s)
+// Public Function(s)
 //****************************************************************************
+
+//Splits 1 uint16 in 2 bytes, stores them in buf[index] and increments index
+inline void SPLIT_16(uint16_t var, uint8_t *buf, uint16_t *index)
+{
+	buf[*index] = (uint8_t) ((var >> 8) & 0xFF);
+	buf[(*index)+1] = (uint8_t) (var & 0xFF);
+	(*index) += 2;
+}
+
+//Inverse of SPLIT_16()
+uint16_t REBUILD_UINT16(uint8_t *buf, uint16_t *index)
+{
+	uint16_t tmp = 0;
+	tmp = (((uint16_t)buf[(*index)] << 8) + ((uint16_t)buf[(*index)+1] ));
+	(*index) += 2;
+	return tmp;
+}
+
+//Splits 1 uint32 in 4 bytes, stores them in buf[index] and increments index
+inline void SPLIT_32(uint32_t var, uint8_t *buf, uint16_t *index)
+{
+	buf[(*index)] = (uint8_t) ((var >> 24) & 0xFF);
+	buf[(*index)+1] = (uint8_t) ((var >> 16) & 0xFF);
+	buf[(*index)+2] = (uint8_t) ((var >> 8) & 0xFF);
+	buf[(*index)+3] = (uint8_t) (var & 0xFF);
+	(*index) += 4;
+}
+
+//Inverse of SPLIT_32()
+uint32_t REBUILD_UINT32(uint8_t *buf, uint16_t *index)
+{
+	uint32_t tmp = 0;
+	tmp = (((uint32_t)buf[(*index)] << 24) + ((uint32_t)buf[(*index)+1] << 16) \
+			+ ((uint32_t)buf[(*index)+2] << 8) + ((uint32_t)buf[(*index)+3]));
+	(*index) += 4;
+	return tmp;
+}
 
 #ifdef __cplusplus
 }
 #endif
-
-#endif	//INC_FX_FLEXSEA_H

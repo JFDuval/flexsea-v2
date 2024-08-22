@@ -24,8 +24,8 @@
  [This file] flexsea: top-level FlexSEA protocol v2.0
  ****************************************************************************/
 
-#ifndef INC_FX_FLEXSEA_H
-#define INC_FX_FLEXSEA_H
+#ifndef INC_FX_FLEXSEA_TOOLS_H
+#define INC_FX_FLEXSEA_TOOLS_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -35,14 +35,7 @@ extern "C" {
 // Include(s)
 //****************************************************************************
 
-#include <stdio.h>
 #include <stdint.h>
-#include <string.h>
-#include <stdlib.h>
-#include "circ_buf.h"
-#include <flexsea_codec.h>
-#include <flexsea_command.h>
-#include <flexsea_tools.h>
 
 //****************************************************************************
 // Definition(s):
@@ -52,12 +45,10 @@ extern "C" {
 // Public Function Prototype(s):
 //****************************************************************************
 
-uint8_t fx_create_bytestream_from_cmd(uint8_t cmd_6bits, ReadWrite rw,
-		uint8_t *buf_in, uint8_t buf_in_len, uint8_t* bytestream,
-		uint8_t *bytestream_len);
-uint8_t fx_get_cmd_handler_from_bytestream(circ_buf_t *cb,
-		uint8_t *cmd_6bits, ReadWrite *rw, uint8_t *buf,
-		uint8_t *buf_len);
+void SPLIT_16(uint16_t var, uint8_t *buf, uint16_t *index);
+uint16_t REBUILD_UINT16(uint8_t *buf, uint16_t *index);
+void SPLIT_32(uint32_t var, uint8_t *buf, uint16_t *index);
+uint32_t REBUILD_UINT32(uint8_t *buf, uint16_t *index);
 
 //****************************************************************************
 // Structure(s):
@@ -71,4 +62,4 @@ uint8_t fx_get_cmd_handler_from_bytestream(circ_buf_t *cb,
 }
 #endif
 
-#endif	//INC_FX_FLEXSEA_H
+#endif	//INC_FX_FLEXSEA_TOOLS_H
