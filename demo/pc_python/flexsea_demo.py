@@ -109,6 +109,9 @@ def flexsea_demo_serial():
     # Generate bytestream from text string (payload):
     ret_val, bytestream, bytestream_len = fx.create_bytestream_from_cmd(cmd=1, payload_string="FlexSEA")
 
+    # Other ways to generate a payload are:
+    # payload_string = (value1.to_bytes(length=4) + value2.to_bytes(length=4)) # Length = number of bytes
+
     if not ret_val:
         print("We successfully created a bytestream.")
     else:
