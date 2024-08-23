@@ -1,10 +1,12 @@
+import struct
 from ctypes import *
 
 # The variables found before the FlexSEAPython class need to match the C code.
 # Only edit if you have changed the code used to generate the DLL!
 
 MAX_ENCODED_PAYLOAD_BYTES = 48
-MAX_CMD_CODE = 127
+MIN_CMD_CODE = 1
+MAX_CMD_CODE = 63
 
 # This structure holds all the info about a given circular buffer
 # This needs to match circ_buf.h!
@@ -31,6 +33,16 @@ class FlexSEAPython:
         self.init_cmd_handler()
 
     def create_bytestream_from_cmd(self, cmd, payload_string):
+        """
+        Create a new bytestream (data ready to be sent via USB) from a command, and a payload
+        :param cmd: command code, between MIN_CMD_CODE and MAX_CMD_CODE
+        :param payload_string: data to send, either as a string or a bytearray
+        :return: ret_val (0 if success), bytestream and its length in bytes
+        """
+        if cmd < MIN_CMD_CODE or cmd > MAX_CMD_CODE:
+            # Invalid command code
+            return 1, [], 0
+
         if isinstance(payload_string, str):
             payload_in = c_char_p(payload_string.encode())
         else:
@@ -48,6 +60,13 @@ class FlexSEAPython:
         return ret_val, bytes(bytestream_ba), int(bytestream_len.value)
 
     def write_to_circular_buffer(self, bytestream, bytestream_len):
+        """
+        The C code living in the DLL takes care of everything, all it needs is some input data
+        That data has to be in a circular buffer, and that's how we fill it.
+        :param bytestream: serial data received, either a byte or an array
+        :param bytestream_len: length of serial data
+        :return: 0 if it succeeded
+        """
         if bytestream_len > 0:
             if bytestream_len == 1:
                 # One byte at the time
@@ -62,6 +81,9 @@ class FlexSEAPython:
                     if ret_val:
                         print("circ_buf_write_byte() problem!")
                         exit()
+            return 0    # Success
+        else:
+            return 1    # Problem
 
     def get_cmd_handler_from_bytestream(self):
         # At this point our encoded command is in the circular buffer

@@ -1,11 +1,13 @@
 import serial
 import time
 import sys
+import struct
 #from ctypes import *
 
 # Add the FlexSEA path to this project
 sys.path.append('../../')
 from flexsea_python.flexsea_python import FlexSEAPython
+from flexsea_python.flexsea_tools import *
 
 dll_filename = '../../projects/eclipse_pc/DynamicLib/libflexsea-v2.dll'
 com_port = 'COM7'
@@ -34,18 +36,48 @@ def serial_write(bytestream):
 
 
 # Custom command handler used by the serial demo code
-def fx_rx_cmd_handler_23(cmd_6bits, rw, buf):
-    print(f'Handler #23 received: cmd={cmd_6bits}, rw={rw}, buf={buf}.')
+# Note: this has to match the embedded code for the serial demo to work!
+def fx_rx_cmd_handler_1(cmd_6bits, rw, buf):
+    print(f'Handler #1 received: cmd={cmd_6bits}, rw={rw}, buf={buf}.')
     print(f'This confirms the reception of our command, and the success of our demo code.')
-    var1_uint32 = int.from_bytes(buf[1:5], 'little')
-    var2_uint8 = int(buf[5])
-    var3_uint8 = int(buf[6])
-    var4_uint8 = int(buf[7])
-    var5_uint8 = int(buf[8])
-    var6_uint16 = int.from_bytes(buf[9:11], 'little')
-    var7_uint8 = int(buf[11])
-    print(f'var1_uint32 = {var1_uint32}, var2_uint8 = {var2_uint8}, var3_uint8 = {var3_uint8}, var4_uint8 = '
-          f'{var4_uint8}, var5_uint8 = {var5_uint8}, var6_uint16 = {var6_uint16}, var7_uint8 = {var7_uint8}')
+    var1_uint32 = bytes_to_uint32(buf[1:5])
+    var2_uint8 = byte_to_uint8(buf[5])
+    var3_int32 = bytes_to_int32(buf[6:10])
+    var4_int8 = byte_to_int8(buf[10])
+    var5_uint16 = bytes_to_uint16(buf[11:13])
+    var6_uint8 = byte_to_uint8(buf[13])
+    var7_int16 = bytes_to_int16(buf[14:16])
+    var8_float = bytes_to_float(buf[16:20])
+    print(f'var1_uint32 = {var1_uint32}, var2_uint8 = {var2_uint8}, var3_int32 = {var3_int32}, var4_int8 = '
+          f'{var4_int8}, var5_uint16 = {var5_uint16}, var6_uint8 = {var6_uint8}, var7_int16 = {var7_int16}, '
+          f'var8_float = {var8_float}')
+    # We know what we are supposed to decode:
+    if (var1_uint32 == 123456 and var2_uint8 == 150 and var3_int32 == -1234567 and var4_int8 == -125 and
+            var5_uint16 == 4567 and var6_uint8 == 123 and var7_int16 == -4567 and round(var8_float, 2) == 12.37):
+        print('\nAll decoded values match what our demo code is sending!\n')
+    else:
+        print('\nSome of the decoded values do not match what our demo code is sending!\n')
+
+
+# We create and serialize the same payload the embedded system sends
+def gen_test_code_payload():
+    var1_uint32 = 123456
+    var2_uint8 = 150
+    var3_int32 = -1234567
+    var4_int8 = -125
+    var5_uint16 = 4567
+    var6_uint8 = 123
+    var7_int16 = -4567
+    var8_float = 12.37
+
+    # We specify little endian to match our ARM processor
+    payload_string = (var1_uint32.to_bytes(length=4, byteorder='little') + var2_uint8.to_bytes(length=1)
+                      + var3_int32.to_bytes(length=4, byteorder='little', signed=True)
+                      + var4_int8.to_bytes(length=1, signed=True)
+                      + var5_uint16.to_bytes(length=2, byteorder='little') + var6_uint8.to_bytes(length=1)
+                      + var7_int16.to_bytes(length=2, byteorder='little', signed=True)
+                      + bytearray(struct.pack("f", var8_float))) #var8_float.to_bytes(length=4, byteorder='little'))
+    return payload_string
 
 
 # Loopback demo: we create a bytestream, shuffle it around, then decode it
@@ -58,8 +90,11 @@ def flexsea_demo_local_loopback():
     # Initialize FlexSEA comm
     fx = FlexSEAPython(dll_filename)
 
+    # Prepare for reception:
+    fx.register_cmd_handler(1, fx_rx_cmd_handler_1)
+
     # Generate bytestream from text string (payload):
-    ret_val, bytestream, bytestream_len = fx.create_bytestream_from_cmd(cmd=23, payload_string="FlexSEA")
+    ret_val, bytestream, bytestream_len = fx.create_bytestream_from_cmd(cmd=1, payload_string=gen_test_code_payload())
 
     if not ret_val:
         print("We successfully created a bytestream.")
@@ -104,13 +139,10 @@ def flexsea_demo_serial():
         exit()
 
     # Prepare for reception:
-    fx.register_cmd_handler(23, fx_rx_cmd_handler_23)
+    fx.register_cmd_handler(1, fx_rx_cmd_handler_1)
 
     # Generate bytestream from text string (payload):
     ret_val, bytestream, bytestream_len = fx.create_bytestream_from_cmd(cmd=1, payload_string="FlexSEA")
-
-    # Other ways to generate a payload are:
-    # payload_string = (value1.to_bytes(length=4) + value2.to_bytes(length=4)) # Length = number of bytes
 
     if not ret_val:
         print("We successfully created a bytestream.")

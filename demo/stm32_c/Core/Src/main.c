@@ -16,8 +16,8 @@
   ******************************************************************************
   */
 
-//This is a basic demo project, started from a the auto-generated Nucleo-G431KB
-//code. I did not attempt to organize the files or clean the style.
+//This is a basic demo project, started from auto-generated Nucleo-G431KB code.
+//I did not attempt to organize the files or clean the style.
 
 //You will see printf() statements throughout the code. They won't print. They
 //act as a comment for you, the dev, and as a location where you can place a
@@ -52,6 +52,7 @@
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
+
 //Temporary buffer for our UART reception
 volatile uint8_t pc_rx_data[10] = {0};
 //We prepare a new circular buffer
@@ -62,16 +63,19 @@ volatile uint8_t new_bytes = 0;
 uint8_t bytestream[MAX_ENCODED_PAYLOAD_BYTES] = {0};
 uint8_t bytestream_len = 0;
 
-//Demo structure
+//Demo structure. The order of variables stresses memory alignment to highlight
+//any potential problems.
 typedef struct DemoStructure
 {
 	uint32_t var1_uint32;
 	uint8_t var2_uint8;
-	uint8_t var3_uint8;
-	uint8_t var4_uint8;
-	uint8_t var5_uint8;
-	uint16_t var6_uint16;
-	uint8_t var7_uint8;
+	int32_t var3_int32;
+	int8_t var4_int8;
+	uint16_t var5_uint16;
+	uint8_t var6_uint8;
+	int16_t var7_int16;
+	float var8_float;
+
 }__attribute__((__packed__))DemoStructure;
 
 DemoStructure my_demo_structure = {0};
@@ -88,15 +92,16 @@ static void MX_USART2_UART_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
 //This is a FlexSEA test command
-uint8_t test_command_1a(uint8_t cmd_6bits, ReadWrite rw, uint8_t *buf, uint8_t len)
+uint8_t fx_cmd_handler_demo(uint8_t cmd_6bits, ReadWrite rw, uint8_t *buf, uint8_t len)
 {
 	//We check a few parameters
 	if((cmd_6bits == 1) && (rw == CmdWrite) && (len >= 1) &&
 			(cmd_6bits == CMD_GET_6BITS(buf[CMD_CODE_INDEX])))
 	{
 		//Valid
-		printf("If you see this, test_command_1a() has been successfully called!\n\n");
+		printf("If you see this, fx_cmd_handler_demo() has been successfully called!\n\n");
 		return TEST_CMD_RETURN;
 	}
 	else
@@ -161,7 +166,7 @@ int main(void)
 
   //Init stack & register test function:
   fx_rx_cmd_init();
-  fx_register_rx_cmd_handler(1, &test_command_1a);
+  fx_register_rx_cmd_handler(1, &fx_cmd_handler_demo);
   //Start UART reception
   HAL_UART_Receive_IT(&huart2, &pc_rx_data, 1);
 
@@ -207,17 +212,18 @@ int main(void)
 	  {
 		  //Send known, fixed values
 		  my_demo_structure.var1_uint32 = 123456;
-		  my_demo_structure.var2_uint8 = 10;
-		  my_demo_structure.var3_uint8 = 11;
-		  my_demo_structure.var4_uint8 = 12;
-		  my_demo_structure.var5_uint8 = 13;
-		  my_demo_structure.var6_uint16 = 54321;
-		  my_demo_structure.var7_uint8 = 14;
+		  my_demo_structure.var2_uint8 = 150;
+		  my_demo_structure.var3_int32 = -1234567;
+		  my_demo_structure.var4_int8 = -125;
+		  my_demo_structure.var5_uint16 = 4567;
+		  my_demo_structure.var6_uint8 = 123;
+		  my_demo_structure.var7_int16 = -4567;
+		  my_demo_structure.var8_float = 12.37;
 
 		  uint8_t payload_len = sizeof(my_demo_structure);
 		  uint8_t* payload = (uint8_t*)&my_demo_structure;
 
-          ret_val = fx_create_bytestream_from_cmd(23, CmdWrite, payload,
+          ret_val = fx_create_bytestream_from_cmd(1, CmdWrite, payload,
                       payload_len, bytestream, &bytestream_len);
 
           HAL_UART_Transmit_IT(&huart2, &bytestream, bytestream_len);
