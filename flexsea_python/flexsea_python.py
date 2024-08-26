@@ -31,11 +31,18 @@ class FlexSEAPython:
             exit()
         self.cmd_handler_dict = {}
         self.init_cmd_handler()
+        self.rw_dict = {
+            "CmdInvalid": 0,
+            "CmdRead": 1,
+            "CmdWrite": 2,
+            "CmdReadWrite": 3,
+        }
 
-    def create_bytestream_from_cmd(self, cmd, payload_string):
+    def create_bytestream_from_cmd(self, cmd, rw, payload_string):
         """
         Create a new bytestream (data ready to be sent via USB) from a command, and a payload
         :param cmd: command code, between MIN_CMD_CODE and MAX_CMD_CODE
+        :param rw: string from 'rw_dict' that describes the Read/Write command type
         :param payload_string: data to send, either as a string or a bytearray
         :return: ret_val (0 if success), bytestream and its length in bytes
         """
@@ -52,9 +59,10 @@ class FlexSEAPython:
         bytestream_ba = (c_uint8 * MAX_ENCODED_PAYLOAD_BYTES)()
         bytestream_len = c_uint8(0)
         cmd_6bits_in = c_uint8(cmd)
-        rw = c_uint8(2)
 
-        ret_val = self.fx.fx_create_bytestream_from_cmd(cmd_6bits_in, rw, payload_in, payload_in_len, bytestream_ba,
+        rw_c = c_uint8(self.rw_dict[rw])
+
+        ret_val = self.fx.fx_create_bytestream_from_cmd(cmd_6bits_in, rw_c, payload_in, payload_in_len, bytestream_ba,
                                                         byref(bytestream_len))
 
         return ret_val, bytes(bytestream_ba), int(bytestream_len.value)

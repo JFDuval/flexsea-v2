@@ -45,9 +45,9 @@ extern "C" {
 
 typedef enum {
 	CmdInvalid,		//00b: Invalid
-	CmdRead,			//01b: Read
-	CmdWrite,			//10b: Write
-	CmdReadWrite		//11b: Read/Write
+	CmdRead,		//01b: Read
+	CmdWrite,		//10b: Write
+	CmdReadWrite	//11b: Read/Write
 } ReadWrite;
 
 //Macros to deal with the R/W bits

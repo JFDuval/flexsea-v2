@@ -59,6 +59,7 @@ uint8_t (*fx_rx_cmd_handler_ptr[MAX_CMD_CODE])(uint8_t cmd_6bits, ReadWrite rw,
 // Private Function Prototype(s):
 //****************************************************************************
 
+__attribute__((weak)) uint8_t fx_register_rx_cmd_handlers(void);
 static uint8_t fx_rx_cmd_handler_catchall(uint8_t cmd_6bits, ReadWrite rw,
 		uint8_t *buf, uint8_t buf_len);
 
@@ -79,6 +80,8 @@ uint8_t fx_rx_cmd_init(void)
 
 	//In the user-space, pair command codes and functions by
 	//using register_command()
+	fx_register_rx_cmd_handlers();
+
 
 	return 0;
 }
@@ -190,6 +193,12 @@ uint8_t fx_register_rx_cmd_handler(uint8_t cmd, uint8_t (*fct_prt) (uint8_t, Rea
 	{
 		return 1;
 	}
+}
+
+__attribute__((weak)) uint8_t fx_register_rx_cmd_handlers(void)
+{
+	//Implement in user space, and register your handlers
+	return 0;
 }
 
 //****************************************************************************

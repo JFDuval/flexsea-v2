@@ -94,7 +94,7 @@ static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN 0 */
 
 //This is a FlexSEA test command
-uint8_t fx_cmd_handler_demo(uint8_t cmd_6bits, ReadWrite rw, uint8_t *buf, uint8_t len)
+uint8_t fx_rx_cmd_demo(uint8_t cmd_6bits, ReadWrite rw, uint8_t *buf, uint8_t len)
 {
 	//We check a few parameters
 	if((cmd_6bits == 1) && (rw == CmdWrite) && (len >= 1) &&
@@ -166,7 +166,7 @@ int main(void)
 
   //Init stack & register test function:
   fx_rx_cmd_init();
-  fx_register_rx_cmd_handler(1, &fx_cmd_handler_demo);
+  fx_register_rx_cmd_handler(1, &fx_rx_cmd_demo);
   //Start UART reception
   HAL_UART_Receive_IT(&huart2, &pc_rx_data, 1);
 

@@ -6,11 +6,12 @@ import struct
 
 # Add the FlexSEA path to this project
 sys.path.append('../../')
-from flexsea_python.flexsea_python import FlexSEAPython
-from flexsea_python.flexsea_tools import *
+from flexsea_python import FlexSEAPython
+from flexsea_tools import *
+# Note: with PyCharm you must add this folder and mark is as a Sources Folder to avoid an Unresolved Reference issue
 
 dll_filename = '../../projects/eclipse_pc/DynamicLib/libflexsea-v2.dll'
-com_port = 'COM7'
+com_port = 'COM6'
 serial_port = 0  # Holds the serial port object
 new_tx_delay_ms = 2000
 
@@ -94,7 +95,8 @@ def flexsea_demo_local_loopback():
     fx.register_cmd_handler(1, fx_rx_cmd_handler_1)
 
     # Generate bytestream from text string (payload):
-    ret_val, bytestream, bytestream_len = fx.create_bytestream_from_cmd(cmd=1, payload_string=gen_test_code_payload())
+    ret_val, bytestream, bytestream_len = fx.create_bytestream_from_cmd(cmd=1, rw="CmdReadWrite",
+                                                                        payload_string=gen_test_code_payload())
 
     if not ret_val:
         print("We successfully created a bytestream.")
@@ -142,7 +144,8 @@ def flexsea_demo_serial():
     fx.register_cmd_handler(1, fx_rx_cmd_handler_1)
 
     # Generate bytestream from text string (payload):
-    ret_val, bytestream, bytestream_len = fx.create_bytestream_from_cmd(cmd=1, payload_string="FlexSEA")
+    ret_val, bytestream, bytestream_len = fx.create_bytestream_from_cmd(cmd=1, rw="CmdReadWrite",
+                                                                        payload_string="FlexSEA")
 
     if not ret_val:
         print("We successfully created a bytestream.")
