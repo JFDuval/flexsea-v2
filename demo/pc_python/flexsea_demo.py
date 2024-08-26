@@ -1,8 +1,6 @@
 import serial
 import time
 import sys
-import struct
-#from ctypes import *
 
 # Add the FlexSEA path to this project
 sys.path.append('../../')
@@ -11,7 +9,7 @@ from flexsea_tools import *
 # Note: with PyCharm you must add this folder and mark is as a Sources Folder to avoid an Unresolved Reference issue
 
 dll_filename = '../../projects/eclipse_pc/DynamicLib/libflexsea-v2.dll'
-com_port = 'COM6'
+com_port = 'COM7'
 serial_port = 0  # Holds the serial port object
 new_tx_delay_ms = 2000
 
@@ -71,13 +69,10 @@ def gen_test_code_payload():
     var7_int16 = -4567
     var8_float = 12.37
 
-    # We specify little endian to match our ARM processor
-    payload_string = (var1_uint32.to_bytes(length=4, byteorder='little') + var2_uint8.to_bytes(length=1)
-                      + var3_int32.to_bytes(length=4, byteorder='little', signed=True)
-                      + var4_int8.to_bytes(length=1, signed=True)
-                      + var5_uint16.to_bytes(length=2, byteorder='little') + var6_uint8.to_bytes(length=1)
-                      + var7_int16.to_bytes(length=2, byteorder='little', signed=True)
-                      + bytearray(struct.pack("f", var8_float))) #var8_float.to_bytes(length=4, byteorder='little'))
+    payload_string = (uint32_to_bytes(var1_uint32) + uint8_to_byte(var2_uint8) + int32_to_bytes(var3_int32)
+                      + int8_to_byte(var4_int8) + uint16_to_bytes(var5_uint16) + uint8_to_byte(var6_uint8)
+                      + int16_to_bytes(var7_int16) + float_to_bytes(var8_float))
+
     return payload_string
 
 
@@ -145,7 +140,7 @@ def flexsea_demo_serial():
 
     # Generate bytestream from text string (payload):
     ret_val, bytestream, bytestream_len = fx.create_bytestream_from_cmd(cmd=1, rw="CmdReadWrite",
-                                                                        payload_string="FlexSEA")
+                                                                        payload_string=gen_test_code_payload())
 
     if not ret_val:
         print("We successfully created a bytestream.")

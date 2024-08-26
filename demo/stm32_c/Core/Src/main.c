@@ -29,7 +29,10 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+
 #include <flexsea.h>
+#include "fx_receive.h"
+#include "fx_transmit.h"
 
 /* USER CODE END Includes */
 
@@ -59,26 +62,6 @@ volatile uint8_t pc_rx_data[10] = {0};
 circ_buf_t cb = {.buffer = {0}, .length = 0, .write_index = 0, .read_index =
 		0};
 volatile uint8_t new_bytes = 0;
-//UART transmission
-uint8_t bytestream[MAX_ENCODED_PAYLOAD_BYTES] = {0};
-uint8_t bytestream_len = 0;
-
-//Demo structure. The order of variables stresses memory alignment to highlight
-//any potential problems.
-typedef struct DemoStructure
-{
-	uint32_t var1_uint32;
-	uint8_t var2_uint8;
-	int32_t var3_int32;
-	int8_t var4_int8;
-	uint16_t var5_uint16;
-	uint8_t var6_uint8;
-	int16_t var7_int16;
-	float var8_float;
-
-}__attribute__((__packed__))DemoStructure;
-
-DemoStructure my_demo_structure = {0};
 
 /* USER CODE END PV */
 
@@ -92,24 +75,6 @@ static void MX_USART2_UART_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
-//This is a FlexSEA test command
-uint8_t fx_rx_cmd_demo(uint8_t cmd_6bits, ReadWrite rw, uint8_t *buf, uint8_t len)
-{
-	//We check a few parameters
-	if((cmd_6bits == 1) && (rw == CmdWrite) && (len >= 1) &&
-			(cmd_6bits == CMD_GET_6BITS(buf[CMD_CODE_INDEX])))
-	{
-		//Valid
-		printf("If you see this, fx_cmd_handler_demo() has been successfully called!\n\n");
-		return TEST_CMD_RETURN;
-	}
-	else
-	{
-		//Problem
-		return 1;
-	}
-}
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
@@ -135,12 +100,8 @@ int main(void)
   /* USER CODE BEGIN 1 */
 
   //Variables used by the FlexSEA stack
-  uint8_t cmd_6bits_out = 0;
-  ReadWrite rw_out = CmdInvalid;
-  uint8_t buf[MAX_ENCODED_PAYLOAD_BYTES] = {0};
-  uint8_t buf_len = 0;
-  uint8_t ret_val = 0, ret_val_cmd = 0;
-  uint8_t send_reply = 0;
+  uint8_t send_reply = 0, cmd_reply = 0;
+
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -166,7 +127,7 @@ int main(void)
 
   //Init stack & register test function:
   fx_rx_cmd_init();
-  fx_register_rx_cmd_handler(1, &fx_rx_cmd_demo);
+
   //Start UART reception
   HAL_UART_Receive_IT(&huart2, &pc_rx_data, 1);
 
@@ -180,55 +141,12 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-	  //Receive commands
-	  if(new_bytes)
-	  {
-			//At this point our encoded command is in the circular buffer
-			ret_val = fx_get_cmd_handler_from_bytestream(&cb, &cmd_6bits_out, &rw_out,
-					buf, &buf_len);
+      //Receive commands
+      fx_receive(&send_reply, &cmd_reply);
 
-			//Call handler
-			if(!ret_val)
-			{
-				ret_val_cmd = fx_call_rx_cmd_handler(cmd_6bits_out, rw_out, buf, buf_len);
-				if(ret_val_cmd == TEST_CMD_RETURN)
-				{
-					printf("Success!\n");
-					send_reply = 1;
-				}
-				else
-				{
-					printf("Our return value doesn't match with the expected test function.\n");
-				}
-			}
-			else
-			{
-				printf("payload_parse_str() did not return 0, it detected an invalid command.\n");
-			}
-	  }
+      //Send commands
+      fx_transmit(send_reply, cmd_reply);
 
-	  //Send commands
-	  if(send_reply)
-	  {
-		  //Send known, fixed values
-		  my_demo_structure.var1_uint32 = 123456;
-		  my_demo_structure.var2_uint8 = 150;
-		  my_demo_structure.var3_int32 = -1234567;
-		  my_demo_structure.var4_int8 = -125;
-		  my_demo_structure.var5_uint16 = 4567;
-		  my_demo_structure.var6_uint8 = 123;
-		  my_demo_structure.var7_int16 = -4567;
-		  my_demo_structure.var8_float = 12.37;
-
-		  uint8_t payload_len = sizeof(my_demo_structure);
-		  uint8_t* payload = (uint8_t*)&my_demo_structure;
-
-          ret_val = fx_create_bytestream_from_cmd(1, CmdWrite, payload,
-                      payload_len, bytestream, &bytestream_len);
-
-          HAL_UART_Transmit_IT(&huart2, &bytestream, bytestream_len);
-          send_reply = 0;
-	  }
   }
   /* USER CODE END 3 */
 }

@@ -31,7 +31,9 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "flexsea.h"
+#include <fx_receive.h>
+#include <fx_transmit.h>
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -71,6 +73,10 @@ void Error_Handler(void);
 #define LD2_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
+
+extern UART_HandleTypeDef huart2;
+extern volatile uint8_t new_bytes;
+extern circ_buf_t cb;
 
 /* USER CODE END Private defines */
 
