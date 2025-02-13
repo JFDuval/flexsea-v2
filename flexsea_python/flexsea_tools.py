@@ -11,7 +11,7 @@ def byte_to_uint8(data_byte):
 
 # Converts an uint8 to a byte
 def uint8_to_byte(data_uint8):
-    return data_uint8.to_bytes(length=1)
+    return data_uint8.to_bytes(length=1, byteorder='big')
 
 
 # Converts a byte into a signed int, int8
@@ -24,7 +24,7 @@ def byte_to_int8(data_byte):
 
 # Converts an int8 to a byte
 def int8_to_byte(data_int8):
-    return data_int8.to_bytes(length=1, signed=True)
+    return data_int8.to_bytes(length=1, byteorder='big', signed=True)
 
 
 # Converts two bytes into an unsigned int, uint16

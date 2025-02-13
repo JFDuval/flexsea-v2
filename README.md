@@ -9,7 +9,7 @@
   - "flexsea-comm" was part of the larger FlexSEA software project, but it wasn't usable as a standalone piece of comunication code
 - 2015-20xx: project used and maintained by Dephy, Inc.
   - Sources hosted at https://github.com/JFDuval/ are licensed GNU General Public License v3.0 (GPL-3.0)
-- 2024: version 2.0
+- 2024-2025: version 2.0
   - New repo (https://github.com/JFDuval/flexsea-v2) to get a clean start
   - This project is exclusively a communication stack
   - Goals: simpler code, improved API, easier integration with various projects, better unit test coverage
@@ -64,7 +64,8 @@ Quick notes:
 ### How to use FlexSEA with your embedded project
 
 1. We recommend placing the 'flexsea-v2' directory at the same level as 'your_project'.
-1. Add 'flexsea-v2/inc' to your include folders and 'flexsea-v2/src' to your source folders
+1. Add 'flexsea-v2/inc' to your include folders (Properties > C/C++ Build > Settings > MCU GCC Compiler > Include paths)
+1. Add 'flexsea-v2/src' to your source folders
 1. Add `#include <flexsea.h>` to your main file. At this point, you should be able to compile the stack alongside your project.
 1. Follow the example 'stm32_c' project to see how the stack can be used. In short:
   1. Feed bytes into the circular buffer when they are received
