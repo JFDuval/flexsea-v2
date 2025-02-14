@@ -52,7 +52,7 @@ To test the stack on your PC use a project from the 'demo' folder. That folder a
 
 ### How to use the Eclipse PC C project
 
-*This section is a Work In progress!* 
+*This section is a Work In Progress!* 
 
 Quick notes:
 
@@ -65,9 +65,19 @@ Quick notes:
 
 1. We recommend placing the 'flexsea-v2' directory at the same level as 'your_project'.
 1. Add 'flexsea-v2/inc' to your include folders (Properties > C/C++ Build > Settings > MCU GCC Compiler > Include paths)
-1. Add 'flexsea-v2/src' to your source folders
+1. Add 'flexsea-v2/src' to your source folders (Properties > C/C++ General > Paths and Symbols > Source Location > Link folder)
 1. Add `#include <flexsea.h>` to your main file. At this point, you should be able to compile the stack alongside your project.
-1. Follow the example 'stm32_c' project to see how the stack can be used. In short:
-  1. Feed bytes into the circular buffer when they are received
+1. To complete the integration:
+  1. Copy/paste fx_receive.h & fx_transmit.h to your project
+  1. Modify main.h to include flexsea.h, and these
+  1. Modify main.c to include these two files
+1. Follow the example 'stm32_c' project to see how the stack can be used. There is too much to document here, but a few key points are:
+  1. Feed bytes into the circular buffer when they are received (via HAL_UART_RxCpltCallback())
   1. Once new bytes have been received, try parsing them
   1. Call the appropriate function to deal with the received commands
+
+### How to use FlexSEA with your Python project
+
+1. Start by copying the content of demo/pc_python/flexsea_demo.py
+1. Adjust the sys.path.append command to point to your FlexSEA Python module
+1. To get PyCharm to recognize the imported sources, click on File > Project: (Project Name) > Project Structure > Add Content Root > Select flexsea_python > Mark as Sources.
