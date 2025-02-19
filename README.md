@@ -66,6 +66,7 @@ Quick notes:
 1. We recommend placing the 'flexsea-v2' directory at the same level as 'your_project'.
 1. Add 'flexsea-v2/inc' to your include folders (Properties > C/C++ Build > Settings > MCU GCC Compiler > Include paths)
 1. Add 'flexsea-v2/src' to your source folders (Properties > C/C++ General > Paths and Symbols > Source Location > Link folder)
+  - Note: if you Link it in Debug, you might have to simply Add it in Release, otherwise the IDE will say it already exists
 1. Add `#include <flexsea.h>` to your main file. At this point, you should be able to compile the stack alongside your project.
 1. To complete the integration:
   1. Copy/paste fx_receive.h & fx_transmit.h to your project
@@ -80,4 +81,4 @@ Quick notes:
 
 1. Start by copying the content of demo/pc_python/flexsea_demo.py
 1. Adjust the sys.path.append command to point to your FlexSEA Python module
-1. To get PyCharm to recognize the imported sources, click on File > Project: (Project Name) > Project Structure > Add Content Root > Select flexsea_python > Mark as Sources.
+1. To get PyCharm to recognize the imported sources, click on File > Settings... > Project: (Project Name) > Project Structure > Add Content Root > Select flexsea_python > Mark as Sources.
