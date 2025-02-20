@@ -4,7 +4,7 @@ from ctypes import *
 # The variables found before the FlexSEAPython class need to match the C code.
 # Only edit if you have changed the code used to generate the DLL!
 
-MAX_ENCODED_PAYLOAD_BYTES = 48
+MAX_ENCODED_PAYLOAD_BYTES = 200
 MIN_CMD_CODE = 1
 MAX_CMD_CODE = 63
 

@@ -17,7 +17,7 @@
 
 ## Repository organization
 
-FlexSEA Comm v2.0 is intended to be used with other projects. Therefore, it does not contain a main() or any application code. The 'projects' folder can be used to quickly build the stack as a static or dynamic library, and to run unit tests.
+FlexSEA Comm v2.0 is intended to be used with other projects. Therefore, it does not contain a `main()` or any application code. The 'projects' folder can be used to quickly build the stack as a static or dynamic library, and to run unit tests.
 
 To test the stack on your PC use a project from the 'demo' folder. That folder also contains a demo project for a Nucleo-G431KB dev board.
 
@@ -35,14 +35,19 @@ To test the stack on your PC use a project from the 'demo' folder. That folder a
 
 ### List of software development tools
 
+The specific versions are likely not critical, as long as they are current. What is listed below is simply what I happened to use during the development of this project.
+
 - C IDE: Eclipse IDE for C/C++ Developers, Version 2024-06 (4.32.0)
-- C compiler: MinGW-W64-builds-4.3.5
+- C compiler: GCC, You can get a copy packaged with Eclipse, from https://www.msys2.org/, or from any other provider.
+  - If you use MSYS2, follow their instruction, and then call `pacman -S --needed base-devel mingw-w64-x86_64-toolchain`. This will populate the mingw64/bin folder.
+  - Add the bin folder (ex.: C:\msys64\mingw64\bin) to your path. Reboot as needed.
+  - Eclipse should now detect your compiler.
 - Python IDE: PyCharm 2022.2.4 Community Edition
-- Python interpreter: Python 3.9
+- Python interpreter: Python 3.9 and 3.11 have been used with success
   - Packages to install: 'pyserial'
 - Embedded C IDE: STM32CubeIDE with the STM32G4 source package
 
-### Unity Unit Tests
+### Unity Unit Tests (optional)
 
 1. Download Unity (https://www.throwtheswitch.org/unity), or clone the git repository
 1. Create a folder named 'unity' and place it at the same level as your flexsea_v2 project
@@ -52,14 +57,16 @@ To test the stack on your PC use a project from the 'demo' folder. That folder a
 
 ### How to use the Eclipse PC C project
 
-*This section is a Work In Progress!* 
-
-Quick notes:
+I did not write down good notes when setting this up. If you go through the install, please contribute to this section!
 
 - Workspace in root folder
-- Active configurations are saved, but will need to be selected
+- Active configurations are saved, but will need to be selected. The project has three configurations:
+  - Test
+  - StaticLib
+  - DynamicLib
 - Run/debug configs might need to be reconfigured
 - Test is the most complicated because you need to link files outside of the project directory.
+
 
 ### How to use FlexSEA with your embedded project
 
@@ -82,3 +89,22 @@ Quick notes:
 1. Start by copying the content of demo/pc_python/flexsea_demo.py
 1. Adjust the sys.path.append command to point to your FlexSEA Python module
 1. To get PyCharm to recognize the imported sources, click on File > Settings... > Project: (Project Name) > Project Structure > Add Content Root > Select flexsea_python > Mark as Sources.
+
+### Stack configuration
+
+A few `#define` can be used to change the size of buffers and communication packets.
+
+- flexsea_codec.h/MAX_ENCODED_PAYLOAD_BYTES:
+  - The size can be adjusted based on your microcontroller's memory, and communication interface
+  - 48 bytes has been used as the default, based on limitations of the original stack
+  - 200 bytes is currently being tested, so far so good
+  - Do not exceed 256
+- circ_buf.h/CIRC_BUF_SIZE:
+  - Make it large enough to hold a few communication packets
+  - If you are not RAM limited, bigger is better
+
+It is critical to use the same `#define` values on the embedded side, and on the PC side. This means recompiling the libraries if those values are changed, and updating `flexsea_python.py`.
+
+### Adding your own commands
+
+ToDo

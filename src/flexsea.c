@@ -55,6 +55,13 @@ uint8_t fx_create_bytestream_from_cmd(uint8_t cmd_6bits, ReadWrite rw, uint8_t *
 	uint8_t payload_out[MAX_ENCODED_PAYLOAD_BYTES] = {0};
 	uint8_t payload_out_len = 0;
 
+	//Is the payload small enough to be packed?
+	if(buf_in_len > (MAX_ENCODED_PAYLOAD_BYTES + MIN_OVERHEAD))
+	{
+		*bytestream_len = 0;
+		return 1;
+	}
+
 	//Create a valid command (command code and RW bits)
 	if(!fx_create_tx_cmd(cmd_6bits, rw, buf_in, buf_in_len,
 			payload_out, &payload_out_len))

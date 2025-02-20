@@ -46,7 +46,11 @@ extern "C" {
 
 //Buffers and packets:
 #define MIN_OVERHEAD					4		//Header + Footer + Checksum + # bytes
-#define MAX_ENCODED_PAYLOAD_BYTES		48		//Max number of bytes in a packed payload
+#define MAX_ENCODED_PAYLOAD_BYTES		200		//Max number of bytes in a packed payload
+//Note: if you want to send 50 bytes, set MAX_ENCODED_PAYLOAD_BYTES to at least
+//54 to support the minimum overhead. Any escapes bytes will prevent it from working,
+//so we recommend keeping some margin.
+//Some variables are uint8, do not exceed 256 bytes!
 
 //****************************************************************************
 // Public Function Prototype(s):

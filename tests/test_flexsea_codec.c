@@ -37,9 +37,9 @@ void test_codec_encode_simple(void)
 
 void test_codec_encode_too_long(void)
 {
-	//We pack 48 chars, knowing that with overhead it will be too long. It should
-	//return an error, and no encoded payload.
-	uint8_t payload[48] = {[0 ... 47] = 'x'};
+	//We pack MAX_ENCODED_PAYLOAD_BYTES chars, knowing that with overhead
+	//it will be too long. It should return an error, and no encoded payload.
+	uint8_t payload[MAX_ENCODED_PAYLOAD_BYTES] = {'x'};
 	uint8_t payload_len = sizeof(payload);
 	uint8_t encoded_payload_len = 0;
 	uint8_t encoded_payload[MAX_ENCODED_PAYLOAD_BYTES] = {0};
