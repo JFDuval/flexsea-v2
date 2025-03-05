@@ -1,9 +1,8 @@
-import struct
-
+import ctypes
+from ctypes import *
 import serial
 import time
 import sys
-from ctypes import *
 
 # Add the FlexSEA path to this project
 sys.path.append('../../')
@@ -57,6 +56,9 @@ class FxDemoStruct(Structure):
 def fx_rx_cmd_handler_1(cmd_6bits, rw, buf):
     print(f'Handler #1 received: cmd={cmd_6bits}, rw={rw}, buf={buf}.')
     print(f'This confirms the reception of our command.')
+
+    # This demo decodes the received data two ways. We start with the manual version.
+
     var0_int8 = byte_to_int8(buf[1])
     var1_uint32 = bytes_to_uint32(buf[2:6])
     var2_uint8 = byte_to_uint8(buf[6])
@@ -69,15 +71,30 @@ def fx_rx_cmd_handler_1(cmd_6bits, rw, buf):
     print(f'var0_int8 = {var0_int8}, var1_uint32 = {var1_uint32}, var2_uint8 = {var2_uint8}, var3_int32 = {var3_int32}'
           f', var4_int8 = {var4_int8}, var5_uint16 = {var5_uint16}, var6_uint8 = {var6_uint8}, var7_int16 = '
           f'{var7_int16}, var8_float = {var8_float}')
+
     # We know what we are supposed to decode:
     if (var0_int8 == -1 and var1_uint32 == 123456 and var2_uint8 == 150 and var3_int32 == -1234567
             and var4_int8 == -125 and var5_uint16 == 4567 and var6_uint8 == 123 and var7_int16 == -4567
             and round(var8_float, 2) == 12.37):
-        print('\nAll decoded values match what our demo code is sending! Successful PC Python <> Embedded C interface.'
-              '\n')
+        print('\nAll decoded values match what our demo code is sending! Successful PC Python <> Embedded C interface, '
+              'Manual decoding mode (variable by variable).')
     else:
         print('\nSome of the decoded values do not match what our demo code is sending! There is a problem between'
-              'PC Python <> Embedded C...\n')
+              'PC Python <> Embedded C in Manual mode...')
+
+    # Second option: receive data as a ctype structure, and compare it.
+
+    # Re-create the data that was sent. It does not matter if it was sent as a struct or manually; same byte stream.
+    tx_data = FxDemoStruct(var0_int8=-1, var1_uint32=123456, var2_uint8=150, var3_int32=-1234567, var4_int8=-125,
+                           var5_uint16=4567, var6_uint8=123, var7_int16=-4567, var8_float=12.37)
+    rx_data = FxDemoStruct()
+    ctypes.memmove(pointer(rx_data), buf[1:], sizeof(rx_data))
+    if identical_ctype_structs(tx_data, rx_data):
+        print('All decoded values match what our demo code is sending! Successful PC Python <> Embedded C interface, '
+              'Structure decoding mode.\n')
+    else:
+        print('Some of the decoded values do not match what our demo code is sending! There is a problem between '
+              'PC Python <> Embedded C in Structure mode...\n')
 
 
 # We create and serialize the same payload the embedded system sends (see fx_transmit.c)

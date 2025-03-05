@@ -1,4 +1,4 @@
-"""Data conversion tools"""
+"""Data conversion and manipulation tools"""
 
 import struct
 
@@ -84,3 +84,16 @@ def bytes_to_float(data_bytes):
 # Converts a float to bytes
 def float_to_bytes(data_float):
     return bytearray(struct.pack("f", data_float))
+
+
+# Compare the content of two ctype structures, field by field
+# Return True if identical, False if any difference is detected
+def identical_ctype_structs(struct_a, struct_b):
+    if type(struct_a) != type(struct_b):
+        return False
+    for field_name, _ in struct_a._fields_:
+        att_a = getattr(struct_a, field_name)
+        att_b = getattr(struct_b, field_name)
+        if att_a != att_b:
+            return False
+    return True
