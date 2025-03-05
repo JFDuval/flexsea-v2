@@ -24,7 +24,7 @@ uint8_t fx_register_rx_cmd_handlers(void)
 {
 	fx_register_rx_cmd_handler(1, &fx_rx_cmd_demo);
 
-	return 0;
+	return FX_SUCCESS;
 }
 
 uint8_t fx_receive(uint8_t *send_reply, uint8_t *reply_cmd)
@@ -48,16 +48,19 @@ uint8_t fx_receive(uint8_t *send_reply, uint8_t *reply_cmd)
 		{
 			ret_val_cmd = fx_call_rx_cmd_handler(cmd_6bits_out, rw_out, buf, buf_len);
 
-			//Reply if requested
-			if((rw_out == CmdRead) || (rw_out == CmdReadWrite))
+			if(!ret_val_cmd)
 			{
-				*reply_cmd = cmd_6bits_out;
-				*send_reply = 1;
+				//Reply if requested
+				if((rw_out == CmdRead) || (rw_out == CmdReadWrite))
+				{
+					*reply_cmd = cmd_6bits_out;
+					*send_reply = 1;
+				}
 			}
 		}
 	}
 
-	return 0;
+	return FX_SUCCESS;	//Always true
 }
 
 //This is the default FlexSEA stack test command. Every other command needs to
@@ -80,18 +83,18 @@ uint8_t fx_rx_cmd_demo(uint8_t cmd_6bits, ReadWrite rw, uint8_t *buf,
 		if(!memcmp(&my_rx_demo_structure, &my_demo_structure, sizeof(my_rx_demo_structure)))
 		{
 			printf("Identical structures, perfect!\n");
-			return TEST_CMD_RETURN;
+			return FX_SUCCESS;
 		}
 		else
 		{
 			//Problem
-			return 1;
+			return FX_PROBLEM;
 		}
 	}
 	else
 	{
 		//Problem
-		return 1;
+		return FX_PROBLEM;
 	}
 }
 

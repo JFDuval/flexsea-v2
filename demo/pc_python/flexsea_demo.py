@@ -39,20 +39,22 @@ def serial_write(bytestream):
 def fx_rx_cmd_handler_1(cmd_6bits, rw, buf):
     print(f'Handler #1 received: cmd={cmd_6bits}, rw={rw}, buf={buf}.')
     print(f'This confirms the reception of our command.')
-    var1_uint32 = bytes_to_uint32(buf[1:5])
-    var2_uint8 = byte_to_uint8(buf[5])
-    var3_int32 = bytes_to_int32(buf[6:10])
-    var4_int8 = byte_to_int8(buf[10])
-    var5_uint16 = bytes_to_uint16(buf[11:13])
-    var6_uint8 = byte_to_uint8(buf[13])
-    var7_int16 = bytes_to_int16(buf[14:16])
-    var8_float = bytes_to_float(buf[16:20])
-    print(f'var1_uint32 = {var1_uint32}, var2_uint8 = {var2_uint8}, var3_int32 = {var3_int32}, var4_int8 = '
-          f'{var4_int8}, var5_uint16 = {var5_uint16}, var6_uint8 = {var6_uint8}, var7_int16 = {var7_int16}, '
-          f'var8_float = {var8_float}')
+    var0_int8 = byte_to_int8(buf[1])
+    var1_uint32 = bytes_to_uint32(buf[2:6])
+    var2_uint8 = byte_to_uint8(buf[6])
+    var3_int32 = bytes_to_int32(buf[7:11])
+    var4_int8 = byte_to_int8(buf[11])
+    var5_uint16 = bytes_to_uint16(buf[12:14])
+    var6_uint8 = byte_to_uint8(buf[14])
+    var7_int16 = bytes_to_int16(buf[15:17])
+    var8_float = bytes_to_float(buf[17:21])
+    print(f'var0_int8 = {var0_int8}, var1_uint32 = {var1_uint32}, var2_uint8 = {var2_uint8}, var3_int32 = {var3_int32}'
+          f', var4_int8 = {var4_int8}, var5_uint16 = {var5_uint16}, var6_uint8 = {var6_uint8}, var7_int16 = '
+          f'{var7_int16}, var8_float = {var8_float}')
     # We know what we are supposed to decode:
-    if (var1_uint32 == 123456 and var2_uint8 == 150 and var3_int32 == -1234567 and var4_int8 == -125 and
-            var5_uint16 == 4567 and var6_uint8 == 123 and var7_int16 == -4567 and round(var8_float, 2) == 12.37):
+    if (var0_int8 == -1 and var1_uint32 == 123456 and var2_uint8 == 150 and var3_int32 == -1234567
+            and var4_int8 == -125 and var5_uint16 == 4567 and var6_uint8 == 123 and var7_int16 == -4567
+            and round(var8_float, 2) == 12.37):
         print('\nAll decoded values match what our demo code is sending! Successful PC Python <> Embedded C interface.'
               '\n')
     else:
@@ -62,6 +64,7 @@ def fx_rx_cmd_handler_1(cmd_6bits, rw, buf):
 
 # We create and serialize the same payload the embedded system sends (see fx_transmit.c)
 def gen_test_code_payload():
+    var0_int8 = -1
     var1_uint32 = 123456
     var2_uint8 = 150
     var3_int32 = -1234567
@@ -71,9 +74,9 @@ def gen_test_code_payload():
     var7_int16 = -4567
     var8_float = 12.37
 
-    payload_string = (uint32_to_bytes(var1_uint32) + uint8_to_byte(var2_uint8) + int32_to_bytes(var3_int32)
-                      + int8_to_byte(var4_int8) + uint16_to_bytes(var5_uint16) + uint8_to_byte(var6_uint8)
-                      + int16_to_bytes(var7_int16) + float_to_bytes(var8_float))
+    payload_string = (int8_to_byte(var0_int8) + uint32_to_bytes(var1_uint32) + uint8_to_byte(var2_uint8)
+                      + int32_to_bytes(var3_int32) + int8_to_byte(var4_int8) + uint16_to_bytes(var5_uint16)
+                      + uint8_to_byte(var6_uint8) + int16_to_bytes(var7_int16) + float_to_bytes(var8_float))
 
     return payload_string
 

@@ -82,6 +82,7 @@ I did not write down good notes when setting this up. If you go through the inst
   1. Feed bytes into the circular buffer when they are received (via HAL_UART_RxCpltCallback())
   1. Once new bytes have been received, try parsing them
   1. Call the appropriate function to deal with the received commands
+  1. If you use structures, align them
 
 ### How to use FlexSEA with your Python project
 

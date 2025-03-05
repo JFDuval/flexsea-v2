@@ -15,6 +15,7 @@
 //any potential problems.
 typedef struct DemoStructure
 {
+	int8_t var0_int8;
 	uint32_t var1_uint32;
 	uint8_t var2_uint8;
 	int32_t var3_int32;

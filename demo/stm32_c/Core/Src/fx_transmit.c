@@ -13,9 +13,10 @@
 uint8_t bytestream[MAX_ENCODED_PAYLOAD_BYTES] = {0};
 uint8_t bytestream_len = 0;
 
-DemoStructure my_demo_structure = {.var1_uint32 = 123456, .var2_uint8 = 150,
-		.var3_int32 = -1234567, .var4_int8 = -125, .var5_uint16 = 4567,
-		.var6_uint8 = 123, .var7_int16 = -4567, .var8_float = 12.37};
+DemoStructure my_demo_structure = {.var0_int8 = -1, .var1_uint32 = 123456,
+		.var2_uint8 = 150, .var3_int32 = -1234567, .var4_int8 = -125,
+		.var5_uint16 = 4567, .var6_uint8 = 123, .var7_int16 = -4567,
+		.var8_float = 12.37};
 
 //****************************************************************************
 // Private Function Prototype(s)
@@ -45,7 +46,7 @@ uint8_t fx_transmit(uint8_t send_reply, uint8_t cmd_reply)
 		send_reply = 0;
 	}
 
-	return 0;
+	return FX_SUCCESS;
 }
 
 //This is the default FlexSEA stack test command.
