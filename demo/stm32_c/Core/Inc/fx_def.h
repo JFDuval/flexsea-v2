@@ -12,7 +12,7 @@
 //****************************************************************************
 
 //Define your command codes here:
-#define FX_CMD_DEMO_STRUCT		1
+#define FX_CMD_DEMO		1
 
 //****************************************************************************
 // Public Function Prototype(s):

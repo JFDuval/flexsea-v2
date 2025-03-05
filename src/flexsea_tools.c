@@ -63,6 +63,15 @@ uint16_t REBUILD_UINT16(uint8_t *buf, uint16_t *index)
 	return tmp;
 }
 
+//Inverse of SPLIT_16() - Little Endian
+uint16_t REBUILD_UINT16_LE(uint8_t *buf, uint16_t *index)
+{
+	uint16_t tmp = 0;
+	tmp = (((uint16_t)buf[(*index)+1] << 8) + ((uint16_t)buf[(*index)+0] ));
+	(*index) += 2;
+	return tmp;
+}
+
 //Splits 1 uint32 in 4 bytes, stores them in buf[index] and increments index
 inline void SPLIT_32(uint32_t var, uint8_t *buf, uint16_t *index)
 {
@@ -86,11 +95,29 @@ uint32_t REBUILD_UINT32(uint8_t *buf, uint16_t *index)
 //Inverse of SPLIT_32() - Little Endian
 uint32_t REBUILD_UINT32_LE(uint8_t *buf, uint16_t *index)
 {
+
+	uint8_t bytes[4] = {0};
+	bytes[0] = buf[(*index)+3];
+	bytes[1] = buf[(*index)+2];
+	bytes[2] = buf[(*index)+1];
+	bytes[3] = buf[(*index)+0];
+
 	uint32_t tmp = 0;
 	tmp = (((uint32_t)buf[(*index)+3] << 24) + ((uint32_t)buf[(*index)+2] << 16) \
 			+ ((uint32_t)buf[(*index)+1] << 8) + ((uint32_t)buf[(*index)+0]));
 	(*index) += 4;
 	return tmp;
+}
+
+//Reconstruct float
+float REBUILD_FLOAT(uint8_t *buf, uint16_t *index)
+{
+	uint32_t tmp = 0;
+	tmp = (((uint32_t)buf[(*index)+3] << 24) + ((uint32_t)buf[(*index)+2] << 16) \
+			+ ((uint32_t)buf[(*index)+1] << 8) + ((uint32_t)buf[(*index)+0]));
+	(*index) += 4;
+	//This uses the 4 bytes to reconstruct. A simple (float) cast doesn't.
+	return *((float *) &tmp);
 }
 
 #ifdef __cplusplus

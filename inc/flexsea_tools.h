@@ -47,9 +47,11 @@ extern "C" {
 
 void SPLIT_16(uint16_t var, uint8_t *buf, uint16_t *index);
 uint16_t REBUILD_UINT16(uint8_t *buf, uint16_t *index);
+uint16_t REBUILD_UINT16_LE(uint8_t *buf, uint16_t *index);
 void SPLIT_32(uint32_t var, uint8_t *buf, uint16_t *index);
 uint32_t REBUILD_UINT32(uint8_t *buf, uint16_t *index);
 uint32_t REBUILD_UINT32_LE(uint8_t *buf, uint16_t *index);
+float REBUILD_FLOAT(uint8_t *buf, uint16_t *index);
 
 //****************************************************************************
 // Structure(s):

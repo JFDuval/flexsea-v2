@@ -69,7 +69,7 @@ uint8_t fx_rx_cmd_demo(uint8_t cmd_6bits, ReadWrite rw, uint8_t *buf,
 		uint8_t len)
 {
 	//We check a few parameters
-	if((cmd_6bits == FX_CMD_DEMO_STRUCT) && (rw == CmdReadWrite) && (len >= 1) &&
+	if((cmd_6bits == FX_CMD_DEMO) && (rw == CmdReadWrite) && (len >= 1) &&
 			(cmd_6bits == CMD_GET_6BITS(buf[CMD_CODE_INDEX])))
 	{
 		//Valid
@@ -83,7 +83,32 @@ uint8_t fx_rx_cmd_demo(uint8_t cmd_6bits, ReadWrite rw, uint8_t *buf,
 		if(!memcmp(&my_rx_demo_structure, &my_demo_structure, sizeof(my_rx_demo_structure)))
 		{
 			printf("Identical structures, perfect!\n");
-			return FX_SUCCESS;
+
+			//This is great, but are we also able to decode it manually? In some applications
+			//our data won't be neatly packed in a structure.
+
+			DemoStructure my_rx_demo_manual = {0};
+			uint16_t index = 1;
+			my_rx_demo_manual.var0_int8 = buf[index++];
+			my_rx_demo_manual.var1_uint32 = REBUILD_UINT32_LE(buf, &index);
+			my_rx_demo_manual.var2_uint8 = buf[index++];
+			my_rx_demo_manual.var3_int32 = (int32_t) REBUILD_UINT32_LE(buf, &index);
+			my_rx_demo_manual.var4_int8 = (int8_t) buf[index++];
+			my_rx_demo_manual.var5_uint16 = REBUILD_UINT16_LE(buf, &index);
+			my_rx_demo_manual.var6_uint8 = buf[index++];
+			my_rx_demo_manual.var7_int16 = (int16_t) REBUILD_UINT16_LE(buf, &index);
+			my_rx_demo_manual.var8_float = REBUILD_FLOAT(buf, &index);
+
+			//This should be identical to what we send:
+			if(!memcmp(&my_rx_demo_manual, &my_demo_structure, sizeof(my_rx_demo_manual)))
+			{
+				return FX_SUCCESS;
+			}
+			else
+			{
+				//Problem
+				return FX_PROBLEM;
+			}
 		}
 		else
 		{
