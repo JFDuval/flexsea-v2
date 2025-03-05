@@ -1,6 +1,9 @@
+import struct
+
 import serial
 import time
 import sys
+from ctypes import *
 
 # Add the FlexSEA path to this project
 sys.path.append('../../')
@@ -34,6 +37,21 @@ def serial_write(bytestream):
         print("No serial port object, can't write!")
 
 
+# C-style data structure
+# Note: this has to match the embedded code for the serial demo to work!
+class FxDemoStruct(Structure):
+    _pack_ = 1
+    _fields_ = [("var0_int8", c_int8),
+                ("var1_uint32", c_uint32),
+                ("var2_uint8", c_uint8),
+                ("var3_int32", c_int32),
+                ("var4_int8", c_int8),
+                ("var5_uint16", c_uint16),
+                ("var6_uint8", c_uint8),
+                ("var7_int16", c_int16),
+                ("var8_float", c_float)]
+
+
 # Custom command handler used by the serial demo code
 # Note: this has to match the embedded code for the serial demo to work!
 def fx_rx_cmd_handler_1(cmd_6bits, rw, buf):
@@ -63,20 +81,29 @@ def fx_rx_cmd_handler_1(cmd_6bits, rw, buf):
 
 
 # We create and serialize the same payload the embedded system sends (see fx_transmit.c)
-def gen_test_code_payload():
-    var0_int8 = -1
-    var1_uint32 = 123456
-    var2_uint8 = 150
-    var3_int32 = -1234567
-    var4_int8 = -125
-    var5_uint16 = 4567
-    var6_uint8 = 123
-    var7_int16 = -4567
-    var8_float = 12.37
+def gen_test_code_payload(mode):
+    # Here we show two ways of packing data into a byte string
+    payload_string = []
+    if mode == "manual":
+        var0_int8 = -1
+        var1_uint32 = 123456
+        var2_uint8 = 150
+        var3_int32 = -1234567
+        var4_int8 = -125
+        var5_uint16 = 4567
+        var6_uint8 = 123
+        var7_int16 = -4567
+        var8_float = 12.37
 
-    payload_string = (int8_to_byte(var0_int8) + uint32_to_bytes(var1_uint32) + uint8_to_byte(var2_uint8)
-                      + int32_to_bytes(var3_int32) + int8_to_byte(var4_int8) + uint16_to_bytes(var5_uint16)
-                      + uint8_to_byte(var6_uint8) + int16_to_bytes(var7_int16) + float_to_bytes(var8_float))
+        payload_string = (int8_to_byte(var0_int8) + uint32_to_bytes(var1_uint32) + uint8_to_byte(var2_uint8)
+                          + int32_to_bytes(var3_int32) + int8_to_byte(var4_int8) + uint16_to_bytes(var5_uint16)
+                          + uint8_to_byte(var6_uint8) + int16_to_bytes(var7_int16) + float_to_bytes(var8_float))
+    elif mode == "struct":
+        payload = FxDemoStruct(var0_int8=-1, var1_uint32=123456, var2_uint8=150, var3_int32=-1234567, var4_int8=-125,
+                               var5_uint16=4567, var6_uint8=123, var7_int16=-4567, var8_float=12.37)
+        payload_string = bytes(payload)
+    else:
+        print(f'Invalid mode! "{mode}" is not a valid option.')
 
     return payload_string
 
@@ -96,7 +123,7 @@ def flexsea_demo_local_loopback():
 
     # Generate bytestream from text string (payload):
     ret_val, bytestream, bytestream_len = fx.create_bytestream_from_cmd(cmd=1, rw="CmdReadWrite",
-                                                                        payload_string=gen_test_code_payload())
+                                                                        payload_string=gen_test_code_payload('manual'))
 
     if not ret_val:
         print("We successfully created a bytestream.")
@@ -145,7 +172,7 @@ def flexsea_demo_serial():
 
     # Generate bytestream from text string (payload):
     ret_val, bytestream, bytestream_len = fx.create_bytestream_from_cmd(cmd=1, rw="CmdReadWrite",
-                                                                        payload_string=gen_test_code_payload())
+                                                                        payload_string=gen_test_code_payload('struct'))
 
     if not ret_val:
         print("We successfully created a bytestream.")

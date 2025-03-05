@@ -89,6 +89,11 @@ I did not write down good notes when setting this up. If you go through the inst
 1. Start by copying the content of demo/pc_python/flexsea_demo.py
 1. Adjust the sys.path.append command to point to your FlexSEA Python module
 1. To get PyCharm to recognize the imported sources, click on File > Settings... > Project: (Project Name) > Project Structure > Add Content Root > Select flexsea_python > Mark as Sources.
+1. Decoding the received data:
+  - Manually:
+    - Use the `flexsea_tools.py` functions to go from bytes to integers/floats.
+	- The first valid byte is in `buf[1]`
+	- Calling `bytes_to_uint32(buf[2:6])` will decode bytes 2, 3, 4 & 5. The next decoder should use 6 as a start.
 
 ### Stack configuration
 
