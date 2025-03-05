@@ -83,6 +83,16 @@ uint32_t REBUILD_UINT32(uint8_t *buf, uint16_t *index)
 	return tmp;
 }
 
+//Inverse of SPLIT_32() - Little Endian
+uint32_t REBUILD_UINT32_LE(uint8_t *buf, uint16_t *index)
+{
+	uint32_t tmp = 0;
+	tmp = (((uint32_t)buf[(*index)+3] << 24) + ((uint32_t)buf[(*index)+2] << 16) \
+			+ ((uint32_t)buf[(*index)+1] << 8) + ((uint32_t)buf[(*index)+0]));
+	(*index) += 4;
+	return tmp;
+}
+
 #ifdef __cplusplus
 }
 #endif

@@ -66,7 +66,7 @@ uint8_t fx_rx_cmd_demo(uint8_t cmd_6bits, ReadWrite rw, uint8_t *buf,
 		uint8_t len)
 {
 	//We check a few parameters
-	if((cmd_6bits == 1) && (rw == CmdReadWrite) && (len >= 1) &&
+	if((cmd_6bits == FX_CMD_DEMO_STRUCT) && (rw == CmdReadWrite) && (len >= 1) &&
 			(cmd_6bits == CMD_GET_6BITS(buf[CMD_CODE_INDEX])))
 	{
 		//Valid

@@ -38,7 +38,7 @@ def serial_write(bytestream):
 # Note: this has to match the embedded code for the serial demo to work!
 def fx_rx_cmd_handler_1(cmd_6bits, rw, buf):
     print(f'Handler #1 received: cmd={cmd_6bits}, rw={rw}, buf={buf}.')
-    print(f'This confirms the reception of our command, and the success of our demo code.')
+    print(f'This confirms the reception of our command.')
     var1_uint32 = bytes_to_uint32(buf[1:5])
     var2_uint8 = byte_to_uint8(buf[5])
     var3_int32 = bytes_to_int32(buf[6:10])
@@ -53,12 +53,14 @@ def fx_rx_cmd_handler_1(cmd_6bits, rw, buf):
     # We know what we are supposed to decode:
     if (var1_uint32 == 123456 and var2_uint8 == 150 and var3_int32 == -1234567 and var4_int8 == -125 and
             var5_uint16 == 4567 and var6_uint8 == 123 and var7_int16 == -4567 and round(var8_float, 2) == 12.37):
-        print('\nAll decoded values match what our demo code is sending!\n')
+        print('\nAll decoded values match what our demo code is sending! Successful PC Python <> Embedded C interface.'
+              '\n')
     else:
-        print('\nSome of the decoded values do not match what our demo code is sending!\n')
+        print('\nSome of the decoded values do not match what our demo code is sending! There is a problem between'
+              'PC Python <> Embedded C...\n')
 
 
-# We create and serialize the same payload the embedded system sends
+# We create and serialize the same payload the embedded system sends (see fx_transmit.c)
 def gen_test_code_payload():
     var1_uint32 = 123456
     var2_uint8 = 150

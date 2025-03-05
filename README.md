@@ -67,7 +67,6 @@ I did not write down good notes when setting this up. If you go through the inst
 - Run/debug configs might need to be reconfigured
 - Test is the most complicated because you need to link files outside of the project directory.
 
-
 ### How to use FlexSEA with your embedded project
 
 1. We recommend placing the 'flexsea-v2' directory at the same level as 'your_project'.
@@ -76,9 +75,9 @@ I did not write down good notes when setting this up. If you go through the inst
   - Note: if you Link it in Debug, you might have to simply Add it in Release, otherwise the IDE will say it already exists
 1. Add `#include <flexsea.h>` to your main file. At this point, you should be able to compile the stack alongside your project.
 1. To complete the integration:
-  1. Copy/paste fx_receive.h & fx_transmit.h to your project
+  1. Copy/paste fx_def.h, fx_receive.h & fx_transmit.h to your project
   1. Modify main.h to include flexsea.h, and these
-  1. Modify main.c to include these two files
+  1. Modify main.c to include these three files
 1. Follow the example 'stm32_c' project to see how the stack can be used. There is too much to document here, but a few key points are:
   1. Feed bytes into the circular buffer when they are received (via HAL_UART_RxCpltCallback())
   1. Once new bytes have been received, try parsing them
@@ -98,7 +97,7 @@ A few `#define` can be used to change the size of buffers and communication pack
   - The size can be adjusted based on your microcontroller's memory, and communication interface
   - 48 bytes has been used as the default, based on limitations of the original stack
   - 200 bytes is currently being tested, so far so good
-  - Do not exceed 256
+  - Do not exceed 256!
 - circ_buf.h/CIRC_BUF_SIZE:
   - Make it large enough to hold a few communication packets
   - If you are not RAM limited, bigger is better

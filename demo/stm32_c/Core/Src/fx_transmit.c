@@ -37,7 +37,7 @@ uint8_t fx_transmit(uint8_t send_reply, uint8_t cmd_reply)
 
 		switch(cmd_reply)
 		{
-			case 1:
+			case FX_CMD_DEMO_STRUCT:
 				fx_tx_demo();
 				break;
 		}
@@ -57,13 +57,13 @@ uint8_t fx_tx_demo(void)
 	uint8_t payload_len = sizeof(my_demo_structure);
 	uint8_t* payload = (uint8_t*)&my_demo_structure;
 
-	ret_val = fx_create_bytestream_from_cmd(1, CmdWrite, payload,
+	ret_val = fx_create_bytestream_from_cmd(FX_CMD_DEMO_STRUCT, CmdWrite, payload,
 			  payload_len, bytestream, &bytestream_len);
 
 	//CDC_Transmit_FS(bytestream, bytestream_len);
 	HAL_UART_Transmit_IT(&huart2, &bytestream, bytestream_len);
 
-	return 0;
+	return ret_val;
 }
 
 //****************************************************************************

@@ -32,6 +32,7 @@ extern "C" {
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "flexsea.h"
+#include <fx_def.h>
 #include <fx_receive.h>
 #include <fx_transmit.h>
 /* USER CODE END Includes */
