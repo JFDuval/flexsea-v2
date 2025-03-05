@@ -11,6 +11,7 @@ extern "C" {
 int flexsea_comm_test(void);
 
 //Prototypes for public functions defined in individual test files:
+void test_flexsea_tools(void);
 void test_circ_buf(void);
 void test_flexsea_codec(void);
 void test_flexsea_command(void);

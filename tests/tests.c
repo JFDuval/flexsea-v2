@@ -7,6 +7,7 @@ int main(void)
 
 	UNITY_BEGIN();
 
+	RUN_TEST(test_flexsea_tools);
 	RUN_TEST(test_circ_buf);
 	RUN_TEST(test_flexsea_codec);
 	RUN_TEST(test_flexsea_command);
