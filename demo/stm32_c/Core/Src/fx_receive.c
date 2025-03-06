@@ -90,13 +90,13 @@ uint8_t fx_rx_cmd_demo(uint8_t cmd_6bits, ReadWrite rw, uint8_t *buf,
 			DemoStructure my_rx_demo_manual = {0};
 			uint16_t index = 1;
 			my_rx_demo_manual.var0_int8 = buf[index++];
-			my_rx_demo_manual.var1_uint32 = REBUILD_UINT32_LE(buf, &index);
+			my_rx_demo_manual.var1_uint32 = REBUILD_UINT32(buf, &index);
 			my_rx_demo_manual.var2_uint8 = buf[index++];
-			my_rx_demo_manual.var3_int32 = (int32_t) REBUILD_UINT32_LE(buf, &index);
+			my_rx_demo_manual.var3_int32 = (int32_t) REBUILD_UINT32(buf, &index);
 			my_rx_demo_manual.var4_int8 = (int8_t) buf[index++];
-			my_rx_demo_manual.var5_uint16 = REBUILD_UINT16_LE(buf, &index);
+			my_rx_demo_manual.var5_uint16 = REBUILD_UINT16(buf, &index);
 			my_rx_demo_manual.var6_uint8 = buf[index++];
-			my_rx_demo_manual.var7_int16 = (int16_t) REBUILD_UINT16_LE(buf, &index);
+			my_rx_demo_manual.var7_int16 = (int16_t) REBUILD_UINT16(buf, &index);
 			my_rx_demo_manual.var8_float = REBUILD_FLOAT(buf, &index);
 
 			//This should be identical to what we send:
