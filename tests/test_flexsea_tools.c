@@ -105,12 +105,29 @@ void test_fx_split_rebuild_int16(void)
 	TEST_ASSERT_EQUAL(start, end);
 }
 
+//Can we do float => bytes => float?
+void test_fx_split_rebuild_float(void)
+{
+	uint8_t buf[4] = {0};
+	uint16_t index = 0;
+
+	//Random number, anything will use 4 bytes so not critical
+	float start = -123.456, end = 0;
+	SPLIT_FLOAT(start, buf, &index);
+	index = 0;
+	end = REBUILD_FLOAT(buf, &index);
+	TEST_ASSERT_EQUAL(start, end);
+	//Is the index tracking?
+	TEST_ASSERT_EQUAL(4, index);
+}
+
 void test_flexsea_tools(void)
 {
 	RUN_TEST(test_fx_split_rebuild_uint32);
 	RUN_TEST(test_fx_split_rebuild_int32);
 	RUN_TEST(test_fx_split_rebuild_uint16);
 	RUN_TEST(test_fx_split_rebuild_int16);
+	RUN_TEST(test_fx_split_rebuild_float);
 
 	fflush(stdout);
 }

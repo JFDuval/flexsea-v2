@@ -37,7 +37,7 @@ int main()
 {
 	int i = 0;
 
-	printf("Hello world! This is a FlexSEA Comm v0.2 test!\n\n");
+	printf("Hello world! This is a FlexSEA Comm v2.0 test!\n\n");
 
 	//We create a structure
 	FlexSEA_Main_Test_Command_s fx_test_struct1;

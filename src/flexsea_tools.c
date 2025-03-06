@@ -46,25 +46,19 @@ extern "C" {
 // Public Function(s)
 //****************************************************************************
 
+//Important note: these functions are not compatible with FlexSEA v1's
+//We are now using Little endian to simplify the data exchange with our scripts
+
 //Splits 1 uint16 in 2 bytes, stores them in buf[index] and increments index
 inline void SPLIT_16(uint16_t var, uint8_t *buf, uint16_t *index)
 {
-	buf[*index] = (uint8_t) ((var >> 8) & 0xFF);
-	buf[(*index)+1] = (uint8_t) (var & 0xFF);
+	buf[*index] = (uint8_t) (var & 0xFF);
+	buf[(*index)+1] = (uint8_t) ((var >> 8) & 0xFF);
 	(*index) += 2;
 }
 
 //Inverse of SPLIT_16()
 uint16_t REBUILD_UINT16(uint8_t *buf, uint16_t *index)
-{
-	uint16_t tmp = 0;
-	tmp = (((uint16_t)buf[(*index)] << 8) + ((uint16_t)buf[(*index)+1] ));
-	(*index) += 2;
-	return tmp;
-}
-
-//Inverse of SPLIT_16() - Little Endian
-uint16_t REBUILD_UINT16_LE(uint8_t *buf, uint16_t *index)
 {
 	uint16_t tmp = 0;
 	tmp = (((uint16_t)buf[(*index)+1] << 8) + ((uint16_t)buf[(*index)+0] ));
@@ -75,10 +69,10 @@ uint16_t REBUILD_UINT16_LE(uint8_t *buf, uint16_t *index)
 //Splits 1 uint32 in 4 bytes, stores them in buf[index] and increments index
 inline void SPLIT_32(uint32_t var, uint8_t *buf, uint16_t *index)
 {
-	buf[(*index)] = (uint8_t) ((var >> 24) & 0xFF);
-	buf[(*index)+1] = (uint8_t) ((var >> 16) & 0xFF);
-	buf[(*index)+2] = (uint8_t) ((var >> 8) & 0xFF);
-	buf[(*index)+3] = (uint8_t) (var & 0xFF);
+	buf[(*index)] = (uint8_t) (var & 0xFF);
+	buf[(*index)+1] = (uint8_t) ((var >> 8) & 0xFF);
+	buf[(*index)+2] = (uint8_t) ((var >> 16) & 0xFF);
+	buf[(*index)+3] = (uint8_t) ((var >> 24) & 0xFF);
 	(*index) += 4;
 }
 
@@ -86,20 +80,21 @@ inline void SPLIT_32(uint32_t var, uint8_t *buf, uint16_t *index)
 uint32_t REBUILD_UINT32(uint8_t *buf, uint16_t *index)
 {
 	uint32_t tmp = 0;
-	tmp = (((uint32_t)buf[(*index)] << 24) + ((uint32_t)buf[(*index)+1] << 16) \
-			+ ((uint32_t)buf[(*index)+2] << 8) + ((uint32_t)buf[(*index)+3]));
-	(*index) += 4;
-	return tmp;
-}
-
-//Inverse of SPLIT_32() - Little Endian
-uint32_t REBUILD_UINT32_LE(uint8_t *buf, uint16_t *index)
-{
-	uint32_t tmp = 0;
 	tmp = (((uint32_t)buf[(*index)+3] << 24) + ((uint32_t)buf[(*index)+2] << 16) \
 			+ ((uint32_t)buf[(*index)+1] << 8) + ((uint32_t)buf[(*index)+0]));
 	(*index) += 4;
 	return tmp;
+}
+
+//Splits 1 float in 4 bytes, stores them in buf[index] and increments index
+inline void SPLIT_FLOAT(float var, uint8_t *buf, uint16_t *index)
+{
+	uint32_t tmp = *((uint32_t *) &var);
+	buf[(*index)] = (uint8_t) (tmp & 0xFF);
+	buf[(*index)+1] = (uint8_t) ((tmp >> 8) & 0xFF);
+	buf[(*index)+2] = (uint8_t) ((tmp >> 16) & 0xFF);
+	buf[(*index)+3] = (uint8_t) ((tmp >> 24) & 0xFF);
+	(*index) += 4;
 }
 
 //Reconstruct float
