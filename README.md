@@ -87,7 +87,7 @@ I did not write down good notes when setting this up. If you go through the inst
 ### How to use FlexSEA with your Python project
 
 1. Start by copying the content of demo/pc_python/flexsea_demo.py
-1. Adjust the sys.path.append command to point to your FlexSEA Python module
+1. Adjust the sys.path.append command to point to your FlexSEA Python module (ex.: `sys.path.append('../flexsea-v2/flexsea_python')`)
 1. To get PyCharm to recognize the imported sources, click on File > Settings... > Project: (Project Name) > Project Structure > Add Content Root > Select flexsea_python > Mark as Sources.
 1. Decoding the received data:
   - Manually:
