@@ -359,6 +359,87 @@ void test_codec_continuous_receive_decode(void)
 	}
 }
 
+//Long payload (no escape, short, etc.) received periodically
+//We decode as soon as we receive
+//We get some noise in there
+void test_codec_continuous_receive_decode_noisy(void)
+{
+	//We start by packing a long payload
+	int i = 0, loop = 0;
+	uint8_t payload[] = "the flexsea_v2 comm protocol is reliable!";
+	uint8_t payload_len = sizeof(payload);
+	uint8_t encoded_payload_len = 0;
+	uint8_t encoded_payload[MAX_ENCODED_PAYLOAD_BYTES] = {0};
+	uint8_t noise_byte = 0;
+	uint8_t ret_val = fx_encode(payload, payload_len, encoded_payload,
+			&encoded_payload_len, MAX_ENCODED_PAYLOAD_BYTES);
+	TEST_ASSERT_EQUAL_MESSAGE(0, ret_val,
+			"fx_encode() is reporting an error");
+	TEST_ASSERT_EQUAL_MESSAGE(payload_len + MIN_OVERHEAD, encoded_payload_len,
+			"How many bytes does generating a string add?");
+
+	//We prepare a new circular buffer
+	circ_buf_t cb = {.buffer = {0}, .length = 0, .write_index = 0, .read_index =
+			0};
+
+	//We want to make sure we go around our circular buffer a few times.
+	int iterations = (2500 * CIRC_BUF_SIZE) / MAX_ENCODED_PAYLOAD_BYTES;
+	uint8_t extracted_encoded_payload[MAX_ENCODED_PAYLOAD_BYTES] = {0};
+	uint8_t extracted_encoded_payload_len = 0;
+	uint8_t extracted_decoded_payload[MAX_ENCODED_PAYLOAD_BYTES] = {0};
+	uint8_t extracted_decoded_payload_len = 0;
+	for(loop = 0; loop < iterations; loop++)
+	{
+		//Our payload makes it into the circular buffer
+		ret_val = 0;
+		for(i = 0; i < encoded_payload_len; i++)
+		{
+			//Write to circular buffer
+			ret_val = circ_buf_write_byte(&cb, encoded_payload[i]);
+
+			//circ_buf_write() should always return 0 if we are not overwriting
+			if(ret_val)
+			{
+				TEST_FAIL_MESSAGE("CB indicates it's full while it shouldn't.");
+				break;
+			}
+		}
+		//Write extra byte to circular buffer
+		ret_val = circ_buf_write_byte(&cb, noise_byte);
+		noise_byte++;
+
+		//circ_buf_write() should always return 0 if we are not overwriting
+		if(ret_val)
+		{
+			TEST_FAIL_MESSAGE("CB indicates it's full while it shouldn't.");
+			break;
+		}
+
+		//At this point our packaged payload is in 'cb'. We decode it.
+		extracted_encoded_payload_len = 0;
+		extracted_decoded_payload_len = 0;
+		memset(extracted_encoded_payload, 0, MAX_ENCODED_PAYLOAD_BYTES);
+		memset(extracted_decoded_payload, 0, MAX_ENCODED_PAYLOAD_BYTES);
+		ret_val = fx_decode(&cb, extracted_encoded_payload,
+				&extracted_encoded_payload_len, extracted_decoded_payload,
+				&extracted_decoded_payload_len);
+		if(ret_val)
+		{
+			TEST_FAIL_MESSAGE("fx_decode() encountered an error");
+		}
+
+		//Compare lengths in & out
+		TEST_ASSERT_EQUAL(payload_len, extracted_decoded_payload_len);
+		TEST_ASSERT_EQUAL(encoded_payload_len, extracted_encoded_payload_len);
+
+		//Compare strings in & out
+		TEST_ASSERT_EQUAL_UINT8_ARRAY(encoded_payload, extracted_encoded_payload,
+				encoded_payload_len);
+		TEST_ASSERT_EQUAL_UINT8_ARRAY(payload, extracted_decoded_payload,
+				payload_len);
+	}
+}
+
 void test_flexsea_codec(void)
 {
 	//Encoding:
@@ -373,6 +454,7 @@ void test_flexsea_codec(void)
 
 	//Continuous data stream:
 	RUN_TEST(test_codec_continuous_receive_decode);
+	RUN_TEST(test_codec_continuous_receive_decode_noisy);
 
 	fflush(stdout);
 }

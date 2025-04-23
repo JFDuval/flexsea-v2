@@ -93,6 +93,15 @@ class FlexSEAPython:
         else:
             return 1    # Problem
 
+    def get_circular_buffer_length(self):
+        """
+        Returns the length of the circular buffer
+        :return: length in bytes
+        """
+        length = c_uint16(0)
+        ret_val = self.fx.circ_buf_get_size(byref(self.cb), byref(length))
+        return length.value
+
     def get_cmd_handler_from_bytestream(self):
         # At this point our encoded command is in the circular buffer
         cmd_6bits_out = c_uint8(0)
