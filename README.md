@@ -67,6 +67,12 @@ I did not write down good notes when setting this up. If you go through the inst
 - Run/debug configs might need to be reconfigured
 - Test is the most complicated because you need to link files outside of the project directory.
 
+#### MacOS, ARM-based (M chip)
+
+- Use the correct Eclipse install for your Mac hardware (Mac silicon is aarch64)
+- Rename .dll file to have .dylib extension
+- Make sure that the 'dll_filename' variable in your Python script matches your file name and extension
+
 ### How to use FlexSEA with your embedded project
 
 1. We recommend placing the 'flexsea-v2' directory at the same level as 'your_project'.
