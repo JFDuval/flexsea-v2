@@ -70,8 +70,9 @@ I did not write down good notes when setting this up. If you go through the inst
 #### MacOS, ARM-based (M chip)
 
 - Use the correct Eclipse install for your Mac hardware (Mac silicon is aarch64)
+- Follow the instructions above (import, select configuration, compile)
 - Rename .dll file to have .dylib extension
-- Make sure that the 'dll_filename' variable in your Python script matches your file name and extension
+- Make sure that the 'dll_filename' variable in your Python script matches your new file name and extension
 
 ### How to use FlexSEA with your embedded project
 
