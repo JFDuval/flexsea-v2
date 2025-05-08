@@ -34,3 +34,4 @@ obj/
 
 #Python and PyCharm:
 *__pycache__
+demo/pc_python/logs/

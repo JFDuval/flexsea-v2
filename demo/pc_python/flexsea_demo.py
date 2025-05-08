@@ -11,7 +11,7 @@ from flexsea_tools import *
 # Note: with PyCharm you must add this folder and mark is as a Sources Folder to avoid an Unresolved Reference issue
 
 dll_filename = '../../projects/eclipse_pc/DynamicLib/libflexsea-v2.dll'
-com_port = 'COM11'
+com_port = 'COM20'
 serial_port = 0  # Holds the serial port object
 new_tx_delay_ms = 40
 
