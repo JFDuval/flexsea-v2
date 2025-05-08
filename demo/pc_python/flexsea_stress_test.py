@@ -6,6 +6,7 @@ import sys
 import datetime
 from utilities import Csv, create_directory
 from dataclasses import dataclass
+from matplotlib import pyplot as plt
 
 
 # Add the FlexSEA path to this project
@@ -21,7 +22,7 @@ new_tx_delay_ms = 40
 
 FX_CMD_STRESS_TEST = 2
 RAMP_MAX = 1000
-STRESS_TEST_CYCLES = 10
+STRESS_TEST_CYCLES = 10000
 
 # Variables used in TX and RX to analyze a loop back
 start_time = 0
@@ -107,6 +108,33 @@ def gen_stress_test_payload(packet_number, ramp_value):
     return payload_string
 
 
+def plot_results():
+    plt.figure(figsize=(16, 10))
+    # Clear old data, print latest buffer
+    plt.clf()
+
+    # Top plot: display according to time
+    # plt.subplot(2, 1, 1)
+    plt.plot([x.tx_ramp_value for x in stress_test_data], label="TX Ramp values")
+    plt.plot([x.rx_ramp_value for x in stress_test_data], label="RX Ramp values")
+    plt.title('Ramp in and out')
+    plt.xlabel('Time (s)')
+    plt.ylabel('Amplitude (ticks)')
+    plt.legend()
+    plt.draw()
+
+    # # Bottom plot: display according to sample
+    # plt.subplot(2, 1, 2)
+    # plt.plot(dac, label="DAC")
+    # plt.plot(adc, label="ADC")
+    # plt.xlabel('Sample')
+    # plt.ylabel('Amplitude (ticks)')
+    # plt.legend()
+    # plt.draw()
+
+    # plt.savefig(f'logs/{file_timestamp}-Test-{test_num:03d}-cont.png')
+    plt.show(block=True)  # Blocking until closed
+
 # Loopback demo: we create a bytestream, shuffle it around, then decode it
 # No serial port required, no interaction with any other system: pure software loopback
 def flexsea_stress_test_local_loopback():
@@ -155,6 +183,9 @@ def flexsea_stress_test_local_loopback():
 
     print(f'Packets sent: {tx_packet_number + 1}')
     print(f'Packets received: {len(stress_test_data)}')
+
+    plot_results()
+
     print('Done stressing.')
 
 
