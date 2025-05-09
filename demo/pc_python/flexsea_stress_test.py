@@ -111,10 +111,7 @@ def fx_rx_cmd_handler_2_dut(cmd_6bits, rw, buf):
     rx_data = FxStressTestStruct()
     ctypes.memmove(pointer(rx_data), buf[1:], sizeof(rx_data))
     global dut_packet_number, dut_ramp_value
-    dut_packet_number = dut_packet_number + 1
-    dut_ramp_value = dut_ramp_value + 1
-    if dut_ramp_value > RAMP_MAX:
-        dut_ramp_value = 0
+    dut_packet_number, dut_ramp_value = counter_and_ramp(dut_packet_number, dut_ramp_value)
     # Ready to TX
 
 
@@ -153,6 +150,35 @@ def plot_results():
     plt.show(block=True)  # Blocking until closed
 
 
+# Increment and ceil counter and ramp
+def counter_and_ramp(cnt, rmp):
+    cnt = cnt + 1
+    rmp = rmp + 1
+    if rmp > RAMP_MAX:
+        rmp = 0
+    return cnt, rmp
+
+
+# This replicates the embedded system's fx_receive command
+def fx_receive(fx):
+    send_reply = 0
+    cmd_reply = 0
+    if fx.get_circular_buffer_length() > MIN_OVERHEAD:
+        ret_val, cmd_6bits_out, rw_out, buf, buf_len = fx.get_cmd_handler_from_bytestream()
+        if not ret_val:
+            # Call handler:
+            fx.call_cmd_handler(cmd_6bits_out, rw_out, buf)
+            # Reply if requested
+            if (rw_out == fx.rw_dict['CmdRead']) or (rw_out == fx.rw_dict['CmdReadWrite']):
+                reply_cmd = cmd_6bits_out
+                send_reply = 1
+            fx.cleanup()
+    else:
+        fx.cleanup()
+
+    return send_reply, cmd_reply
+
+
 # Loopback demo: we create a bytestream, shuffle it around, then decode it
 # No serial port required, no interaction with any other system: pure software loopback
 def flexsea_stress_test_local_loopback():
@@ -176,17 +202,11 @@ def flexsea_stress_test_local_loopback():
     for i in range(STRESS_TEST_CYCLES):
 
         # PC generates bytestream:
-        pc_packet_number = pc_packet_number + 1
-        pc_ramp_value = pc_ramp_value + 1
-        if pc_ramp_value > RAMP_MAX:
-            pc_ramp_value = 0
+        pc_packet_number, pc_ramp_value = counter_and_ramp(pc_packet_number, pc_ramp_value)
         ret_val, bytestream, bytestream_len = fx_pc.create_bytestream_from_cmd(cmd=FX_CMD_STRESS_TEST,
                                                                                rw="CmdReadWrite",
                                                                                payload_string=gen_stress_test_payload(
                                                                                  pc_packet_number, pc_ramp_value))
-        if ret_val:
-            print("We did not successfully create a bytestream. Quit.")
-            exit()
 
         # Feed bytestream to DUT's circular buffer.
         # This is simulating the Device receiving bytes over a serial interface
@@ -194,22 +214,7 @@ def flexsea_stress_test_local_loopback():
         fx_dut.write_to_circular_buffer(bytestream, bytestream_len)
 
         # At this point our encoded command is in the DUT's circular buffer. Can we decode it?
-        # (this replicates fx_receive())
-        send_reply = 0
-        cmd_reply = 0
-        if fx_dut.get_circular_buffer_length() > MIN_OVERHEAD:
-            ret_val, cmd_6bits_out, rw_out, buf, buf_len = fx_dut.get_cmd_handler_from_bytestream()
-            if not ret_val:
-                # Call handler:
-                fx_dut.call_cmd_handler(cmd_6bits_out, rw_out, buf)
-                # Reply if requested
-                if (rw_out == fx_dut.rw_dict['CmdRead']) or (rw_out == fx_dut.rw_dict['CmdReadWrite']):
-                    reply_cmd = cmd_6bits_out
-                    send_reply = 1
-                rx_time = round(time.time() * 1000) - start_time
-                fx_dut.cleanup()
-        else:
-            fx_dut.cleanup()
+        send_reply, cmd_reply = fx_receive(fx_dut)
 
         # Do we have a reply to send?
         # (this replicates fx_transmit())
@@ -225,14 +230,8 @@ def flexsea_stress_test_local_loopback():
             # This is simulating the PC receiving bytes over a serial interface
             fx_pc.write_to_circular_buffer(bytestream, bytestream_len)
 
-            if fx_pc.get_circular_buffer_length() > MIN_OVERHEAD:
-                ret_val, cmd_6bits_out, rw_out, buf, buf_len = fx_pc.get_cmd_handler_from_bytestream()
-                if not ret_val:
-                    # Call handler:
-                    fx_pc.call_cmd_handler(cmd_6bits_out, rw_out, buf)
-                    fx_dut.cleanup()
-            else:
-                fx_dut.cleanup()
+        # Final step, PC reception
+        fx_receive(fx_pc)
 
     print(f'Packets sent: {pc_packet_number + 1}')
     print(f'Packets received: {len(stress_test_data)}')
