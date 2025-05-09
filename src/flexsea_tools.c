@@ -15,7 +15,7 @@
  You should have received a copy of the GNU General Public License
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************
- [Lead developer] Jean-Francois (JF) Duval, jfduval at jfduvaleng dot com.
+ [Lead developer] Jean-Francois (JF) Duval, jf at jfduvaleng dot com.
  [Origin] Based on Jean-Francois Duval's work at the MIT Media Lab
  Biomechatronics research group <http://biomech.media.mit.edu/> (2013-2015)
  [Contributors to v1] Work maintained and expended by Dephy, Inc. (2015-20xx)

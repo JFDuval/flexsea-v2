@@ -61,6 +61,7 @@ uint8_t fx_encode(uint8_t *payload, uint8_t payload_len,
 				uint8_t max_encoded_payload_len);
 uint8_t fx_decode(circ_buf_t *cb, uint8_t *encoded, uint8_t *encoded_len,
 		uint8_t *decoded, uint8_t *decoded_len);
+uint8_t fx_cleanup(circ_buf_t *cb);
 
 //****************************************************************************
 // Structure(s):

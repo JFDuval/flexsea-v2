@@ -15,7 +15,7 @@
  You should have received a copy of the GNU General Public License
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************
- [Lead developer] Jean-Francois (JF) Duval, jfduval at jfduvaleng dot com.
+ [Lead developer] Jean-Francois (JF) Duval, jf at jfduvaleng dot com.
  [Origin] Based on Jean-Francois Duval's work at the MIT Media Lab
  Biomechatronics research group <http://biomech.media.mit.edu/> (2013-2015)
  [Contributors to v1] Work maintained and expended by Dephy, Inc. (2015-20xx)
@@ -272,6 +272,36 @@ uint8_t fx_decode(circ_buf_t *cb, uint8_t *encoded, uint8_t *encoded_len,
 
 	//We didn't extract what we wanted
 	return 1;
+}
+
+//Anything that it's in the buffer and that's before a header is useless
+//It could be padding, noise, etc. In any case, we don't want that.
+uint8_t fx_cleanup(circ_buf_t *cb)
+{
+	uint16_t latch_byte_cnt = cb->length;
+	uint8_t ret_val = 0, current_byte = 0;
+
+	if(latch_byte_cnt)
+	{
+		//Bytes left in the buffer
+		for(int i = 0; i < latch_byte_cnt; i++)
+		{
+			//Can we find a header?
+			ret_val = circ_buf_peek(cb, &current_byte, i);
+			if(current_byte == HEADER || i == (latch_byte_cnt-1))
+			{
+				//Flush what was before and stop here
+				uint8_t dump = 0;
+				for(int j = 0; j < i; j++)
+				{
+					ret_val = circ_buf_read_byte(cb, &dump);
+				}
+				break;
+			}
+		}
+	}
+
+	return 0;	//Always OK
 }
 
 #ifdef __cplusplus

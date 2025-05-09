@@ -8,7 +8,6 @@ from utilities import Csv, create_directory
 from dataclasses import dataclass
 from matplotlib import pyplot as plt
 
-
 # Add the FlexSEA path to this project
 sys.path.append('../../')
 from flexsea_python import FlexSEAPython
@@ -20,14 +19,18 @@ com_port = 'COM20'
 serial_port = 0  # Holds the serial port object
 new_tx_delay_ms = 40
 
+MIN_OVERHEAD = 4
+
 FX_CMD_STRESS_TEST = 2
 RAMP_MAX = 1000
 STRESS_TEST_CYCLES = 10000
 
 # Variables used in TX and RX to analyze a loop back
 start_time = 0
-tx_packet_number = -1
-tx_ramp_value = -1
+pc_packet_number = -1
+pc_ramp_value = -1
+dut_packet_number = -1
+dut_ramp_value = -1
 tx_timestamp = 0
 
 csv_header = [['TX Timestamp (ms)', 'RX Timestamp (ms)', 'TX Packet Num', 'RX Packet Num', 'TX Ramp Value Num',
@@ -88,17 +91,31 @@ class FxStressTestStruct(Structure):
                 ("ramp_value", c_uint16)]
 
 
-# Custom command handler used by the stress test code
-def fx_rx_cmd_handler_2(cmd_6bits, rw, buf):
+# Custom command handler used by the stress test code - PC side
+def fx_rx_cmd_handler_2_pc(cmd_6bits, rw, buf):
+    # print(f'PC RX cmd handler()')
     rx_data = FxStressTestStruct()
     ctypes.memmove(pointer(rx_data), buf[1:], sizeof(rx_data))
     global stress_test_data
-    global tx_packet_number, tx_ramp_value, tx_timestamp, start_time
+    global pc_packet_number, pc_ramp_value, tx_timestamp, start_time
 
     rx_timestamp = round(time.time() * 1000) - start_time
     stress_test_data.append(StressTestData(tx_timestamp=tx_timestamp, rx_timestamp=rx_timestamp,
-                                           tx_packet_num=tx_packet_number, rx_packet_num=rx_data.packet_number,
-                                           tx_ramp_value=tx_ramp_value, rx_ramp_value=rx_data.ramp_value))
+                                           tx_packet_num=pc_packet_number, rx_packet_num=rx_data.packet_number,
+                                           tx_ramp_value=pc_ramp_value, rx_ramp_value=rx_data.ramp_value))
+
+
+# Custom command handler used by the stress test code - DUT side
+def fx_rx_cmd_handler_2_dut(cmd_6bits, rw, buf):
+    # print(f'DUT RX cmd handler()')
+    rx_data = FxStressTestStruct()
+    ctypes.memmove(pointer(rx_data), buf[1:], sizeof(rx_data))
+    global dut_packet_number, dut_ramp_value
+    dut_packet_number = dut_packet_number + 1
+    dut_ramp_value = dut_ramp_value + 1
+    if dut_ramp_value > RAMP_MAX:
+        dut_ramp_value = 0
+    # Ready to TX
 
 
 # We create and serialize the test payload
@@ -135,6 +152,7 @@ def plot_results():
     # plt.savefig(f'logs/{file_timestamp}-Test-{test_num:03d}-cont.png')
     plt.show(block=True)  # Blocking until closed
 
+
 # Loopback demo: we create a bytestream, shuffle it around, then decode it
 # No serial port required, no interaction with any other system: pure software loopback
 def flexsea_stress_test_local_loopback():
@@ -143,45 +161,80 @@ def flexsea_stress_test_local_loopback():
     print('Local Loopback - No external interaction\n')
 
     # Initialize FlexSEA comm
-    fx = FlexSEAPython(dll_filename)
+    fx_pc = FlexSEAPython(dll_filename)
+    fx_dut = FlexSEAPython(dll_filename)
 
     # Prepare for reception:
-    fx.register_cmd_handler(FX_CMD_STRESS_TEST, fx_rx_cmd_handler_2)
+    fx_pc.register_cmd_handler(FX_CMD_STRESS_TEST, fx_rx_cmd_handler_2_pc)
+    fx_dut.register_cmd_handler(FX_CMD_STRESS_TEST, fx_rx_cmd_handler_2_dut)
 
-    global tx_packet_number, tx_ramp_value, tx_timestamp, start_time
-    tx_packet_number = -1
-    tx_ramp_value = -1
+    global pc_packet_number, pc_ramp_value, tx_timestamp, start_time
+    pc_packet_number = -1
+    pc_ramp_value = -1
     start_time = round(time.time() * 1000)
 
     for i in range(STRESS_TEST_CYCLES):
 
-        # Generate bytestream:
-        tx_packet_number = tx_packet_number + 1
-        tx_ramp_value = tx_ramp_value + 1
-        if tx_ramp_value > RAMP_MAX:
-            tx_ramp_value = 0
-        ret_val, bytestream, bytestream_len = fx.create_bytestream_from_cmd(cmd=FX_CMD_STRESS_TEST, rw="CmdReadWrite",
-                                                                            payload_string=gen_stress_test_payload(
-                                                                                tx_packet_number, tx_ramp_value))
+        # PC generates bytestream:
+        pc_packet_number = pc_packet_number + 1
+        pc_ramp_value = pc_ramp_value + 1
+        if pc_ramp_value > RAMP_MAX:
+            pc_ramp_value = 0
+        ret_val, bytestream, bytestream_len = fx_pc.create_bytestream_from_cmd(cmd=FX_CMD_STRESS_TEST,
+                                                                               rw="CmdReadWrite",
+                                                                               payload_string=gen_stress_test_payload(
+                                                                                 pc_packet_number, pc_ramp_value))
         if ret_val:
             print("We did not successfully create a bytestream. Quit.")
             exit()
 
-        # Feed bytestream to circular buffer
+        # Feed bytestream to DUT's circular buffer.
+        # This is simulating the Device receiving bytes over a serial interface
         tx_timestamp = round(time.time() * 1000) - start_time
-        fx.write_to_circular_buffer(bytestream, bytestream_len)
+        fx_dut.write_to_circular_buffer(bytestream, bytestream_len)
 
-        # At this point our encoded command is in the circular buffer. Can we decode it?
-        ret_val, cmd_6bits_out, rw_out, buf, buf_len = fx.get_cmd_handler_from_bytestream()
-        if ret_val:
-            print("We did not successfully get a command handler. Quit.")
-            exit()
+        # At this point our encoded command is in the DUT's circular buffer. Can we decode it?
+        # (this replicates fx_receive())
+        send_reply = 0
+        cmd_reply = 0
+        if fx_dut.get_circular_buffer_length() > MIN_OVERHEAD:
+            ret_val, cmd_6bits_out, rw_out, buf, buf_len = fx_dut.get_cmd_handler_from_bytestream()
+            if not ret_val:
+                # Call handler:
+                fx_dut.call_cmd_handler(cmd_6bits_out, rw_out, buf)
+                # Reply if requested
+                if (rw_out == fx_dut.rw_dict['CmdRead']) or (rw_out == fx_dut.rw_dict['CmdReadWrite']):
+                    reply_cmd = cmd_6bits_out
+                    send_reply = 1
+                rx_time = round(time.time() * 1000) - start_time
+                fx_dut.cleanup()
+        else:
+            fx_dut.cleanup()
 
-        # Call handler:
-        fx.call_cmd_handler(cmd_6bits_out, rw_out, buf)
-        rx_time = round(time.time() * 1000) - start_time
+        # Do we have a reply to send?
+        # (this replicates fx_transmit())
+        if send_reply:
+            if cmd_reply == FX_CMD_STRESS_TEST:
+                ret_val, bytestream, bytestream_len = fx_dut.create_bytestream_from_cmd(cmd=FX_CMD_STRESS_TEST,
+                                                                                        rw="CmdWrite",
+                                                                                        payload_string=
+                                                                                        gen_stress_test_payload(
+                                                                                          pc_packet_number,
+                                                                                          pc_ramp_value))
+            # Feed bytestream to PC's circular buffer.
+            # This is simulating the PC receiving bytes over a serial interface
+            fx_pc.write_to_circular_buffer(bytestream, bytestream_len)
 
-    print(f'Packets sent: {tx_packet_number + 1}')
+            if fx_pc.get_circular_buffer_length() > MIN_OVERHEAD:
+                ret_val, cmd_6bits_out, rw_out, buf, buf_len = fx_pc.get_cmd_handler_from_bytestream()
+                if not ret_val:
+                    # Call handler:
+                    fx_pc.call_cmd_handler(cmd_6bits_out, rw_out, buf)
+                    fx_dut.cleanup()
+            else:
+                fx_dut.cleanup()
+
+    print(f'Packets sent: {pc_packet_number + 1}')
     print(f'Packets received: {len(stress_test_data)}')
 
     plot_results()

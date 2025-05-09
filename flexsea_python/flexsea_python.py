@@ -135,3 +135,6 @@ class FlexSEAPython:
         else:
             # Call without popping
             my_cmd(cmd_6bits, rw, buf)
+
+    def cleanup(self):
+        self.fx.fx_cleanup(byref(self.cb))
