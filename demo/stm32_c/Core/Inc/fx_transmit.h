@@ -27,11 +27,19 @@ typedef struct DemoStructure
 
 }__attribute__((__packed__))DemoStructure;
 
+typedef struct StressTestStructure
+{
+	int32_t packet_number;
+	int16_t ramp_value;
+
+}__attribute__((__packed__))StressTestStructure;
+
 //****************************************************************************
 // Public Function Prototype(s):
 //****************************************************************************
 
 uint8_t fx_transmit(uint8_t send_reply, uint8_t cmd_reply);
+void fx_init_stress_test(void);
 
 //****************************************************************************
 // Shared variable(s)

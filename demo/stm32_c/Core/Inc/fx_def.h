@@ -12,7 +12,8 @@
 //****************************************************************************
 
 //Define your command codes here:
-#define FX_CMD_DEMO		1
+#define FX_CMD_DEMO					1
+#define FX_CMD_STRESS_TEST			2
 
 //****************************************************************************
 // Public Function Prototype(s):

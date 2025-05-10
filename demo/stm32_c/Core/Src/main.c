@@ -132,6 +132,7 @@ int main(void)
   HAL_UART_Receive_IT(&huart2, &pc_rx_data, 1);
 
   /* USER CODE END 2 */
+  fx_init_stress_test();
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */

@@ -4,6 +4,7 @@
 
 #include <fx_receive.h>
 #include "main.h"
+#include "circ_buf.h"
 
 //****************************************************************************
 // Variable(s)
@@ -22,7 +23,8 @@
 //Register all your reception handlers here
 uint8_t fx_register_rx_cmd_handlers(void)
 {
-	fx_register_rx_cmd_handler(1, &fx_rx_cmd_demo);
+	fx_register_rx_cmd_handler(FX_CMD_DEMO, &fx_rx_cmd_demo);
+	fx_register_rx_cmd_handler(FX_CMD_STRESS_TEST, &fx_rx_cmd_stress_test);
 
 	return FX_SUCCESS;
 }
@@ -37,11 +39,13 @@ uint8_t fx_receive(uint8_t *send_reply, uint8_t *reply_cmd)
 	*send_reply = 0;
 
 	//Receive commands
-	if(new_bytes)
+	if(cb.length > MIN_OVERHEAD)
 	{
 		//At this point our encoded command is in the circular buffer
 		ret_val = fx_get_cmd_handler_from_bytestream(&cb, &cmd_6bits_out, &rw_out,
 				buf, &buf_len);
+
+		new_bytes -= buf_len; //ToDo this is probably useless
 
 		//Call handler
 		if(!ret_val)
@@ -56,9 +60,26 @@ uint8_t fx_receive(uint8_t *send_reply, uint8_t *reply_cmd)
 					*reply_cmd = cmd_6bits_out;
 					*send_reply = 1;
 				}
+
+				//Proceed with clean-up procedure
+				//flush_useless_bytes();
+				//cleanup_flag = 1;
+				fx_cleanup(&cb);
 			}
 		}
 	}
+	else
+	{
+		//flush_useless_bytes();
+		fx_cleanup(&cb);
+	}
+
+	/*
+	if(cleanup_flag)
+	{
+		cleanup_flag = 0;
+	}
+	*/
 
 	return FX_SUCCESS;	//Always true
 }
@@ -115,6 +136,27 @@ uint8_t fx_rx_cmd_demo(uint8_t cmd_6bits, ReadWrite rw, uint8_t *buf,
 			//Problem
 			return FX_PROBLEM;
 		}
+	}
+	else
+	{
+		//Problem
+		return FX_PROBLEM;
+	}
+}
+
+//FlexSEA Stress Test Command
+uint8_t fx_rx_cmd_stress_test(uint8_t cmd_6bits, ReadWrite rw, uint8_t *buf,
+		uint8_t len)
+{
+	//We check a few parameters
+	if((cmd_6bits == FX_CMD_STRESS_TEST) && (rw == CmdReadWrite) && (len >= 1) &&
+			(cmd_6bits == CMD_GET_6BITS(buf[CMD_CODE_INDEX])))
+	{
+		//Valid
+
+		//Decode serial data
+
+		return FX_SUCCESS;
 	}
 	else
 	{
