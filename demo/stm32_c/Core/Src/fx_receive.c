@@ -158,6 +158,19 @@ uint8_t fx_rx_cmd_stress_test(uint8_t cmd_6bits, ReadWrite rw, uint8_t *buf,
 
 		return FX_SUCCESS;
 	}
+	else if((cmd_6bits == FX_CMD_STRESS_TEST) && (rw == CmdWrite) && (len >= 1) &&
+			(cmd_6bits == CMD_GET_6BITS(buf[CMD_CODE_INDEX])))
+	{
+		uint8_t reset = 0;
+		reset = buf[7];
+		if(reset)
+		{
+			//Reset counters, ready for a new stress test
+			fx_init_stress_test();
+		}
+
+		return FX_SUCCESS;
+	}
 	else
 	{
 		//Problem

@@ -17,13 +17,13 @@ from flexsea_tools import *
 dll_filename = '../../projects/eclipse_pc/DynamicLib/libflexsea-v2.dll'
 com_port = 'COM25'
 serial_port = 0  # Holds the serial port object
-new_tx_delay_ms = 500
+new_tx_delay_ms = 10  # 10 ms = 100 Hz
 
 MIN_OVERHEAD = 4
 
 FX_CMD_STRESS_TEST = 2
 RAMP_MAX = 1000
-STRESS_TEST_CYCLES = 10
+STRESS_TEST_CYCLES = 250000
 
 # Variables used in TX and RX to analyze a loop back
 start_time = 0
@@ -88,7 +88,8 @@ def serial_write(bytestream):
 class FxStressTestStruct(Structure):
     _pack_ = 1
     _fields_ = [("packet_number", c_int32),
-                ("ramp_value", c_int16)]
+                ("ramp_value", c_int16),
+                ("reset", c_uint8)]
 
 
 # Custom command handler used by the stress test code - PC side
@@ -116,8 +117,8 @@ def fx_rx_cmd_handler_2_dut(cmd_6bits, rw, buf):
 
 
 # We create and serialize the test payload
-def gen_stress_test_payload(packet_number, ramp_value):
-    payload = FxStressTestStruct(packet_number=packet_number, ramp_value=ramp_value)
+def gen_stress_test_payload(packet_number, ramp_value, reset=0):
+    payload = FxStressTestStruct(packet_number=packet_number, ramp_value=ramp_value, reset=reset)
     payload_string = bytes(payload)
     return payload_string
 
@@ -132,7 +133,7 @@ def plot_results():
     plt.plot([x.tx_ramp_value for x in stress_test_data], label="TX Ramp values")
     plt.plot([x.rx_ramp_value for x in stress_test_data], label="RX Ramp values")
     plt.title('Ramp in and out')
-    plt.xlabel('Time (s)')
+    plt.xlabel('Cycle')
     plt.ylabel('Amplitude (ticks)')
     plt.legend()
     plt.draw()
@@ -246,7 +247,7 @@ def flexsea_stress_test_local_loopback():
 def flexsea_stress_test_serial():
 
     print('Stress test code - Python project with FlexSEA v2.0 DLL')
-    print('Serial TX - Connect a Nucleo first!\n')
+    print(f'This test will take approximately {STRESS_TEST_CYCLES * new_tx_delay_ms / 1000:0.2f} s to run.\n')
 
     # Initialize FlexSEA comm
     fx = FlexSEAPython(dll_filename)
@@ -269,6 +270,14 @@ def flexsea_stress_test_serial():
     serial_port.reset_input_buffer()
     serial_port.reset_output_buffer()
 
+    # Reset embedded counters
+    ret_val, bytestream, bytestream_len = fx.create_bytestream_from_cmd(cmd=FX_CMD_STRESS_TEST,
+                                                                        rw="CmdWrite",
+                                                                        payload_string=gen_stress_test_payload(
+                                                                            0, 0, reset=1))
+    serial_write(bytestream)
+    time.sleep(0.01)
+
     for i in range(STRESS_TEST_CYCLES):
 
         # PC generates bytestream:
@@ -281,11 +290,11 @@ def flexsea_stress_test_serial():
         # Send bytestream to serial port
         serial_write(bytestream)
         current_time = round(time.time() * 1000)
-        send_new_tx_cmd_timestamp = current_time
+        send_new_tx_cmd_timestamp = current_time + new_tx_delay_ms
 
         # Send a packet at periodic intervals, listen for a reply
         try:
-            while current_time < (send_new_tx_cmd_timestamp + new_tx_delay_ms):
+            while current_time < send_new_tx_cmd_timestamp:
 
                 current_time = round(time.time() * 1000)
 
@@ -303,13 +312,14 @@ def flexsea_stress_test_serial():
                 # Final step, PC reception
                 fx_receive(fx)
 
-                time.sleep(0.001)
-
         except KeyboardInterrupt:
-            print('Interrupted! End or demo code.')
+            print('Interrupted! End of stress test code.')
 
     print(f'Packets sent: {pc_packet_number + 1}')
     print(f'Packets received: {len(stress_test_data)}')
+    end_time = round(time.time() * 1000)
+    test_time_s = (end_time - start_time) / 1000
+    print(f'Test time: {test_time_s:0.2f} s')
 
     plot_results()
 

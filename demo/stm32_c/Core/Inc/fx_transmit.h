@@ -31,6 +31,7 @@ typedef struct StressTestStructure
 {
 	int32_t packet_number;
 	int16_t ramp_value;
+	uint8_t reset;
 
 }__attribute__((__packed__))StressTestStructure;
 

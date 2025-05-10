@@ -27,7 +27,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <stdint.h>
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -55,9 +55,10 @@ void SVC_Handler(void);
 void DebugMon_Handler(void);
 void PendSV_Handler(void);
 void SysTick_Handler(void);
+void TIM2_IRQHandler(void);
 void USART2_IRQHandler(void);
 /* USER CODE BEGIN EFP */
-
+extern volatile uint8_t fsm_timer_flag;
 /* USER CODE END EFP */
 
 #ifdef __cplusplus

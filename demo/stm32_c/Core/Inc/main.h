@@ -75,6 +75,9 @@ void Error_Handler(void);
 
 /* USER CODE BEGIN Private defines */
 
+#define LED_Write(x)		HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, x);
+#define LED_Toggle()		HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+
 extern UART_HandleTypeDef huart2;
 extern volatile uint8_t new_bytes;
 extern circ_buf_t cb;
