@@ -15,15 +15,15 @@ from flexsea_tools import *
 # Note: with PyCharm you must add this folder and mark is as a Sources Folder to avoid an Unresolved Reference issue
 
 dll_filename = '../../projects/eclipse_pc/DynamicLib/libflexsea-v2.dll'
-com_port = 'COM25'
+com_port = 'COM9'
 serial_port = 0  # Holds the serial port object
-new_tx_delay_ms = 10  # 10 ms = 100 Hz
+new_tx_delay_ms = 20  # 10 ms = 100 Hz
 
 MIN_OVERHEAD = 4
 
 FX_CMD_STRESS_TEST = 2
 RAMP_MAX = 1000
-STRESS_TEST_CYCLES = 250000
+STRESS_TEST_CYCLES = 10000
 
 # Variables used in TX and RX to analyze a loop back
 start_time = 0
@@ -76,9 +76,9 @@ def serial_open(com_port_name):
 
 
 # Write to a previously opened serial port
-def serial_write(bytestream):
+def serial_write(bytestream, bytestream_length):
     if serial_port:
-        serial_port.write(bytestream)
+        serial_port.write(bytestream[0:bytestream_length])
     else:
         print("No serial port object, can't write!")
 
@@ -130,8 +130,9 @@ def plot_results():
 
     # Top plot: display according to time
     # plt.subplot(2, 1, 1)
-    plt.plot([x.tx_ramp_value for x in stress_test_data], label="TX Ramp values")
-    plt.plot([x.rx_ramp_value for x in stress_test_data], label="RX Ramp values")
+    plot_x = [x.tx_packet_num for x in stress_test_data]
+    plt.plot(plot_x, [x.tx_ramp_value for x in stress_test_data], label="TX Ramp values")
+    plt.plot(plot_x, [x.rx_ramp_value for x in stress_test_data], label="RX Ramp values")
     plt.title('Ramp in and out')
     plt.xlabel('Cycle')
     plt.ylabel('Amplitude (ticks)')
@@ -149,6 +150,14 @@ def plot_results():
 
     # plt.savefig(f'logs/{file_timestamp}-Test-{test_num:03d}-cont.png')
     plt.show(block=True)  # Blocking until closed
+
+
+def save_csv_results():
+    for cycle in stress_test_data:
+        # We add a line to the CSV file:
+        csv_line = [[cycle.tx_timestamp, cycle.rx_timestamp, cycle.tx_packet_num, cycle.rx_packet_num,
+                     cycle.tx_ramp_value, cycle.rx_ramp_value]]
+        csv.write(csv_line)
 
 
 # Increment and ceil counter and ramp
@@ -265,6 +274,7 @@ def flexsea_stress_test_serial():
     pc_packet_number = -1
     pc_ramp_value = -1
     start_time = round(time.time() * 1000)
+    bytes_received = 0
 
     # Flush any old RX and TX bytes
     serial_port.reset_input_buffer()
@@ -275,7 +285,7 @@ def flexsea_stress_test_serial():
                                                                         rw="CmdWrite",
                                                                         payload_string=gen_stress_test_payload(
                                                                             0, 0, reset=1))
-    serial_write(bytestream)
+    serial_write(bytestream, bytestream_len)
     time.sleep(0.01)
 
     for i in range(STRESS_TEST_CYCLES):
@@ -288,8 +298,9 @@ def flexsea_stress_test_serial():
                                                                               pc_packet_number, pc_ramp_value))
 
         # Send bytestream to serial port
-        serial_write(bytestream)
+        serial_write(bytestream, bytestream_len)
         current_time = round(time.time() * 1000)
+        tx_timestamp = current_time - start_time
         send_new_tx_cmd_timestamp = current_time + new_tx_delay_ms
 
         # Send a packet at periodic intervals, listen for a reply
@@ -305,6 +316,7 @@ def flexsea_stress_test_serial():
                     for i in range(bytes_to_read):
                         new_rx_byte = serial_port.read(1)
                         ret_val = fx.write_to_circular_buffer(new_rx_byte[0], 1)
+                        bytes_received = bytes_received + 1
                         if ret_val:
                             print("circ_buf_write_byte() problem!")
                             exit()
@@ -315,13 +327,38 @@ def flexsea_stress_test_serial():
         except KeyboardInterrupt:
             print('Interrupted! End of stress test code.')
 
+    # Grab last bytes:
+    print(f'Bytes received during TX: {bytes_received}')
+    current_time = round(time.time() * 1000)
+    final_time = current_time + 1500
+    while current_time < final_time:
+
+        current_time = round(time.time() * 1000)
+
+        # Feed any received bytes into the circular buffer
+        bytes_to_read = serial_port.in_waiting
+        if bytes_to_read > 0:
+            # print(f'Bytes to read: {bytes_to_read}.')
+            for i in range(bytes_to_read):
+                new_rx_byte = serial_port.read(1)
+                ret_val = fx.write_to_circular_buffer(new_rx_byte[0], 1)
+                bytes_received = bytes_received + 1
+                if ret_val:
+                    print("circ_buf_write_byte() problem!")
+                    exit()
+
+        # Final step, PC reception
+        fx_receive(fx)
+
     print(f'Packets sent: {pc_packet_number + 1}')
-    print(f'Packets received: {len(stress_test_data)}')
+    print(f'Packets received: {len(stress_test_data)} (or {stress_test_data[-1].rx_packet_num})')
     end_time = round(time.time() * 1000)
     test_time_s = (end_time - start_time) / 1000
     print(f'Test time: {test_time_s:0.2f} s')
+    print(f'Bytes received: {bytes_received} ({bytes_received/len(stress_test_data)} / packet)')
 
     plot_results()
+    save_csv_results()
 
 
 if __name__ == "__main__":
