@@ -173,11 +173,13 @@ def counter_and_ramp(cnt, rmp):
 def fx_receive(fx):
     send_reply = 0
     cmd_reply = 0
+    new_data = 0
     if fx.get_circular_buffer_length() > MIN_OVERHEAD:
         ret_val, cmd_6bits_out, rw_out, buf, buf_len = fx.get_cmd_handler_from_bytestream()
         if not ret_val:
             # Call handler:
             fx.call_cmd_handler(cmd_6bits_out, rw_out, buf)
+            new_data = 1
             # Reply if requested
             if (rw_out == fx.rw_dict['CmdRead']) or (rw_out == fx.rw_dict['CmdReadWrite']):
                 reply_cmd = cmd_6bits_out
@@ -186,7 +188,7 @@ def fx_receive(fx):
     else:
         fx.cleanup()
 
-    return send_reply, cmd_reply
+    return send_reply, cmd_reply, new_data
 
 
 # Loopback demo: we create a bytestream, shuffle it around, then decode it
