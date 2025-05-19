@@ -37,12 +37,17 @@ To test the stack on your PC use a project from the 'demo' folder. That folder a
 
 The specific versions are likely not critical, as long as they are current. What is listed below is simply what I happened to use during the development of this project.
 
-- C IDE: Eclipse IDE for C/C++ Developers, Version 2024-06 (4.32.0)
-- C compiler: GCC, You can get a copy packaged with Eclipse, from https://www.msys2.org/, or from any other provider.
-  - If you use MSYS2, follow their instruction, and then call `pacman -S --needed base-devel mingw-w64-x86_64-toolchain`. This will populate the mingw64/bin folder.
+- C IDE: Eclipse IDE for C/C++ Developers
+- C compiler: GCC. I obtained it from https://www.msys2.org/.
+  - If you use MSYS2, follow their instruction first.
+  - Once the base installer has completed you need to run a few commands to get everything you need. I've been following [this guide](C:\msys64\mingw64\bin).
+    - From the Start menu, open MSYS2 MING64
+	- `pacman -Syu`
+	- `pacman -Syu base-devel`
+	- `pacman -Syu mingw-w64-x86_64-toolchain`
   - Add the bin folder (ex.: C:\msys64\mingw64\bin) to your path. Reboot as needed.
   - Eclipse should now detect your compiler.
-- Python IDE: PyCharm 2022.2.4 Community Edition
+- Python IDE: PyCharm 2022.2.4 Community Edition (or newer)
 - Python interpreter: Python 3.9 and 3.11 have been used with success
   - Packages to install: 'pyserial'
 - Embedded C IDE: STM32CubeIDE with the STM32G4 source package
@@ -57,9 +62,9 @@ The specific versions are likely not critical, as long as they are current. What
 
 ### How to use the Eclipse PC C project
 
-I did not write down good notes when setting this up. If you go through the install, please contribute to this section!
-
-- Workspace in root folder
+- The first time you launch the installer, set the Workspace in the root folder (flexsea-v2/)
+- Import projects... General > Existing Projkects into Workspace
+- Select flexsea-v2\projects\eclipse_pc
 - Active configurations are saved, but will need to be selected. The project has three configurations:
   - Test
   - StaticLib
