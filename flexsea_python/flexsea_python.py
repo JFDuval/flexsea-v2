@@ -1,5 +1,8 @@
 import struct
 from ctypes import *
+import serial
+from serial import SerialException
+import time
 
 # The variables found before the FlexSEAPython class need to match the C code.
 # Only edit if you have changed the code used to generate the DLL!
@@ -23,6 +26,7 @@ class CircularBuffer(Structure):
 class FlexSEAPython:
 
     def __init__(self, dll_filename):
+        self.serial_port  = 0 # Holds the serial port object
         self.cb = CircularBuffer()
         self.fx = cdll.LoadLibrary(dll_filename)
         ret_val = self.fx.fx_rx_cmd_init()
@@ -37,6 +41,70 @@ class FlexSEAPython:
             "CmdWrite": 2,
             "CmdReadWrite": 3,
         }
+
+    def serial_open(self, com_port_name, baudrate=115200):
+        """
+        Open serial port
+        :param com_port_name: 'COM5', 'dev/ttyUSB0'
+        :param baudrate: communication speed (default = 115200)
+        :return: 0 if success, 1 otherwise
+        """
+        try:
+            self.serial_port = serial.Serial(com_port_name, baudrate=baudrate)
+        except SerialException:
+            print(f"Could not open {com_port_name}! Either it is already open, either it doesn't exist.")
+
+        if self.serial_port:
+            print(f'Successfully opened {com_port_name}.')
+            # Flush any old RX and TX bytes
+            self.serial_port.reset_input_buffer()
+            self.serial_port.reset_output_buffer()
+            return 0
+        else:
+            return 1
+
+    def serial_write(self, bytestream, bytestream_length):
+        """
+        Write to a previously opened serial port
+        :param bytestream: data to write
+        :param bytestream_length: length of data to write
+        :return:
+        """
+        if self.serial_port:
+            self.serial_port.write(bytestream[0:bytestream_length])
+            while self.serial_port.out_waiting: # ToDo add timeout!
+                time.sleep(0.01)
+        else:
+            print("No serial port object, can't write!")
+
+    def serial_read_byte(self):
+        """
+        Read a byte from the serial port
+        :return:
+        """
+        b = 0
+        if self.serial_port:
+            b = self.serial_port.read(1)
+        return b
+
+    def serial_bytes_available(self):
+        """
+        Check for available bytes (rx)
+        :return:
+        """
+        b = 0
+        if self.serial_port:
+            b = self.serial_port.in_waiting
+        return b
+
+    def serial_reset_buffers(self):
+        """
+        Reset (empty) the RX and TX buffers
+        :return:
+        """
+        if self.serial_port:
+            self.serial_port.reset_input_buffer()
+            self.serial_port.reset_output_buffer()
 
     def create_bytestream_from_cmd(self, cmd, rw, payload_string):
         """
