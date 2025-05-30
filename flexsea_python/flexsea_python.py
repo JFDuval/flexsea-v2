@@ -1,4 +1,5 @@
 import struct
+import ctypes
 from ctypes import *
 import serial
 from serial import SerialException
@@ -10,6 +11,8 @@ import time
 MAX_ENCODED_PAYLOAD_BYTES = 200
 MIN_CMD_CODE = 0
 MAX_CMD_CODE = 63
+CMD_WHO_AM_I = 0
+MIN_OVERHEAD = 4
 
 # This structure holds all the info about a given circular buffer
 # This needs to match circ_buf.h!
@@ -21,6 +24,25 @@ class CircularBuffer(Structure):
                 ("read_index", c_uint16),
                 ("write_index", c_uint16),
                 ("length", c_uint16)]
+
+
+class WhoAmIStruct(Structure):
+    _pack_ = 1
+    _fields_ = [("uuid", c_uint32 * 3),
+                ("serial_number", c_uint32),
+                ("board", c_int8 * 12)]
+
+
+# Who am I?
+def fx_rx_cmd_handler_0(cmd_6bits, rw, buf):
+    rx_data = WhoAmIStruct()
+    ctypes.memmove(pointer(rx_data), buf[1:], sizeof(rx_data))
+    uuid = rx_data.uuid[0] * 2**64 + rx_data.uuid[1] * 2**32 + rx_data.uuid[2]  # Rebuild UUID C-style
+
+    board_str_as_bytes = [chr(rx_data.board[i]) for i in range(len(rx_data.board))]
+    board = ''.join(board_str_as_bytes)
+    board = board.split('\x00', 1)[0]   # Remove trailing zeros
+    print(f'Who am I? UUID = 0x{uuid:02X}, Serial number = {rx_data.serial_number}, Board = {board}')
 
 
 class FlexSEAPython:
@@ -204,5 +226,81 @@ class FlexSEAPython:
             # Call without popping
             my_cmd(cmd_6bits, rw, buf)
 
+    def grab_new_bytes(self):
+        """
+        Feed any received bytes into the circular buffer
+        :return:
+        """
+        bytes_to_read = self.serial_bytes_available()
+        if bytes_to_read > 0:
+            # print(f'Bytes to read: {bytes_to_read}.')
+            for i in range(bytes_to_read):
+                new_rx_byte = self.serial_read_byte()
+                ret_val = self.write_to_circular_buffer(new_rx_byte[0], 1)
+                if ret_val:
+                    print("circ_buf_write_byte() problem!")
+                    exit()
+
+    def receive(self):
+        """
+        This replicates the embedded system's fx_receive command
+        :return:
+        """
+        send_reply = 0
+        cmd_reply = 0
+        new_data = 0
+        if self.get_circular_buffer_length() > MIN_OVERHEAD:
+            ret_val, cmd_6bits_out, rw_out, buf, buf_len = self.get_cmd_handler_from_bytestream()
+            if not ret_val:
+                # Call handler:
+                self.call_cmd_handler(cmd_6bits_out, rw_out, buf)
+                new_data = 1
+                # Reply if requested
+                if (rw_out == self.rw_dict['CmdRead']) or (rw_out == self.rw_dict['CmdReadWrite']):
+                    reply_cmd = cmd_6bits_out
+                    send_reply = 1
+                self.cleanup()
+        else:
+            self.cleanup()
+
+        return send_reply, cmd_reply, new_data
+
+    def rw_one_packet(self, bytestream, bytestream_len, start_time, callback=None, comm_wait=100):
+        # Send bytestream to serial port
+        self.serial_write(bytestream, bytestream_len)
+        current_time = round(time.time() * 1000)
+        send_new_tx_cmd_timestamp = current_time + comm_wait
+
+        # Send a packet at periodic intervals, listen for a reply
+        try:
+            while current_time < send_new_tx_cmd_timestamp:
+
+                current_time = round(time.time() * 1000)
+
+                # Feed any received bytes into the circular buffer
+                self.grab_new_bytes()
+                # Look for a packet in the new bytes
+                send_reply, cmd_reply, new_data = self.receive()
+
+                # We print & save after both new data has been received:
+                if new_data:
+                    timestamp = round(time.time() * 1000) - start_time
+                    if callback:
+                        callback(timestamp)
+
+        except KeyboardInterrupt:
+            print('Interrupted! End of rw_one_flexsea_packet routine.')
+            exit()
+
     def cleanup(self):
         self.fx.fx_cleanup(byref(self.cb))
+
+    def who_am_i(self):
+        # Prepare for reception:
+        self.register_cmd_handler(CMD_WHO_AM_I, fx_rx_cmd_handler_0)
+        start_time = round(time.time() * 1000)
+
+        # Who am I?
+        ret_val, bytestream, bytestream_len = self.create_bytestream_from_cmd(cmd=CMD_WHO_AM_I, rw="CmdReadWrite",
+                                                                            payload_string='')
+        self.rw_one_packet(bytestream, bytestream_len, start_time, None)
