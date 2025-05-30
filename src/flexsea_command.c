@@ -55,11 +55,14 @@ extern "C" {
 uint8_t (*fx_rx_cmd_handler_ptr[MAX_CMD_CODE])(uint8_t cmd_6bits, ReadWrite rw,
 		uint8_t *buf, uint8_t buf_len);
 
+WhoAmI who_am_i = {.uuid[0] = 0xAA, .uuid[1] = 0xBB, .uuid[2] = 0xCC,
+		.serial_number = 0, .board = "TBD\0"};
+
 //****************************************************************************
 // Private Function Prototype(s):
 //****************************************************************************
 
-__attribute__((weak)) uint8_t fx_register_rx_cmd_handlers(void);
+uint8_t fx_register_rx_cmd_handlers(void);
 static uint8_t fx_rx_cmd_handler_catchall(uint8_t cmd_6bits, ReadWrite rw,
 		uint8_t *buf, uint8_t buf_len);
 
@@ -199,6 +202,18 @@ __attribute__((weak)) uint8_t fx_register_rx_cmd_handlers(void)
 {
 	//Implement in user space, and register your handlers
 	return 0;
+}
+
+//Identification function
+__attribute__((weak)) uint8_t fx_rx_cmd_who_am_i(uint8_t cmd_6bits, ReadWrite rw,
+		uint8_t *buf, uint8_t len)
+{
+	(void)cmd_6bits;
+	(void)rw;
+	(void)buf;
+	(void)len;
+
+	return FX_SUCCESS;
 }
 
 //****************************************************************************

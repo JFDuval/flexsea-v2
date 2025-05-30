@@ -5,7 +5,7 @@ from ctypes import *
 # Only edit if you have changed the code used to generate the DLL!
 
 MAX_ENCODED_PAYLOAD_BYTES = 200
-MIN_CMD_CODE = 1
+MIN_CMD_CODE = 0
 MAX_CMD_CODE = 63
 
 # This structure holds all the info about a given circular buffer

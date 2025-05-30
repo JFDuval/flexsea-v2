@@ -40,7 +40,7 @@ extern "C" {
 //****************************************************************************
 
 //6 bits for command codes, 2 bits for the R/W bits
-#define MIN_CMD_CODE	1	//We use CMD=0 as a way to detect an incorrect cmd
+#define MIN_CMD_CODE	0	//Commands 0 is our WhoAmI, same on all boards
 #define MAX_CMD_CODE	63
 
 typedef enum {
@@ -66,6 +66,13 @@ typedef enum {
 #define CATCHALL_RETURN		255
 #define TEST_CMD_RETURN		127
 
+//Who Am I?
+typedef struct WhoAmI{
+	uint32_t uuid[3];
+	uint32_t serial_number;
+	int8_t board[12];
+}__attribute__((__packed__))WhoAmI;
+
 //****************************************************************************
 // Public Function Prototype(s):
 //****************************************************************************
@@ -87,6 +94,8 @@ uint8_t fx_register_rx_cmd_handler(uint8_t cmd,
 //****************************************************************************
 // Shared variable(s)
 //****************************************************************************
+
+extern WhoAmI who_am_i;
 
 #ifdef __cplusplus
 }
