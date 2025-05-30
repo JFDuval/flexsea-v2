@@ -47,7 +47,8 @@ def fx_rx_cmd_handler_0(cmd_6bits, rw, buf):
 
 class FlexSEAPython:
 
-    def __init__(self, dll_filename):
+    def __init__(self, dll_filename, com_port_name=None):
+        self.com_port_name = com_port_name
         self.serial_port  = 0 # Holds the serial port object
         self.cb = CircularBuffer()
         self.fx = cdll.LoadLibrary(dll_filename)
@@ -63,6 +64,8 @@ class FlexSEAPython:
             "CmdWrite": 2,
             "CmdReadWrite": 3,
         }
+        if self.com_port_name:
+            self.serial_open(self.com_port_name)
 
     def serial_open(self, com_port_name, baudrate=115200):
         """
@@ -84,6 +87,12 @@ class FlexSEAPython:
             return 0
         else:
             return 1
+
+    def valid_serial_port(self):
+        if self.serial_port:
+            return 1
+        else:
+            return 0
 
     def serial_write(self, bytestream, bytestream_length):
         """
