@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from matplotlib import pyplot as plt
 
 # Add the FlexSEA path to this project
-sys.path.append('../../')
+sys.path.append('../../flexsea_python')
 from flexsea_python import FlexSEAPython
 from flexsea_tools import *
 # Note: with PyCharm you must add this folder and mark is as a Sources Folder to avoid an Unresolved Reference issue
@@ -173,10 +173,11 @@ def flexsea_stress_test_local_loopback():
     fx_pc.register_cmd_handler(FX_CMD_STRESS_TEST, fx_rx_cmd_handler_2_pc)
     fx_dut.register_cmd_handler(FX_CMD_STRESS_TEST, fx_rx_cmd_handler_2_dut)
 
-    global pc_packet_number, pc_ramp_value, tx_timestamp, start_time
+    global pc_packet_number, pc_ramp_value, tx_timestamp, start_time, stress_test_data
     pc_packet_number = -1
     pc_ramp_value = -1
     start_time = round(time.time() * 1000)
+    stress_test_data = [] # Start with empty structure
 
     for i in range(STRESS_TEST_CYCLES):
 
@@ -236,11 +237,12 @@ def flexsea_stress_test_serial():
     # Prepare for reception:
     fx.register_cmd_handler(FX_CMD_STRESS_TEST, fx_rx_cmd_handler_2_pc)
 
-    global pc_packet_number, pc_ramp_value, tx_timestamp, start_time
+    global pc_packet_number, pc_ramp_value, tx_timestamp, start_time, stress_test_data
     pc_packet_number = -1
     pc_ramp_value = -1
     start_time = round(time.time() * 1000)
     bytes_received = 0
+    stress_test_data = []  # Start with empty structure
 
     # Reset embedded counters
     ret_val, bytestream, bytestream_len = fx.create_bytestream_from_cmd(cmd=FX_CMD_STRESS_TEST,
