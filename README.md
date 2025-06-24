@@ -60,7 +60,9 @@ The specific versions are likely not critical, as long as they are current. What
 1. Open `unity.c`. If `setUp()` and `tearDown()` are not implemented, add `void setUp(void) {};` & `void tearDown(void) {};` to the file.
 1. Run `tests.c`. If needed, exclude your project's `main()`.
 
-### How to use the Eclipse PC C project
+### How to use the Eclipse PC C project (use this to compile a dynamic library)
+
+#### Using the Eclipse IDE on Windows
 
 - The first time you launch the installer, set the Workspace in the root folder (flexsea-v2/)
 - Import projects... General > Existing Projkects into Workspace
@@ -77,6 +79,32 @@ The specific versions are likely not critical, as long as they are current. What
 - Use the correct Eclipse install for your Mac hardware (Mac silicon is aarch64)
 - Follow the instructions above (import, select configuration, compile)
 - Rename .dll file to have .dylib extension
+- Make sure that the 'dll_filename' variable in your Python script matches your new file name and extension
+
+#### Raspberry Pi - Graphical
+
+- Use the correct Eclipse install for your ARM hardware
+- Follow the instructions above (import, select configuration, compile)
+- Rename .dll file to have .so extension
+- Make sure that the 'dll_filename' variable in your Python script matches your new file name and extension
+
+#### Raspberry Pi - Console/headless
+
+- Compile using this bash script
+
+```
+#!/bin/bash
+set -e
+cd "$(dirname "$0")"
+gcc -Iinc -O3 -Wall -c -fmessage-length=0 -o src/flexsea_command.o src/flexsea_command.c
+gcc -Iinc -O3 -Wall -c -fmessage-length=0 -o src/flexsea_codec.o src/flexsea_codec.c
+gcc -Iinc -O3 -Wall -c -fmessage-length=0 -o src/flexsea_tools.o src/flexsea_tools.c
+gcc -Iinc -O3 -Wall -c -fmessage-length=0 -o src/circ_buf.o src/circ_buf.c
+gcc -Iinc -O3 -Wall -c -fmessage-length=0 -o src/flexsea.o src/flexsea.c
+gcc -shared -o libflexsea-v2_rpi.dylib src/circ_buf.o src/flexsea.o src/flexsea_codec.o src/flexsea_command.o src/flexsea_tools.o
+```
+
+- Rename .dll file to have .so extension
 - Make sure that the 'dll_filename' variable in your Python script matches your new file name and extension
 
 ### How to use FlexSEA with your embedded project
