@@ -101,10 +101,9 @@ gcc -Iinc -O3 -Wall -c -fmessage-length=0 -o src/flexsea_codec.o src/flexsea_cod
 gcc -Iinc -O3 -Wall -c -fmessage-length=0 -o src/flexsea_tools.o src/flexsea_tools.c
 gcc -Iinc -O3 -Wall -c -fmessage-length=0 -o src/circ_buf.o src/circ_buf.c
 gcc -Iinc -O3 -Wall -c -fmessage-length=0 -o src/flexsea.o src/flexsea.c
-gcc -shared -o libflexsea-v2_rpi.dylib src/circ_buf.o src/flexsea.o src/flexsea_codec.o src/flexsea_command.o src/flexsea_tools.o
+gcc -shared -o libflexsea-v2.so src/circ_buf.o src/flexsea.o src/flexsea_codec.o src/flexsea_command.o src/flexsea_tools.o
 ```
 
-- Rename .dll file to have .so extension
 - Make sure that the 'dll_filename' variable in your Python script matches your new file name and extension
 
 ### How to use FlexSEA with your embedded project
