@@ -4,6 +4,7 @@ from ctypes import *
 import serial
 from serial import SerialException
 import time
+import platform
 
 # The variables found before the FlexSEAPython class need to match the C code.
 # Only edit if you have changed the code used to generate the DLL!
@@ -48,6 +49,7 @@ def fx_rx_cmd_handler_0(cmd_6bits, rw, buf):
 class FlexSEAPython:
 
     def __init__(self, dll_filename, com_port_name=None):
+        self.pf = self.identify_platform()
         self.com_port_name = com_port_name
         self.serial_port  = 0 # Holds the serial port object
         self.cb = CircularBuffer()
@@ -313,3 +315,48 @@ class FlexSEAPython:
         ret_val, bytestream, bytestream_len = self.create_bytestream_from_cmd(cmd=CMD_WHO_AM_I, rw="CmdReadWrite",
                                                                             payload_string='')
         self.rw_one_packet(bytestream, bytestream_len, start_time, None)
+
+    @staticmethod
+    def identify_platform():
+        # What computer hardware is this code running on?
+        pf_string = platform.platform()  # This returns a long string with OS and CPU info
+        pf = 'Unknown'
+        if pf_string.find('rpi') != -1:  # Ex: "Linux-6.12.25+rpt-rpi-2712-aarch64-with-glibc2.36"
+            pf = "RPI"
+        elif pf_string.find('Windows') != -1:  # Ex.: "Windows-11-10.0.26100-SP0"
+            pf = "WIN"
+        elif pf_string.find('MacOS') != -1:  # Ex.: "macOS-15.3.2-arm64-arm-64bit"
+            pf = "MAC"
+        else:
+            pf = "LINUX"
+            # By elimination, this is a Linux desktop... but it could be BSD or anything else!
+
+        return pf
+
+    def get_pf(self):
+        # Accessor for the 'pf' variable
+        return self.pf
+
+    @staticmethod
+    def configure_rpi_rs485():
+        # Crude integration of the pi485.py test code
+        try:
+            import gpiod
+        except ImportError:
+            print("Error! 'gpiod' doesn't exist for this platform, or the Python package is missing. Exiting.")
+            return
+
+        # Power Talk Hat pins
+        RS485_1_DE = 9
+        RS485_1_RE = 11
+
+        # Configure as outputs
+        chip = gpiod.Chip('gpiochip4')
+        rs485_1_re = chip.get_line(RS485_1_RE)
+        rs485_1_de = chip.get_line(RS485_1_DE)
+        rs485_1_re.request(consumer="RS485_1_DE", type=gpiod.LINE_REQ_DIR_OUT)
+        rs485_1_de.request(consumer="RS485_1_RE", type=gpiod.LINE_REQ_DIR_OUT)
+
+        # Always TX, always RX:
+        rs485_1_de.set_value(1)
+        rs485_1_re.set_value(0)

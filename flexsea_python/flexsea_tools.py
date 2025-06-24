@@ -1,7 +1,6 @@
 """Data conversion and manipulation tools"""
 
 import struct
-import platform
 
 
 # Converts a byte into an unsigned int, uint8
@@ -98,19 +97,3 @@ def identical_ctype_structs(struct_a, struct_b):
         if att_a != att_b:
             return False
     return True
-
-# What computer hardware is this code running on?
-def identify_platform():
-    pf_string = platform.platform()  # This returns a long string with OS and CPU info
-    pf = 'Unknown'
-    if pf_string.find('rpi') != -1:  # Ex: "Linux-6.12.25+rpt-rpi-2712-aarch64-with-glibc2.36"
-        pf = "RPI"
-    elif pf_string.find('Windows') != -1:  # Ex.: "Windows-11-10.0.26100-SP0"
-        pf = "WIN"
-    elif pf_string.find('MacOS') != -1:  # Ex.: "macOS-15.3.2-arm64-arm-64bit"
-        pf = "MAC"
-    else:
-        pf = "LINUX"
-        # By elimination, this is a Linux desktop... but it could be BSD or anything else!
-
-    return pf
