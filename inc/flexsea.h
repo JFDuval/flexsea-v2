@@ -67,6 +67,16 @@ uint8_t fx_get_cmd_handler_from_bytestream(circ_buf_t *cb,
 // Structure(s):
 //****************************************************************************
 
+//This structure holds all the info about a communication port
+typedef struct CommPort
+{
+	uint8_t id;				//Port identification
+	uint8_t send_reply;		//Do we have a reply to send?
+	uint8_t reply_cmd;		//What is it?
+	circ_buf_t *cb;			//Reception circular buffer
+	uint8_t (*tx_fct_prt) (uint8_t *, uint16_t);	//TX function
+}CommPort;
+
 //****************************************************************************
 // Shared variable(s)
 //****************************************************************************

@@ -70,7 +70,7 @@ typedef enum {
 typedef struct WhoAmI{
 	uint32_t uuid[3];
 	uint32_t serial_number;
-	int8_t board[12];
+	int8_t board[24];
 }__attribute__((__packed__))WhoAmI;
 
 //****************************************************************************

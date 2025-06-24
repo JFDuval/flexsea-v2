@@ -15,7 +15,7 @@ from flexsea_tools import *
 # Note: with PyCharm you must add this folder and mark is as a Sources Folder to avoid an Unresolved Reference issue
 
 dll_filename = '../../projects/eclipse_pc/DynamicLib/libflexsea-v2.dll'
-com_port = 'COM9'
+com_port = 'COM12'
 serial_port = 0  # Holds the serial port object
 new_tx_delay_ms = 20  # 10 ms = 100 Hz
 
@@ -23,7 +23,7 @@ MIN_OVERHEAD = 4
 
 FX_CMD_STRESS_TEST = 2
 RAMP_MAX = 1000
-STRESS_TEST_CYCLES = 10000
+STRESS_TEST_CYCLES = 1000
 
 # Variables used in TX and RX to analyze a loop back
 start_time = 0
