@@ -46,30 +46,15 @@ def fx_rx_cmd_handler_0(cmd_6bits, rw, buf):
     print(f'Who am I? UUID = 0x{uuid:02X}, Serial number = {rx_data.serial_number}, Board = {board}')
 
 
-class FlexSEAPython:
+class FlexSEASerial:
 
-    def __init__(self, dll_filename, com_port_name=None):
-        self.pf = self.identify_platform()
+    def __init__(self, com_port_name=None):
         self.com_port_name = com_port_name
-        self.serial_port  = 0 # Holds the serial port object
-        self.cb = CircularBuffer()
-        self.fx = cdll.LoadLibrary(dll_filename)
-        ret_val = self.fx.fx_rx_cmd_init()
-        if ret_val:
-            print("Problem initializing the FlexSEA stack - quit.")
-            exit()
-        self.cmd_handler_dict = {}
-        self.init_cmd_handler()
-        self.rw_dict = {
-            "CmdInvalid": 0,
-            "CmdRead": 1,
-            "CmdWrite": 2,
-            "CmdReadWrite": 3,
-        }
+        self.serial_port = 0 # Holds the serial port object
         if self.com_port_name:
-            self.serial_open(self.com_port_name)
+            self.open(self.com_port_name)
 
-    def serial_open(self, com_port_name, baudrate=115200):
+    def open(self, com_port_name, baudrate=115200):
         """
         Open serial port
         :param com_port_name: 'COM5', 'dev/ttyUSB0'
@@ -90,13 +75,13 @@ class FlexSEAPython:
         else:
             return 1
 
-    def valid_serial_port(self):
+    def valid_port(self):
         if self.serial_port:
             return 1
         else:
             return 0
 
-    def serial_write(self, bytestream, bytestream_length):
+    def write(self, bytestream, bytestream_length):
         """
         Write to a previously opened serial port
         :param bytestream: data to write
@@ -105,12 +90,12 @@ class FlexSEAPython:
         """
         if self.serial_port:
             self.serial_port.write(bytestream[0:bytestream_length])
-            while self.serial_port.out_waiting: # ToDo add timeout!
+            while self.serial_port.out_waiting:  # ToDo add timeout!
                 time.sleep(0.01)
         else:
             print("No serial port object, can't write!")
 
-    def serial_read_byte(self):
+    def read_byte(self):
         """
         Read a byte from the serial port
         :return:
@@ -120,7 +105,7 @@ class FlexSEAPython:
             b = self.serial_port.read(1)
         return b
 
-    def serial_bytes_available(self):
+    def bytes_available(self):
         """
         Check for available bytes (rx)
         :return:
@@ -130,7 +115,7 @@ class FlexSEAPython:
             b = self.serial_port.in_waiting
         return b
 
-    def serial_reset_buffers(self):
+    def reset_buffers(self):
         """
         Reset (empty) the RX and TX buffers
         :return:
@@ -138,6 +123,28 @@ class FlexSEAPython:
         if self.serial_port:
             self.serial_port.reset_input_buffer()
             self.serial_port.reset_output_buffer()
+
+
+class FlexSEAPython:
+
+    def __init__(self, dll_filename, com_port_name=None):
+        self.pf = self.identify_platform()
+        self.com_port_name = com_port_name
+        self.serial = FlexSEASerial(com_port_name) # Holds the serial port object
+        self.cb = CircularBuffer()
+        self.fx = cdll.LoadLibrary(dll_filename)
+        ret_val = self.fx.fx_rx_cmd_init()
+        if ret_val:
+            print("Problem initializing the FlexSEA stack - quit.")
+            exit()
+        self.cmd_handler_dict = {}
+        self.init_cmd_handler()
+        self.rw_dict = {
+            "CmdInvalid": 0,
+            "CmdRead": 1,
+            "CmdWrite": 2,
+            "CmdReadWrite": 3,
+        }
 
     def create_bytestream_from_cmd(self, cmd, rw, payload_string):
         """
@@ -242,11 +249,11 @@ class FlexSEAPython:
         Feed any received bytes into the circular buffer
         :return:
         """
-        bytes_to_read = self.serial_bytes_available()
+        bytes_to_read = self.serial.bytes_available()
         if bytes_to_read > 0:
             # print(f'Bytes to read: {bytes_to_read}.')
             for i in range(bytes_to_read):
-                new_rx_byte = self.serial_read_byte()
+                new_rx_byte = self.serial.read_byte()
                 ret_val = self.write_to_circular_buffer(new_rx_byte[0], 1)
                 if ret_val:
                     print("circ_buf_write_byte() problem!")
@@ -278,7 +285,7 @@ class FlexSEAPython:
 
     def rw_one_packet(self, bytestream, bytestream_len, start_time, callback=None, comm_wait=100):
         # Send bytestream to serial port
-        self.serial_write(bytestream, bytestream_len)
+        self.serial.write(bytestream, bytestream_len)
         current_time = round(time.time() * 1000)
         send_new_tx_cmd_timestamp = current_time + comm_wait
 
