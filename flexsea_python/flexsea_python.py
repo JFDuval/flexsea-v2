@@ -48,11 +48,17 @@ def fx_rx_cmd_handler_0(cmd_6bits, rw, buf):
 
 class FlexSEASerial:
 
-    def __init__(self, com_port_name=None):
+    def __init__(self, com_port_name=None, channel=-1, hardware=None):
         self.com_port_name = com_port_name
         self.serial_port = 0 # Holds the serial port object
         if self.com_port_name:
             self.open(self.com_port_name)
+        #if channel >= 0:
+        #    print("Multichannel")
+        #    # We are configuring this for subports
+        #    if FlexSEAPython.identify_platform() == 'RPI':
+        #        print("Pi detected")
+        #        self.configure_rpi_rs485()
 
     def open(self, com_port_name, baudrate=115200):
         """
@@ -127,10 +133,15 @@ class FlexSEASerial:
 
 class FlexSEAPython:
 
-    def __init__(self, dll_filename, com_port_name=None):
+    def __init__(self, dll_filename, open_new_port=True, com_port_name=None, channel=-1, existing_port=None):
         self.pf = self.identify_platform()
         self.com_port_name = com_port_name
-        self.serial = FlexSEASerial(com_port_name) # Holds the serial port object
+        if open_new_port:
+            # Create serial object, open new port
+            self.serial = FlexSEASerial(com_port_name, channel) # Holds the serial port object
+        else:
+            # Re-use a port
+            self.serial = existing_port
         self.cb = CircularBuffer()
         self.fx = cdll.LoadLibrary(dll_filename)
         ret_val = self.fx.fx_rx_cmd_init()
@@ -344,26 +355,6 @@ class FlexSEAPython:
         # Accessor for the 'pf' variable
         return self.pf
 
-    @staticmethod
-    def configure_rpi_rs485():
-        # Crude integration of the pi485.py test code
-        try:
-            import gpiod
-        except ImportError:
-            print("Error! 'gpiod' doesn't exist for this platform, or the Python package is missing. Exiting.")
-            return
-
-        # Power Talk Hat pins
-        RS485_1_DE = 9
-        RS485_1_RE = 11
-
-        # Configure as outputs
-        chip = gpiod.Chip('gpiochip4')
-        rs485_1_re = chip.get_line(RS485_1_RE)
-        rs485_1_de = chip.get_line(RS485_1_DE)
-        rs485_1_re.request(consumer="RS485_1_DE", type=gpiod.LINE_REQ_DIR_OUT)
-        rs485_1_de.request(consumer="RS485_1_RE", type=gpiod.LINE_REQ_DIR_OUT)
-
-        # Always TX, always RX:
-        rs485_1_de.set_value(1)
-        rs485_1_re.set_value(0)
+    def get_serial_port(self):
+        # Return serial port object
+        return self.serial
