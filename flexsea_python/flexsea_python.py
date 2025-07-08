@@ -53,12 +53,6 @@ class FlexSEASerial:
         self.serial_port = 0 # Holds the serial port object
         if self.com_port_name:
             self.open(self.com_port_name)
-        #if channel >= 0:
-        #    print("Multichannel")
-        #    # We are configuring this for subports
-        #    if FlexSEAPython.identify_platform() == 'RPI':
-        #        print("Pi detected")
-        #        self.configure_rpi_rs485()
 
     def open(self, com_port_name, baudrate=115200):
         """
@@ -138,7 +132,7 @@ class FlexSEAPython:
         self.com_port_name = com_port_name
         if open_new_port:
             # Create serial object, open new port
-            self.serial = FlexSEASerial(com_port_name, channel) # Holds the serial port object
+            self.serial = FlexSEASerial(com_port_name, channel)  # Holds the serial port object
         else:
             # Re-use a port
             self.serial = existing_port
@@ -199,15 +193,15 @@ class FlexSEAPython:
                 # One byte at the time
                 ret_val = self.fx.circ_buf_write_byte(byref(self.cb), bytestream)
                 if ret_val:
-                    print("circ_buf_write_byte() problem!")
-                    exit()
+                    print("circ_buf_write_byte(): buffer is full! Overwriting...")
+                    return 1    # Problem
             else:
                 # Write array
                 for i in range(bytestream_len):
                     ret_val = self.fx.circ_buf_write_byte(byref(self.cb), bytestream[i])
                     if ret_val:
-                        print("circ_buf_write_byte() problem!")
-                        exit()
+                        print("circ_buf_write_byte(): buffer is full! Overwriting...")
+                        return 1    # Problem
             return 0    # Success
         else:
             return 1    # Problem
@@ -220,6 +214,14 @@ class FlexSEAPython:
         length = c_uint16(0)
         ret_val = self.fx.circ_buf_get_size(byref(self.cb), byref(length))
         return length.value
+
+    def reinit_circular_buffer(self):
+        """
+        Buffer grew too big? Use this to start from scratch
+        :return: 0 if it succeeded
+        """
+        ret_val = self.fx.circ_buf_init(byref(self.cb))
+        return ret_val
 
     def get_cmd_handler_from_bytestream(self):
         # At this point our encoded command is in the circular buffer
@@ -352,9 +354,14 @@ class FlexSEAPython:
         return pf
 
     def get_pf(self):
-        # Accessor for the 'pf' variable
+        # Accessor for the 'pf' variable (platform name, as short string)
         return self.pf
 
     def get_serial_port(self):
         # Return serial port object
         return self.serial
+
+    @staticmethod
+    def get_max_cb_length():
+        global CIRC_BUF_SIZE
+        return CIRC_BUF_SIZE

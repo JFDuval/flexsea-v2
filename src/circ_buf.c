@@ -51,11 +51,14 @@ uint8_t circ_buf_write_byte(circ_buf_t *cb, uint8_t new_value)
 		cb->length = CIRC_BUF_SIZE;
 		ret_val = 1;
 	}
+	else
+	{
+		cb->length++;	//Increase buffer size
+	}
 
 	//Save new value to buffer
 	cb->buffer[cb->write_index] = new_value;
 
-	cb->length++;		//Increase buffer size after writing
 	cb->write_index++;	//Increase write_index position to prepare for next write
 
 	//If at last index in buffer, set write_index back to 0

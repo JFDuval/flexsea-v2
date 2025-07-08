@@ -17,7 +17,7 @@ from flexsea_tools import *
 pf = FlexSEAPython.identify_platform()
 if pf == 'WIN':
     dll_filename = '../../projects/eclipse_pc/DynamicLib/libflexsea-v2.dll'
-    com_port = 'COM12'
+    com_port = 'COM3'
 elif pf == 'MAC':
     dll_filename = '../../../flexsea-v2/projects/eclipse_pc/DynamicLib/libflexsea-v2.dylib'
     com_port = '/dev/tty.usbserial-ABCD'  # Default, can be over-ridden by CLI argument
@@ -229,7 +229,7 @@ def flexsea_stress_test_serial():
     print(f'This test will take approximately {STRESS_TEST_CYCLES * new_tx_delay_ms / 1000:0.2f} s to run.\n')
 
     # Initialize FlexSEA comm
-    fx = FlexSEAPython(dll_filename, com_port)
+    fx = FlexSEAPython(dll_filename, com_port_name=com_port)
     fx.who_am_i()
     if fx.get_pf() == 'RPI':
         fx.configure_rpi_rs485()
@@ -249,7 +249,7 @@ def flexsea_stress_test_serial():
                                                                         rw="CmdWrite",
                                                                         payload_string=gen_stress_test_payload(
                                                                             0, 0, reset=1))
-    fx.serial_write(bytestream, bytestream_len)
+    fx.serial.write(bytestream, bytestream_len)
     time.sleep(0.01)
 
     for i in range(STRESS_TEST_CYCLES):
@@ -262,7 +262,7 @@ def flexsea_stress_test_serial():
                                                                               pc_packet_number, pc_ramp_value))
 
         # Send bytestream to serial port
-        fx.serial_write(bytestream, bytestream_len)
+        fx.serial.write(bytestream, bytestream_len)
         current_time = round(time.time() * 1000)
         tx_timestamp = current_time - start_time
         send_new_tx_cmd_timestamp = current_time + new_tx_delay_ms
@@ -274,10 +274,10 @@ def flexsea_stress_test_serial():
                 current_time = round(time.time() * 1000)
 
                 # Feed any received bytes into the circular buffer
-                bytes_to_read = fx.serial_bytes_available()
+                bytes_to_read = fx.serial.bytes_available()
                 if bytes_to_read > 0:
                     for i in range(bytes_to_read):
-                        new_rx_byte = fx.serial_read_byte()
+                        new_rx_byte = fx.serial.read_byte()
                         ret_val = fx.write_to_circular_buffer(new_rx_byte[0], 1)
                         bytes_received = bytes_received + 1
                         if ret_val:
@@ -299,10 +299,10 @@ def flexsea_stress_test_serial():
         current_time = round(time.time() * 1000)
 
         # Feed any received bytes into the circular buffer
-        bytes_to_read = fx.serial_bytes_available()
+        bytes_to_read = fx.serial.bytes_available()
         if bytes_to_read > 0:
             for i in range(bytes_to_read):
-                new_rx_byte = fx.serial_read_byte()
+                new_rx_byte = fx.serial.read_byte()
                 ret_val = fx.write_to_circular_buffer(new_rx_byte[0], 1)
                 bytes_received = bytes_received + 1
                 if ret_val:
