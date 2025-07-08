@@ -88,9 +88,11 @@ class FlexSEASerial:
         :param bytestream_length: length of data to write
         :return:
         """
+        timeout_counter = 10
         if self.serial_port:
             self.serial_port.write(bytestream[0:bytestream_length])
-            while self.serial_port.out_waiting:  # ToDo add timeout!
+            while self.serial_port.out_waiting and timeout_counter:
+                timeout_counter = timeout_counter - 1
                 time.sleep(0.01)
         else:
             print("No serial port object, can't write!")
