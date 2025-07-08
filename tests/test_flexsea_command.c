@@ -57,17 +57,13 @@ void test_command_parse_rx_rw_byte_invalid(void)
 {
 	uint8_t payload[10] = "\0payload"; //The first char will be replaced by our cmd/rw code
 	uint16_t payload_len = sizeof(payload);
-
-	//Test #1: command code of 0 (smaller than MIN_CMD_CODE)
 	uint8_t cmd_6bits_in = 0;
 	uint8_t cmd_8bits = CMD_SET_W(cmd_6bits_in); //Write
 	payload[CMD_CODE_INDEX] = cmd_8bits;
 	uint8_t ret_val = 0, cmd_6bits_out = 0;
 	ReadWrite rw = CmdInvalid;
-	ret_val = fx_parse_rx_cmd(payload, payload_len, &cmd_6bits_out, &rw);
-	TEST_ASSERT_EQUAL(1, ret_val);	//1 means it detected the problem
-	TEST_ASSERT_EQUAL(0, cmd_6bits_out); //Invalid returns 0
-	TEST_ASSERT_EQUAL(0, rw); //Invalid returns 0
+
+	//Test #1: command code of 0 (smaller than MIN_CMD_CODE)
 
 	//Test #2: RW = CmdInvalid
 	cmd_6bits_in = MAX_CMD_CODE;
@@ -106,7 +102,6 @@ void test_command_create_tx_basic_good_cmd_rw(void)
 //We pass invalid command codes and RW to the function. Does it notice?
 void test_command_create_tx_basic_bad_cmd_rw(void)
 {
-	//Test #1: command code too low
 	uint8_t payload_in[10] = "payload";
 	uint8_t payload_in_len = 7;	//Just the chars we want
 	uint8_t payload_out[10] = {0};
@@ -115,11 +110,7 @@ void test_command_create_tx_basic_bad_cmd_rw(void)
 	uint8_t ret_val = 0;
 	ReadWrite rw = CmdWrite;
 
-	ret_val = fx_create_tx_cmd(cmd_6bits_in, rw, payload_in, payload_in_len,
-			payload_out, &payload_out_len);
-	TEST_ASSERT_EQUAL(1, ret_val);
-	TEST_ASSERT_EQUAL(0, payload_out_len);
-	TEST_ASSERT_EQUAL(0, payload_out[CMD_CODE_INDEX]);
+	//Test #1: command code too low no longer possible, we use 0 for WhoAmI
 
 	//Test #2: command code too high
 	payload_in_len = 7;
