@@ -36,7 +36,7 @@ STRESS_TEST_CHANNELS = 2
 FX_CMD_STRESS_TEST_STEPPER = 2
 FX_CMD_STRESS_TEST_POWER = 5
 RAMP_MAX = 1000
-STRESS_TEST_CYCLES = 1000  # Per channel
+STRESS_TEST_CYCLES = 10  # Per channel
 
 # Variables used in TX and RX to analyze a loop back
 start_time = 0
@@ -89,7 +89,7 @@ class FxStressTestStruct(Structure):
 
 # Custom command handler used by the stress test code - PC side, Stepper (ch1)
 def fx_rx_cmd_handler_2(cmd_6bits, rw, buf):
-    # print(f'PC RX cmd handler()')
+    # print('PC RX cmd handler 2()')
     rx_data = FxStressTestStruct()
     ctypes.memmove(pointer(rx_data), buf[1:], sizeof(rx_data))
     global stress_test_data_ch1
@@ -97,22 +97,22 @@ def fx_rx_cmd_handler_2(cmd_6bits, rw, buf):
 
     rx_timestamp = round(time.time() * 1000) - start_time
     stress_test_data_ch1.append(StressTestData(tx_timestamp=tx_timestamp[0], rx_timestamp=rx_timestamp,
-                                           tx_packet_num=pc_packet_number, rx_packet_num=rx_data.packet_number[0],
-                                           tx_ramp_value=pc_ramp_value, rx_ramp_value=rx_data.ramp_value[0]))
+                                           tx_packet_num=pc_packet_number, rx_packet_num=rx_data.packet_number,
+                                           tx_ramp_value=pc_ramp_value, rx_ramp_value=rx_data.ramp_value))
 
 
 # Custom command handler used by the stress test code - PC side, Power (ch2)
 def fx_rx_cmd_handler_5(cmd_6bits, rw, buf):
-    # print(f'PC RX cmd handler()')
+    # print('PC RX cmd handler 5()')
     rx_data = FxStressTestStruct()
     ctypes.memmove(pointer(rx_data), buf[1:], sizeof(rx_data))
     global stress_test_data_ch2
     global pc_packet_number, pc_ramp_value, tx_timestamp, start_time
 
     rx_timestamp = round(time.time() * 1000) - start_time
-    stress_test_data_ch1.append(StressTestData(tx_timestamp=tx_timestamp[1], rx_timestamp=rx_timestamp,
-                                           tx_packet_num=pc_packet_number, rx_packet_num=rx_data.packet_number[1],
-                                           tx_ramp_value=pc_ramp_value, rx_ramp_value=rx_data.ramp_value[1]))
+    stress_test_data_ch2.append(StressTestData(tx_timestamp=tx_timestamp[1], rx_timestamp=rx_timestamp,
+                                           tx_packet_num=pc_packet_number, rx_packet_num=rx_data.packet_number,
+                                           tx_ramp_value=pc_ramp_value, rx_ramp_value=rx_data.ramp_value))
 
 
 # We create and serialize the test payload
@@ -138,7 +138,7 @@ def plot_results():
     plt.legend()
     # plt.draw()
 
-    # # Bottom plot: display according to time, ch2
+    # Bottom plot: display according to time, ch2
     plt.subplot(2, 1, 2)
     plot_x = [x.tx_packet_num for x in stress_test_data_ch2]
     plt.plot(plot_x, [x.tx_ramp_value for x in stress_test_data_ch2], label="TX Ramp values")
@@ -149,17 +149,22 @@ def plot_results():
     plt.legend()
     plt.draw()
 
-    # plt.savefig(f'logs/{file_timestamp}-Test-{test_num:03d}-cont.png')
+    # Save as PNG
+    plt.savefig(f'logs/{file_timestamp}.png')
     plt.show(block=True)  # Blocking until closed
 
 
 def save_csv_results():
+    i = 0
     for cycle in stress_test_data_ch1:
         # We add a line to the CSV file:
-        csv_line = [[cycle.tx_packet_num, cycle.tx_ramp_value, cycle.tx_timestamp[0], cycle.rx_timestamp[0],
-                     cycle.rx_packet_num[0], cycle.rx_ramp_value[0], cycle.tx_timestamp[1], cycle.rx_timestamp[1],
-                     cycle.rx_packet_num[1], cycle.rx_ramp_value[1]]]
+        csv_line = [[stress_test_data_ch1[i].tx_packet_num, stress_test_data_ch1[i].tx_ramp_value, 
+                    stress_test_data_ch1[i].tx_timestamp, stress_test_data_ch1[i].rx_timestamp,
+                    stress_test_data_ch1[i].rx_packet_num, stress_test_data_ch1[i].rx_ramp_value, 
+                    stress_test_data_ch2[i].tx_timestamp, stress_test_data_ch2[i].rx_timestamp,
+                    stress_test_data_ch2[i].rx_packet_num, stress_test_data_ch2[i].rx_ramp_value]]
         csv.write(csv_line)
+        i = i + 1
 
 
 # Increment and ceil counter and ramp
@@ -176,8 +181,9 @@ def counter_and_ramp(cnt, rmp):
 def flexsea_stress_test_serial_multi():
 
     print('Stress test code - Python project with FlexSEA v2.0 DLL')
-    print(f'This test will take approximately {STRESS_TEST_CYCLES * STRESS_TEST_CHANNELS * new_tx_delay_ms / 
-                                               1000:0.2f} s to run.\n')
+    ttrun = STRESS_TEST_CYCLES * STRESS_TEST_CHANNELS * \
+            new_tx_delay_ms / 1000
+    print(f'This test will take approximately {ttrun:0.2f} s to run.\n')
 
     # Initialize FlexSEA comm
     fx = []
@@ -202,7 +208,6 @@ def flexsea_stress_test_serial_multi():
     pc_packet_number = -1
     pc_ramp_value = -1
     start_time = round(time.time() * 1000)
-    # bytes_received = [0, 0]
     stress_test_data_ch1 = []  # Start with empty structure
     stress_test_data_ch2 = []  # Start with empty structure
 
@@ -217,10 +222,12 @@ def flexsea_stress_test_serial_multi():
     comm_hw.use_channel(1)
     ret_val, bytestream, bytestream_len = fx[1].create_bytestream_from_cmd(cmd=FX_CMD_STRESS_TEST_POWER,
                                                                         rw="CmdWrite", payload_string=p_string)
-    fx[0].serial.write(bytestream, bytestream_len)
+    fx[1].serial.write(bytestream, bytestream_len)
     time.sleep(0.01)
 
     for i in range(STRESS_TEST_CYCLES):
+
+        print(f'Cycle #{i}')
 
         # PC generates bytestreams:
         p_string = gen_stress_test_payload(pc_packet_number, pc_ramp_value)
@@ -231,17 +238,18 @@ def flexsea_stress_test_serial_multi():
                                                                                        rw="CmdReadWrite",
                                                                                        payload_string=p_string)
 
-        current_time = round(time.time() * 1000)
-        tx_timestamp[0] = current_time - start_time
-
         # Send a packet, listen for a reply
         comm_hw.use_channel(0)
+        current_time = round(time.time() * 1000)
+        tx_timestamp[0] = current_time - start_time
         fx[0].rw_one_packet(bytestream_ch1, bytestream_len_ch1, start_time, callback=None,
                           comm_wait=new_tx_delay_ms)
         time.sleep(0.1)
 
         # Send a packet, listen for a reply
         comm_hw.use_channel(1)
+        current_time = round(time.time() * 1000)
+        tx_timestamp[1] = current_time - start_time
         fx[1].rw_one_packet(bytestream_ch2, bytestream_len_ch2, start_time, callback=None,
                           comm_wait=new_tx_delay_ms)
         time.sleep(0.1)
@@ -256,12 +264,11 @@ def flexsea_stress_test_serial_multi():
 
     # Print summary:
     print(f'Packets sent: {pc_packet_number + 1}')
-    print(f'Packets received ch1: {len(stress_test_data_ch1)} (or {stress_test_data_ch1[-1].rx_packet_num})')
-    print(f'Packets received ch2: {len(stress_test_data_ch2)} (or {stress_test_data_ch2[-1].rx_packet_num})')
+    print(f'Packets received ch1: {len(stress_test_data_ch1)} (last decoded packet count is {stress_test_data_ch1[-1].rx_packet_num})')
+    print(f'Packets received ch2: {len(stress_test_data_ch2)} (last decoded packet count is {stress_test_data_ch2[-1].rx_packet_num})')
     end_time = round(time.time() * 1000)
     test_time_s = (end_time - start_time) / 1000
     print(f'Test time: {test_time_s:0.2f} s')
-    # print(f'Bytes received: {bytes_received} ({bytes_received/len(stress_test_data)} / packet)')
 
     plot_results()
     save_csv_results()
