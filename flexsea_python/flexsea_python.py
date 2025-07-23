@@ -367,3 +367,91 @@ class FlexSEAPython:
     def get_max_cb_length():
         global CIRC_BUF_SIZE
         return CIRC_BUF_SIZE
+
+
+class CommHardware:
+    """
+    Some applications have more than one channel per serial port.
+    This class, while not very generic, is a first implementation.
+    This supports three RS-485 ports on one RPi5, using one UART
+    and some GPIOs to manage transceivers.
+    """
+    def __init__(self):
+        self.rs485_re = []
+        self.rs485_de = []
+        # Transceiver states. TX is DE, RX is !RE.
+        self.TX_ON = 1
+        self.TX_OFF = 0
+        self.RX_ON = 0
+        self.RX_OFF = 1
+        self.configured = False
+        self.configure_rpi_rs485()
+
+    def configure_rpi_rs485(self):
+        # Crude integration of the pi485.py test code
+        try:
+            import gpiod
+        except ImportError:
+            print("Error! 'gpiod' doesn't exist for this platform, or the Python package is missing. Exiting.")
+            return
+
+        # RPi hat pins
+        RS485_1_DE = 9
+        RS485_1_RE = 11
+        RS485_2_DE = 8
+        RS485_2_RE = 7
+        RS485_3_DE = 5
+        RS485_3_RE = 6
+
+        # Configure as outputs
+        chip = gpiod.Chip('gpiochip4')
+
+        # ch1
+        self.rs485_re.append(chip.get_line(RS485_1_RE))
+        self.rs485_de.append(chip.get_line(RS485_1_DE))
+        self.rs485_re[0].request(consumer="RS485_1_DE", type=gpiod.LINE_REQ_DIR_OUT)
+        self.rs485_de[0].request(consumer="RS485_1_RE", type=gpiod.LINE_REQ_DIR_OUT)
+        # ch2
+        self.rs485_re.append(chip.get_line(RS485_2_RE))
+        self.rs485_de.append(chip.get_line(RS485_2_DE))
+        self.rs485_re[1].request(consumer="RS485_2_DE", type=gpiod.LINE_REQ_DIR_OUT)
+        self.rs485_de[1].request(consumer="RS485_2_RE", type=gpiod.LINE_REQ_DIR_OUT)
+        # ch3
+        self.rs485_re.append(chip.get_line(RS485_3_RE))
+        self.rs485_de.append(chip.get_line(RS485_3_DE))
+        self.rs485_re[2].request(consumer="RS485_3_DE", type=gpiod.LINE_REQ_DIR_OUT)
+        self.rs485_de[2].request(consumer="RS485_3_RE", type=gpiod.LINE_REQ_DIR_OUT)
+
+        # By default, we don't transmit and don't receive:
+        self.rs485_de[0].set_value(self.TX_OFF)
+        self.rs485_re[0].set_value(self.RX_OFF)
+        self.rs485_de[1].set_value(self.TX_OFF)
+        self.rs485_re[1].set_value(self.RX_OFF)
+        self.rs485_de[2].set_value(self.TX_OFF)
+        self.rs485_re[2].set_value(self.RX_OFF)
+
+        self.configured = True
+
+    def use_channel(self, desired_ch):
+        if self.configured:
+            if desired_ch == 0:
+                self.rs485_de[0].set_value(self.TX_ON)
+                self.rs485_re[0].set_value(self.RX_ON)
+                self.rs485_de[1].set_value(self.TX_OFF)
+                self.rs485_re[1].set_value(self.RX_OFF)
+                self.rs485_de[2].set_value(self.TX_OFF)
+                self.rs485_re[2].set_value(self.RX_OFF)
+            elif desired_ch == 1:
+                self.rs485_de[0].set_value(self.TX_OFF)
+                self.rs485_re[0].set_value(self.RX_OFF)
+                self.rs485_de[1].set_value(self.TX_ON)
+                self.rs485_re[1].set_value(self.RX_ON)
+                self.rs485_de[2].set_value(self.TX_OFF)
+                self.rs485_re[2].set_value(self.RX_OFF)
+            elif desired_ch == 2:
+                self.rs485_de[0].set_value(self.TX_OFF)
+                self.rs485_re[0].set_value(self.RX_OFF)
+                self.rs485_de[1].set_value(self.TX_OFF)
+                self.rs485_re[1].set_value(self.RX_OFF)
+                self.rs485_de[2].set_value(self.TX_ON)
+                self.rs485_re[2].set_value(self.RX_ON)
