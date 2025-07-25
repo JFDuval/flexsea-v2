@@ -286,13 +286,25 @@ uint8_t fx_cleanup(circ_buf_t *cb)
 		//Bytes left in the buffer
 		for(int i = 0; i < latch_byte_cnt; i++)
 		{
-			//Can we find a header?
+			//Look at one byte in the buffer
 			ret_val = circ_buf_peek(cb, &current_byte, i);
-			if(current_byte == HEADER || i == (latch_byte_cnt-1))
+			//Is it a header?
+			if(current_byte == HEADER)
 			{
-				//Flush what was before and stop here
+				//Flush what was before the header, and stop here
 				uint8_t dump = 0;
 				for(int j = 0; j < i; j++)
+				{
+					ret_val = circ_buf_read_byte(cb, &dump);
+				}
+				break;
+			}
+			//Did we scan the entire buffer?
+			if(i == (latch_byte_cnt-1))
+			{
+				//Flush everything, get to cb_len = 0
+				uint8_t dump = 0;
+				for(int j = 0; j <= i; j++)
 				{
 					ret_val = circ_buf_read_byte(cb, &dump);
 				}

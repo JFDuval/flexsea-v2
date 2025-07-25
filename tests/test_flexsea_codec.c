@@ -440,6 +440,106 @@ void test_codec_continuous_receive_decode_noisy(void)
 	}
 }
 
+//FlexSEA Cleanup: easy scenarios
+void test_codec_fx_cleanup_all_noise(void)
+{
+	uint8_t ret_val = 0;
+	//We prepare a new circular buffer
+	circ_buf_t cb = {.buffer = {0}, .length = 0, .write_index = 0, .read_index =
+			0};
+	//Write to circular buffer (5x)
+	ret_val = circ_buf_write_byte(&cb, 0xAA);
+	ret_val = circ_buf_write_byte(&cb, 0xAA);
+	ret_val = circ_buf_write_byte(&cb, 0xAA);
+	ret_val = circ_buf_write_byte(&cb, 0xAA);
+	ret_val = circ_buf_write_byte(&cb, 0xAA);
+	TEST_ASSERT_EQUAL_MESSAGE(5, cb.length, "CB length problem");
+	fx_cleanup(&cb);
+	TEST_ASSERT_EQUAL_MESSAGE(0, cb.length, "Cleanup didn't clear the 5 bytes");
+
+	//Can we do that multiple times?
+	fx_cleanup(&cb);
+	fx_cleanup(&cb);
+	fx_cleanup(&cb);
+	TEST_ASSERT_EQUAL_MESSAGE(0, cb.length, "Cleanup messed up the CB");
+	ret_val = circ_buf_write_byte(&cb, 0xBB);
+	TEST_ASSERT_EQUAL_MESSAGE(1, cb.length, "CB length problem");
+	fx_cleanup(&cb);
+	TEST_ASSERT_EQUAL_MESSAGE(0, cb.length, "Cleanup didn't clear the 1 byte");
+}
+
+//FlexSEA Cleanup: one header, nothing else
+void test_codec_fx_cleanup_one_header(void)
+{
+	uint8_t ret_val = 0;
+	//We prepare a new circular buffer
+	circ_buf_t cb = {.buffer = {0}, .length = 0, .write_index = 0, .read_index =
+			0};
+	//Write to circular buffer
+	ret_val = circ_buf_write_byte(&cb, HEADER);
+	TEST_ASSERT_EQUAL_MESSAGE(1, cb.length, "CB length problem");
+	fx_cleanup(&cb);
+	TEST_ASSERT_EQUAL_MESSAGE(1, cb.length, "Cleanup deleted the header!");
+}
+
+//FlexSEA Cleanup: one header, with noise before and after
+void test_codec_fx_cleanup_one_header_in_noise(void)
+{
+	uint8_t ret_val = 0;
+	//We prepare a new circular buffer
+	circ_buf_t cb = {.buffer = {0}, .length = 0, .write_index = 0, .read_index =
+			0};
+	//Write to circular buffer
+	ret_val = circ_buf_write_byte(&cb, 0xAA);
+	ret_val = circ_buf_write_byte(&cb, 0xAA);
+	ret_val = circ_buf_write_byte(&cb, HEADER);
+	TEST_ASSERT_EQUAL_MESSAGE(3, cb.length, "CB length problem");
+	fx_cleanup(&cb);
+	TEST_ASSERT_EQUAL_MESSAGE(1, cb.length, "Cleanup deleted the header!");
+
+	//Start clean
+	circ_buf_init(&cb);
+	//Write to circular buffer
+	ret_val = circ_buf_write_byte(&cb, 0xAA);
+	ret_val = circ_buf_write_byte(&cb, 0xAA);
+	ret_val = circ_buf_write_byte(&cb, 0xAA);
+	ret_val = circ_buf_write_byte(&cb, HEADER);
+	ret_val = circ_buf_write_byte(&cb, 0xAA);
+	ret_val = circ_buf_write_byte(&cb, 0xAA);
+	TEST_ASSERT_EQUAL_MESSAGE(6, cb.length, "CB length problem");
+	fx_cleanup(&cb);
+	TEST_ASSERT_EQUAL_MESSAGE(3, cb.length, "Cleanup deleted too many bytes!");
+}
+
+//FlexSEA Cleanup: many headers, with noise
+void test_codec_fx_cleanup_many_headers_in_noise(void)
+{
+	uint8_t ret_val = 0;
+	//We prepare a new circular buffer
+	circ_buf_t cb = {.buffer = {0}, .length = 0, .write_index = 0, .read_index =
+			0};
+	//Write to circular buffer
+	ret_val = circ_buf_write_byte(&cb, 0xAA);
+	ret_val = circ_buf_write_byte(&cb, 0xAA);
+	ret_val = circ_buf_write_byte(&cb, HEADER);
+	ret_val = circ_buf_write_byte(&cb, 0xAA);
+	ret_val = circ_buf_write_byte(&cb, HEADER);
+	ret_val = circ_buf_write_byte(&cb, 0xAA);
+	ret_val = circ_buf_write_byte(&cb, HEADER);
+	TEST_ASSERT_EQUAL_MESSAGE(7, cb.length, "CB length problem");
+	fx_cleanup(&cb);
+	TEST_ASSERT_EQUAL_MESSAGE(5, cb.length, "Cleanup deleted too many bytes!");
+
+	//What if we keep trying?
+	fx_cleanup(&cb);
+	fx_cleanup(&cb);
+	fx_cleanup(&cb);
+	fx_cleanup(&cb);
+	fx_cleanup(&cb);
+	fx_cleanup(&cb);
+	TEST_ASSERT_EQUAL_MESSAGE(5, cb.length, "Cleanup deleted too many bytes!");
+}
+
 void test_flexsea_codec(void)
 {
 	//Encoding:
@@ -455,6 +555,12 @@ void test_flexsea_codec(void)
 	//Continuous data stream:
 	RUN_TEST(test_codec_continuous_receive_decode);
 	RUN_TEST(test_codec_continuous_receive_decode_noisy);
+
+	//Cleaning:
+	RUN_TEST(test_codec_fx_cleanup_all_noise);
+	RUN_TEST(test_codec_fx_cleanup_one_header);
+	RUN_TEST(test_codec_fx_cleanup_one_header_in_noise);
+	RUN_TEST(test_codec_fx_cleanup_many_headers_in_noise);
 
 	fflush(stdout);
 }
