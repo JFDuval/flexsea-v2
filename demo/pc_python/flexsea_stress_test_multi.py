@@ -26,7 +26,7 @@ else:
     dll_filename = '../../../flexsea-v2/projects/eclipse_pc/DynamicLib/libflexsea-v2.so'
     com_port = '/dev/ttyAMA0'  # Default, can be over-ridden by CLI argument
 
-new_tx_delay_ms = 20  # 10 ms = 100 Hz
+new_tx_delay_ms = 10  # 10 ms = 100 Hz
 
 MIN_OVERHEAD = 4
 
@@ -36,7 +36,7 @@ STRESS_TEST_CHANNELS = 2
 FX_CMD_STRESS_TEST_STEPPER = 2
 FX_CMD_STRESS_TEST_POWER = 5
 RAMP_MAX = 1000
-STRESS_TEST_CYCLES = 10  # Per channel
+STRESS_TEST_CYCLES = 1000  # Per channel
 
 # Variables used in TX and RX to analyze a loop back
 start_time = 0
@@ -244,7 +244,7 @@ def flexsea_stress_test_serial_multi():
         tx_timestamp[0] = current_time - start_time
         fx[0].rw_one_packet(bytestream_ch1, bytestream_len_ch1, start_time, callback=None,
                           comm_wait=new_tx_delay_ms)
-        time.sleep(0.1)
+        # time.sleep(0.1)
 
         # Send a packet, listen for a reply
         comm_hw.use_channel(1)
@@ -252,7 +252,7 @@ def flexsea_stress_test_serial_multi():
         tx_timestamp[1] = current_time - start_time
         fx[1].rw_one_packet(bytestream_ch2, bytestream_len_ch2, start_time, callback=None,
                           comm_wait=new_tx_delay_ms)
-        time.sleep(0.1)
+        # time.sleep(0.1)
 
     # Grab last bytes:
     time.sleep(0.1)

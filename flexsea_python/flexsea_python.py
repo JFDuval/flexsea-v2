@@ -302,7 +302,7 @@ class FlexSEAPython:
         # Send bytestream to serial port
         self.serial.write(bytestream, bytestream_len)
         self.grab_new_bytes()  # Grab what could be already there (ex.: transceiver switching noise)
-        time.sleep(0.0 2)  # Minimum round trip (2ms)
+        time.sleep(0.002)  # Minimum round trip (2ms)
         current_time = round(time.time() * 1000)
         send_new_tx_cmd_timestamp = current_time + comm_wait
 
