@@ -302,11 +302,11 @@ class FlexSEAPython:
         self.grab_new_bytes()  # Grab what could be already there (ex.: transceiver switching noise)
         time.sleep(0.002)  # Minimum round trip (2ms)
         current_time = round(time.time() * 1000)
-        send_new_tx_cmd_timestamp = current_time + comm_wait
+        max_wait_time = current_time + comm_wait
 
-        # Send a packet at periodic intervals, listen for a reply
+        # Try reading for a while
         try:
-            while current_time < send_new_tx_cmd_timestamp:
+            while current_time < max_wait_time:
 
                 current_time = round(time.time() * 1000)
 
@@ -320,7 +320,7 @@ class FlexSEAPython:
                     timestamp = round(time.time() * 1000) - start_time
                     if callback:
                         callback(timestamp)
-                    return
+                    # Adding a return here causes comm issues (missed packets)
 
         except KeyboardInterrupt:
             print('Interrupted! End of rw_one_flexsea_packet routine.')
