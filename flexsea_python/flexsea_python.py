@@ -270,9 +270,7 @@ class FlexSEAPython:
             for i in range(bytes_to_read):
                 new_rx_byte = self.serial.read_byte()
                 ret_val = self.write_to_circular_buffer(new_rx_byte[0], 1)
-                if ret_val:
-                    print("circ_buf_write_byte() problem!")
-                    exit()
+
 
     def receive(self):
         """
