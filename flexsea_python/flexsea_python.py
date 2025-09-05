@@ -208,6 +208,15 @@ class FlexSEAPython:
         else:
             return 1    # Problem
 
+    def read_byte_from_circular_buffer(self):
+        """
+        This should only be used for debugging! This takes bytes from the CB, bypassing the stack
+        :return: one byte
+        """
+        byte_read = c_uint8(0)
+        self.fx.circ_buf_read_byte(byref(self.cb), byref(byte_read))
+        return byte_read.value
+
     def get_circular_buffer_length(self):
         """
         Returns the length of the circular buffer

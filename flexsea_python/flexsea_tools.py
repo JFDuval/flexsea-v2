@@ -97,3 +97,7 @@ def identical_ctype_structs(struct_a, struct_b):
         if att_a != att_b:
             return False
     return True
+
+# Clamps a value between a lower and an upper bound.
+def clamp_value(value, lower_bound, upper_bound):
+  return max(lower_bound, min(value, upper_bound))
