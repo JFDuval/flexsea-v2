@@ -30,11 +30,10 @@ new_tx_delay_ms = 10  # 10 ms = 100 Hz
 
 MIN_OVERHEAD = 4
 
-# Ch 1 is a Stepper driver, ch2 is a Power Board
-
+# 2 peripherals, each with their own stress test command code (in other instances both will use the same cmd)
 STRESS_TEST_CHANNELS = 2
-FX_CMD_STRESS_TEST_STEPPER = 2
-FX_CMD_STRESS_TEST_POWER = 5
+FX_CMD_STRESS_TEST_PERIPH_1 = 2
+FX_CMD_STRESS_TEST_PERIPH_2 = 5
 RAMP_MAX = 1000
 STRESS_TEST_CYCLES = 1000  # Per channel
 
@@ -192,8 +191,8 @@ def flexsea_stress_test_serial_multi():
                             existing_port=fx[0].get_serial_port()))
 
     # Prepare for reception:
-    fx[0].register_cmd_handler(FX_CMD_STRESS_TEST_STEPPER, fx_rx_cmd_handler_2)
-    fx[1].register_cmd_handler(FX_CMD_STRESS_TEST_POWER, fx_rx_cmd_handler_5)
+    fx[0].register_cmd_handler(FX_CMD_STRESS_TEST_PERIPH_1, fx_rx_cmd_handler_2)
+    fx[1].register_cmd_handler(FX_CMD_STRESS_TEST_PERIPH_2, fx_rx_cmd_handler_5)
 
     comm_hw = CommHardware()
 
@@ -214,14 +213,14 @@ def flexsea_stress_test_serial_multi():
     # Reset embedded counters
     p_string = gen_stress_test_payload(0, 0, reset=1)
     comm_hw.use_channel(0)
-    ret_val, bytestream, bytestream_len = fx[0].create_bytestream_from_cmd(cmd=FX_CMD_STRESS_TEST_STEPPER,
-                                                                        rw="CmdWrite", payload_string=p_string)
+    ret_val, bytestream, bytestream_len = fx[0].create_bytestream_from_cmd(cmd=FX_CMD_STRESS_TEST_PERIPH_1,
+                                                                           rw="CmdWrite", payload_string=p_string)
     fx[0].serial.write(bytestream, bytestream_len)
     time.sleep(0.01)
 
     comm_hw.use_channel(1)
-    ret_val, bytestream, bytestream_len = fx[1].create_bytestream_from_cmd(cmd=FX_CMD_STRESS_TEST_POWER,
-                                                                        rw="CmdWrite", payload_string=p_string)
+    ret_val, bytestream, bytestream_len = fx[1].create_bytestream_from_cmd(cmd=FX_CMD_STRESS_TEST_PERIPH_2,
+                                                                           rw="CmdWrite", payload_string=p_string)
     fx[1].serial.write(bytestream, bytestream_len)
     time.sleep(0.01)
 
@@ -232,9 +231,10 @@ def flexsea_stress_test_serial_multi():
         # PC generates bytestreams:
         p_string = gen_stress_test_payload(pc_packet_number, pc_ramp_value)
         pc_packet_number, pc_ramp_value = counter_and_ramp(pc_packet_number, pc_ramp_value)
-        ret_val, bytestream_ch1, bytestream_len_ch1 = fx[0].create_bytestream_from_cmd(cmd=FX_CMD_STRESS_TEST_STEPPER,
-                                                                            rw="CmdReadWrite", payload_string=p_string)
-        ret_val, bytestream_ch2, bytestream_len_ch2 = fx[1].create_bytestream_from_cmd(cmd=FX_CMD_STRESS_TEST_POWER,
+        ret_val, bytestream_ch1, bytestream_len_ch1 = fx[0].create_bytestream_from_cmd(cmd=FX_CMD_STRESS_TEST_PERIPH_1,
+                                                                                       rw="CmdReadWrite",
+                                                                                       payload_string=p_string)
+        ret_val, bytestream_ch2, bytestream_len_ch2 = fx[1].create_bytestream_from_cmd(cmd=FX_CMD_STRESS_TEST_PERIPH_2,
                                                                                        rw="CmdReadWrite",
                                                                                        payload_string=p_string)
 
@@ -264,8 +264,10 @@ def flexsea_stress_test_serial_multi():
 
     # Print summary:
     print(f'Packets sent: {pc_packet_number + 1}')
-    print(f'Packets received ch1: {len(stress_test_data_ch1)} (last decoded packet count is {stress_test_data_ch1[-1].rx_packet_num})')
-    print(f'Packets received ch2: {len(stress_test_data_ch2)} (last decoded packet count is {stress_test_data_ch2[-1].rx_packet_num})')
+    print(f'Packets received ch1: {len(stress_test_data_ch1)} (last decoded packet count is '
+          f'{stress_test_data_ch1[-1].rx_packet_num})')
+    print(f'Packets received ch2: {len(stress_test_data_ch2)} (last decoded packet count is '
+          f'{stress_test_data_ch2[-1].rx_packet_num})')
     end_time = round(time.time() * 1000)
     test_time_s = (end_time - start_time) / 1000
     print(f'Test time: {test_time_s:0.2f} s')

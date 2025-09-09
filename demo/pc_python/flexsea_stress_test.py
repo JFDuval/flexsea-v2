@@ -17,7 +17,7 @@ from flexsea_tools import *
 pf = FlexSEAPython.identify_platform()
 if pf == 'WIN':
     dll_filename = '../../projects/eclipse_pc/DynamicLib/libflexsea-v2.dll'
-    com_port = 'COM9'
+    com_port = 'COM3'
 elif pf == 'MAC':
     dll_filename = '../../../flexsea-v2/projects/eclipse_pc/DynamicLib/libflexsea-v2.dylib'
     com_port = '/dev/tty.usbserial-ABCD'  # Default, can be over-ridden by CLI argument
@@ -30,8 +30,8 @@ new_tx_delay_ms = 20  # 10 ms = 100 Hz
 
 MIN_OVERHEAD = 4
 
-FX_CMD_STRESS_TEST_STEPPER = 2
-FX_CMD_STRESS_TEST_POWER = 5
+FX_CMD_STRESS_TEST_PERIPH_1 = 2
+FX_CMD_STRESS_TEST_PERIPH_2 = 5
 RAMP_MAX = 1000
 STRESS_TEST_CYCLES = 1000
 
@@ -171,8 +171,8 @@ def flexsea_stress_test_local_loopback():
     fx_dut = FlexSEAPython(dll_filename)
 
     # Prepare for reception:
-    fx_pc.register_cmd_handler(FX_CMD_STRESS_TEST_POWER, fx_rx_cmd_handler_2_pc)
-    fx_dut.register_cmd_handler(FX_CMD_STRESS_TEST_POWER, fx_rx_cmd_handler_2_dut)
+    fx_pc.register_cmd_handler(FX_CMD_STRESS_TEST_PERIPH_2, fx_rx_cmd_handler_2_pc)
+    fx_dut.register_cmd_handler(FX_CMD_STRESS_TEST_PERIPH_2, fx_rx_cmd_handler_2_dut)
 
     global pc_packet_number, pc_ramp_value, tx_timestamp, start_time, stress_test_data
     pc_packet_number = -1
@@ -184,7 +184,7 @@ def flexsea_stress_test_local_loopback():
 
         # PC generates bytestream:
         pc_packet_number, pc_ramp_value = counter_and_ramp(pc_packet_number, pc_ramp_value)
-        ret_val, bytestream, bytestream_len = fx_pc.create_bytestream_from_cmd(cmd=FX_CMD_STRESS_TEST_POWER,
+        ret_val, bytestream, bytestream_len = fx_pc.create_bytestream_from_cmd(cmd=FX_CMD_STRESS_TEST_PERIPH_2,
                                                                                rw="CmdReadWrite",
                                                                                payload_string=gen_stress_test_payload(
                                                                                  pc_packet_number, pc_ramp_value))
@@ -200,8 +200,8 @@ def flexsea_stress_test_local_loopback():
         # Do we have a reply to send?
         # (this replicates fx_transmit())
         if send_reply:
-            if cmd_reply == FX_CMD_STRESS_TEST_POWER:
-                ret_val, bytestream, bytestream_len = fx_dut.create_bytestream_from_cmd(cmd=FX_CMD_STRESS_TEST_POWER,
+            if cmd_reply == FX_CMD_STRESS_TEST_PERIPH_2:
+                ret_val, bytestream, bytestream_len = fx_dut.create_bytestream_from_cmd(cmd=FX_CMD_STRESS_TEST_PERIPH_2,
                                                                                         rw="CmdWrite",
                                                                                         payload_string=
                                                                                         gen_stress_test_payload(
@@ -237,7 +237,7 @@ def flexsea_stress_test_serial():
         comm_hw.use_channel(0)  # RS-485 transceiver 0, "ch1" on the silk
 
     # Prepare for reception:
-    fx.register_cmd_handler(FX_CMD_STRESS_TEST_POWER, fx_rx_cmd_handler_2_pc)
+    fx.register_cmd_handler(FX_CMD_STRESS_TEST_PERIPH_2, fx_rx_cmd_handler_2_pc)
 
     global pc_packet_number, pc_ramp_value, tx_timestamp, start_time, stress_test_data
     pc_packet_number = -1
@@ -247,7 +247,7 @@ def flexsea_stress_test_serial():
     stress_test_data = []  # Start with empty structure
 
     # Reset embedded counters
-    ret_val, bytestream, bytestream_len = fx.create_bytestream_from_cmd(cmd=FX_CMD_STRESS_TEST_POWER,
+    ret_val, bytestream, bytestream_len = fx.create_bytestream_from_cmd(cmd=FX_CMD_STRESS_TEST_PERIPH_2,
                                                                         rw="CmdWrite",
                                                                         payload_string=gen_stress_test_payload(
                                                                             0, 0, reset=1))
@@ -258,7 +258,7 @@ def flexsea_stress_test_serial():
 
         # PC generates bytestream:
         pc_packet_number, pc_ramp_value = counter_and_ramp(pc_packet_number, pc_ramp_value)
-        ret_val, bytestream, bytestream_len = fx.create_bytestream_from_cmd(cmd=FX_CMD_STRESS_TEST_POWER,
+        ret_val, bytestream, bytestream_len = fx.create_bytestream_from_cmd(cmd=FX_CMD_STRESS_TEST_PERIPH_2,
                                                                             rw="CmdReadWrite",
                                                                             payload_string=gen_stress_test_payload(
                                                                               pc_packet_number, pc_ramp_value))
