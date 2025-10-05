@@ -60,6 +60,8 @@ uint8_t (*fx_rx_cmd_handler_ptr[MAX_CMD_CODE])(uint8_t cmd_6bits, ReadWrite rw,
 WhoAmI who_am_i = {.uuid[0] = 0xAA, .uuid[1] = 0xBB, .uuid[2] = 0xCC,
 		.serial_number = 0, .board = "TBD\0"};
 
+uint16_t tx_packet_num = 0, rx_packet_num = 0;
+
 //****************************************************************************
 // Private Function Prototype(s):
 //****************************************************************************
@@ -67,7 +69,7 @@ WhoAmI who_am_i = {.uuid[0] = 0xAA, .uuid[1] = 0xBB, .uuid[2] = 0xCC,
 uint8_t fx_register_rx_cmd_handlers(void);
 static uint8_t fx_rx_cmd_handler_catchall(uint8_t cmd_6bits, ReadWrite rw,
 		AckNack ack, uint8_t *buf, uint8_t buf_len);
-uint16_t new_tx_packet_num(void);
+static uint16_t generate_new_tx_packet_num(void);
 
 //****************************************************************************
 // Public Function(s)
@@ -128,7 +130,7 @@ uint8_t fx_create_tx_cmd(uint8_t cmd_6bits, ReadWrite rw, AckNack ack,
 		}
 
 		//Create the output data string
-		packet_num = new_tx_packet_num();
+		packet_num = generate_new_tx_packet_num();
 		buf_out[CMD_CODE_INDEX] = cmd_rw;
 		buf_out[CMD_ACK_INDEX] = (ack & 0b1) << 7;
 		buf_out[CMD_ACK_INDEX] |= (packet_num & 0x7F00) >> 8;
@@ -167,6 +169,7 @@ uint8_t fx_parse_rx_cmd(uint8_t* decoded, uint8_t decoded_len, uint8_t *cmd_6bit
 	ack_pn_lsb = decoded[CMD_ACK_INDEX + 1];
 	_ack = CMD_GET_ACK(ack_pn_msb);
 	packet_number = CMD_GET_PACKET_NUM(ack_pn_msb, ack_pn_lsb);
+	rx_packet_num = packet_number;
 
 	if((_cmd_6bits >= MIN_CMD_CODE) && (_cmd_6bits <= MAX_CMD_CODE) && valid)
 	{
@@ -237,6 +240,18 @@ __attribute__((weak)) uint8_t fx_rx_cmd_who_am_i(uint8_t cmd_6bits, ReadWrite rw
 	return FX_SUCCESS;
 }
 
+//Accessor for the TX packet number variable
+uint16_t get_last_tx_packet_num(void)
+{
+	return tx_packet_num;
+}
+
+//Accessor for the RX packet number variable
+uint16_t get_last_rx_packet_num(void)
+{
+	return rx_packet_num;
+}
+
 //****************************************************************************
 // Private Function(s)
 //****************************************************************************
@@ -259,9 +274,8 @@ static uint8_t fx_rx_cmd_handler_catchall(uint8_t cmd_6bits, ReadWrite rw,
 }
 
 //TX packet number
-uint16_t new_tx_packet_num(void)
+static uint16_t generate_new_tx_packet_num(void)
 {
-	static uint16_t tx_packet_num = 0;
 	tx_packet_num++;
 	if(tx_packet_num > MAX_TX_PACKET_NUM)
 	{

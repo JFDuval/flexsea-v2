@@ -272,6 +272,67 @@ void test_command_encode_decode_ack_nack(void)
 	TEST_ASSERT_EQUAL(ack_in, ack_out); //Invalid returns 0
 }
 
+//Is the tx packet count increasing?
+void test_command_track_tx_packet_number(void)
+{
+	uint8_t payload_in[20] = "123payload"; //The first 3 chars will be replaced
+	uint16_t payload_in_len = sizeof(payload_in);
+	uint8_t payload_out[20] = {0};
+	uint8_t payload_out_len = 0;
+	uint8_t cmd_6bits_in = 0;
+	uint8_t ret_val = 0, cmd_6bits_out = 0;
+	ReadWrite rw_in = CmdWrite, rw_out = CmdInvalid;
+	AckNack ack_in = Nack, ack_out = Ack;
+
+	//Test #1: send a new packet
+	uint16_t current_packet_num = get_last_tx_packet_num();
+	ret_val = fx_create_tx_cmd(cmd_6bits_in, rw_in, ack_in, payload_in, payload_in_len,
+			payload_out, &payload_out_len);
+	ret_val = fx_parse_rx_cmd(payload_out, payload_out_len, &cmd_6bits_out, &rw_out, &ack_out);
+	TEST_ASSERT_EQUAL(0, ret_val);	//0 means it no problem
+	TEST_ASSERT_EQUAL(cmd_6bits_in, cmd_6bits_out);
+	TEST_ASSERT_EQUAL(rw_in, rw_out); //Invalid returns 0
+	TEST_ASSERT_EQUAL(ack_in, ack_out); //Invalid returns 0
+	TEST_ASSERT_EQUAL(current_packet_num + 1, get_last_tx_packet_num());	//Did it increment?
+	TEST_ASSERT_EQUAL(current_packet_num + 1, get_last_rx_packet_num());	//Did we receive the same?
+
+	//Test #2: send a bunch (4 new commands, total of 5)
+	ret_val = fx_create_tx_cmd(cmd_6bits_in, rw_in, ack_in, payload_in, payload_in_len,
+				payload_out, &payload_out_len);
+	ret_val = fx_create_tx_cmd(cmd_6bits_in, rw_in, ack_in, payload_in, payload_in_len,
+				payload_out, &payload_out_len);
+	ret_val = fx_create_tx_cmd(cmd_6bits_in, rw_in, ack_in, payload_in, payload_in_len,
+				payload_out, &payload_out_len);
+	ret_val = fx_create_tx_cmd(cmd_6bits_in, rw_in, ack_in, payload_in, payload_in_len,
+				payload_out, &payload_out_len);
+	TEST_ASSERT_EQUAL(current_packet_num + 5, get_last_tx_packet_num());	//Did we keep track?
+}
+
+//Make sure we can encode and decode the packet number
+void test_command_encode_decode_packet_number(void)
+{
+	uint8_t payload_in[20] = "123payload"; //The first 3 chars will be replaced
+	uint16_t payload_in_len = sizeof(payload_in);
+	uint8_t payload_out[20] = {0};
+	uint8_t payload_out_len = 0;
+	uint8_t cmd_6bits_in = 0;
+	uint8_t ret_val = 0, cmd_6bits_out = 0;
+	ReadWrite rw_in = CmdWrite, rw_out = CmdInvalid;
+	AckNack ack_in = Nack, ack_out = Ack;
+
+	//Test #1: send a new packet
+	uint16_t current_packet_num = get_last_tx_packet_num();
+	ret_val = fx_create_tx_cmd(cmd_6bits_in, rw_in, ack_in, payload_in, payload_in_len,
+			payload_out, &payload_out_len);
+	ret_val = fx_parse_rx_cmd(payload_out, payload_out_len, &cmd_6bits_out, &rw_out, &ack_out);
+	TEST_ASSERT_EQUAL(0, ret_val);	//0 means it no problem
+	TEST_ASSERT_EQUAL(cmd_6bits_in, cmd_6bits_out);
+	TEST_ASSERT_EQUAL(rw_in, rw_out); //Invalid returns 0
+	TEST_ASSERT_EQUAL(ack_in, ack_out); //Invalid returns 0
+	TEST_ASSERT_EQUAL(current_packet_num + 1, get_last_tx_packet_num());	//Did it increment?
+	TEST_ASSERT_EQUAL(current_packet_num + 1, get_last_rx_packet_num());	//Did we receive the same?
+}
+
 void test_flexsea_command(void)
 {
 	RUN_TEST(test_command_parse_rx_rw_byte_valid);
@@ -281,6 +342,8 @@ void test_flexsea_command(void)
 	RUN_TEST(test_command_parse_rx_catchall);
 	RUN_TEST(test_command_parse_rx_registered_command);
 	RUN_TEST(test_command_encode_decode_ack_nack);
+	RUN_TEST(test_command_track_tx_packet_number);
+	RUN_TEST(test_command_encode_decode_packet_number);
 
 	fflush(stdout);
 }

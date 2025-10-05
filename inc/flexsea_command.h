@@ -100,6 +100,8 @@ uint8_t fx_call_rx_cmd_handler(uint8_t cmd_6bits, ReadWrite rw, AckNack ack,
 		uint8_t *buf, uint8_t len);
 uint8_t fx_register_rx_cmd_handler(uint8_t cmd,
 		uint8_t (*fct_prt)(uint8_t, ReadWrite, AckNack, uint8_t*, uint8_t));
+uint16_t get_last_tx_packet_num(void);
+uint16_t get_last_rx_packet_num(void);
 
 //****************************************************************************
 // Structure(s):
