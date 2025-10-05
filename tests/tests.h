@@ -5,6 +5,7 @@ extern "C" {
 #ifndef INC_TEST_H
 #define INC_TEST_H
 
+#include <stdio.h>
 #include "../../unity/unity.h"
 #include "flexsea.h"
 
