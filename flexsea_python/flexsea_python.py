@@ -254,7 +254,7 @@ class FlexSEAPython:
 
     def cmd_handler_catchall(self, cmd_6bits, rw, ack, buf):
         print(f'Handler Catch-All received: cmd={cmd_6bits}, rw={rw}, ack={ack}, buf={buf}.')
-        print(f'If you are running a demo, you should not be seeing this!')
+        print(f'This is a sign that you are missing a callback!')
 
     def init_cmd_handler(self):
         index = 0
@@ -269,8 +269,10 @@ class FlexSEAPython:
         my_cmd = self.cmd_handler_dict[cmd_6bits]
         # Member functions come as a set, but user callbacks do not
         if isinstance(my_cmd, set):
-            # If it's a set, we get the first member
-            my_cmd.pop()(cmd_6bits, rw, ack, buf)
+            # If it's a set, we call the element that's a method (the one that's not an int...)
+            for item in my_cmd:
+                if not isinstance(item, int):
+                    item(cmd_6bits, rw, ack, buf)
         else:
             # Call without popping
             my_cmd(cmd_6bits, rw, ack, buf)

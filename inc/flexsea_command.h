@@ -78,6 +78,8 @@ typedef enum {
 //Macros to deal with the Ack bit, and packet number
 #define CMD_GET_ACK(x)					(x & 0x80) >> 7
 #define CMD_GET_PACKET_NUM(msb, lsb)	(((msb & 0x7F) << 8) | lsb)
+#define CMD_ACK_PNUM_MSB(ack, pnum)		(((ack & 0b1) << 7) | ((pnum & 0x7F00) >> 8))
+#define CMD_ACK_PNUM_LSB(pnum)			(pnum & 0x00FF)
 
 //Who Am I?
 typedef struct WhoAmI{

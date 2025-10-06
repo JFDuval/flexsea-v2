@@ -132,9 +132,8 @@ uint8_t fx_create_tx_cmd(uint8_t cmd_6bits, ReadWrite rw, AckNack ack,
 		//Create the output data string
 		packet_num = generate_new_tx_packet_num();
 		buf_out[CMD_CODE_INDEX] = cmd_rw;
-		buf_out[CMD_ACK_INDEX] = (ack & 0b1) << 7;
-		buf_out[CMD_ACK_INDEX] |= (packet_num & 0x7F00) >> 8;
-		buf_out[CMD_ACK_INDEX + 1] = (packet_num & 0x00FF);
+		buf_out[CMD_ACK_INDEX] = CMD_ACK_PNUM_MSB(ack, packet_num);
+		buf_out[CMD_ACK_INDEX + 1] = CMD_ACK_PNUM_LSB(packet_num);
 		memcpy(&buf_out[CMD_CODE_INDEX + CMD_OVERHEAD], buf_in, buf_in_len);
 		*buf_out_len = buf_in_len + CMD_OVERHEAD;
 
@@ -169,7 +168,6 @@ uint8_t fx_parse_rx_cmd(uint8_t* decoded, uint8_t decoded_len, uint8_t *cmd_6bit
 	ack_pn_lsb = decoded[CMD_ACK_INDEX + 1];
 	_ack = CMD_GET_ACK(ack_pn_msb);
 	packet_number = CMD_GET_PACKET_NUM(ack_pn_msb, ack_pn_lsb);
-	rx_packet_num = packet_number;
 
 	if((_cmd_6bits >= MIN_CMD_CODE) && (_cmd_6bits <= MAX_CMD_CODE) && valid)
 	{
@@ -177,6 +175,7 @@ uint8_t fx_parse_rx_cmd(uint8_t* decoded, uint8_t decoded_len, uint8_t *cmd_6bit
 		*cmd_6bits = _cmd_6bits;
 		*rw = _rw;
 		*ack = _ack;
+		rx_packet_num = packet_number;
 
 		//At this point we are ready to use the function pointer array to call a
 		//specific command function. We do not call it here as it would prevent us
