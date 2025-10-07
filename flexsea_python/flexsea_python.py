@@ -5,6 +5,7 @@ import serial
 from serial import SerialException
 import time
 import platform
+from flexsea_tools import *
 
 # The variables found before the FlexSEAPython class need to match the C code.
 # Only edit if you have changed the code used to generate the DLL!
@@ -13,6 +14,7 @@ MAX_ENCODED_PAYLOAD_BYTES = 200
 MIN_CMD_CODE = 0
 MAX_CMD_CODE = 63
 CMD_WHO_AM_I = 0
+CMD_ACK = 1
 MIN_OVERHEAD = 4
 CMD_OVERHEAD = 3
 
@@ -33,18 +35,6 @@ class WhoAmIStruct(Structure):
     _fields_ = [("uuid", c_uint32 * 3),
                 ("serial_number", c_uint32),
                 ("board", c_int8 * 12)]
-
-
-# Who am I?
-def fx_rx_cmd_handler_0(cmd_6bits, rw, ack, buf):
-    rx_data = WhoAmIStruct()
-    ctypes.memmove(pointer(rx_data), buf[CMD_OVERHEAD:], sizeof(rx_data))
-    uuid = rx_data.uuid[0] * 2**64 + rx_data.uuid[1] * 2**32 + rx_data.uuid[2]  # Rebuild UUID C-style
-
-    board_str_as_bytes = [chr(rx_data.board[i]) for i in range(len(rx_data.board))]
-    board = ''.join(board_str_as_bytes)
-    board = board.split('\x00', 1)[0]   # Remove trailing zeros
-    print(f'Who am I? UUID = 0x{uuid:02X}, Serial number = {rx_data.serial_number}, Board = {board}')
 
 
 class FlexSEASerial:
@@ -157,6 +147,7 @@ class FlexSEAPython:
             "Nack": 0,
             "Ack": 1,
         }
+        self.register_cmd_handler(CMD_ACK, self.fx_rx_cmd_handler_1)
 
     def create_bytestream_from_cmd(self, cmd, rw, ack, payload_string):
         """
@@ -349,7 +340,7 @@ class FlexSEAPython:
 
     def who_am_i(self):
         # Prepare for reception:
-        self.register_cmd_handler(CMD_WHO_AM_I, fx_rx_cmd_handler_0)
+        self.register_cmd_handler(CMD_WHO_AM_I, self.fx_rx_cmd_handler_0)
         start_time = round(time.time() * 1000)
 
         # Who am I?
@@ -386,6 +377,37 @@ class FlexSEAPython:
     def get_max_cb_length():
         global CIRC_BUF_SIZE
         return CIRC_BUF_SIZE
+
+    def fx_rx_cmd_handler_0(self, cmd_6bits, rw, ack, buf):
+        """
+        # Who am I? Handler. ToDo document. Static?
+        :param cmd_6bits:
+        :param rw:
+        :param ack:
+        :param buf:
+        :return:
+        """
+        rx_data = WhoAmIStruct()
+        ctypes.memmove(pointer(rx_data), buf[CMD_OVERHEAD:], sizeof(rx_data))
+        uuid = rx_data.uuid[0] * 2 ** 64 + rx_data.uuid[1] * 2 ** 32 + rx_data.uuid[2]  # Rebuild UUID C-style
+
+        board_str_as_bytes = [chr(rx_data.board[i]) for i in range(len(rx_data.board))]
+        board = ''.join(board_str_as_bytes)
+        board = board.split('\x00', 1)[0]  # Remove trailing zeros
+        print(f'Who am I? UUID = 0x{uuid:02X}, Serial number = {rx_data.serial_number}, Board = {board}')
+
+    def fx_rx_cmd_handler_1(self, cmd_6bits, rw, ack, buf):
+        """
+        Command ACK handler. ToDo document. Static?
+        :param rw:
+        :param ack:
+        :param buf:
+        :return:
+        """
+        ack_cmd = byte_to_int8(buf[CMD_OVERHEAD])
+        ack_packet_num = bytes_to_uint16(buf[CMD_OVERHEAD + 1:CMD_OVERHEAD + 3]) & 0x7FFF
+        print(f'FlexSEA command acknowledged: cmd = {ack_cmd}, packet #{ack_packet_num}. The last TX # was '
+              f'{self.fx.get_last_tx_packet_num()}')
 
 
 class CommHardware:
