@@ -378,14 +378,15 @@ class FlexSEAPython:
         global CIRC_BUF_SIZE
         return CIRC_BUF_SIZE
 
-    def fx_rx_cmd_handler_0(self, cmd_6bits, rw, ack, buf):
+    @staticmethod
+    def fx_rx_cmd_handler_0(cmd_6bits, rw, ack, buf):
         """
-        # Who am I? Handler. ToDo document. Static?
-        :param cmd_6bits:
-        :param rw:
-        :param ack:
-        :param buf:
-        :return:
+        # Who am I? reception handler.
+        :param cmd_6bits: 6-bits command code
+        :param rw: ReadWrite
+        :param ack: Ack or Nack
+        :param buf: buffer with data
+        :return: N/A
         """
         rx_data = WhoAmIStruct()
         ctypes.memmove(pointer(rx_data), buf[CMD_OVERHEAD:], sizeof(rx_data))
@@ -398,16 +399,17 @@ class FlexSEAPython:
 
     def fx_rx_cmd_handler_1(self, cmd_6bits, rw, ack, buf):
         """
-        Command ACK handler. ToDo document. Static?
-        :param rw:
-        :param ack:
-        :param buf:
-        :return:
+        Command ACK reception handler.
+        :param cmd_6bits: 6-bits command code
+        :param rw: ReadWrite
+        :param ack: Ack or Nack
+        :param buf: buffer with data
+        :return: N/A
         """
         ack_cmd = byte_to_int8(buf[CMD_OVERHEAD])
         ack_packet_num = bytes_to_uint16(buf[CMD_OVERHEAD + 1:CMD_OVERHEAD + 3]) & 0x7FFF
         print(f'FlexSEA command acknowledged: cmd = {ack_cmd}, packet #{ack_packet_num}. The last TX # was '
-              f'{self.fx.get_last_tx_packet_num()}')
+              f'{self.fx.get_last_tx_packet_num()}.')
 
 
 class CommHardware:

@@ -240,6 +240,62 @@ void test_command_parse_rx_registered_command(void)
 	}
 }
 
+//Make sure that our Ack/Nack/Packet Number macros work as intended
+void test_command_ack_nack_packet_macros(void)
+{
+	//Ack
+	uint8_t ack = 0x80;	//Ack
+	uint8_t parsed_ack = CMD_GET_ACK(ack);
+	TEST_ASSERT_EQUAL(1, parsed_ack);
+
+	//Nack
+	ack = 0x00;	//Nack
+	parsed_ack = CMD_GET_ACK(ack);
+	TEST_ASSERT_EQUAL(0, parsed_ack);
+
+	//Small packet num and Ack
+	uint8_t msb = 0x80;	//Ack, no packet num msb
+	uint8_t lsb = 25;	//pnum = 25
+	uint16_t pnum = CMD_GET_PACKET_NUM(msb, lsb);
+	TEST_ASSERT_EQUAL(lsb, pnum);
+
+	//Large packet num and Ack
+	msb = 0x80 | 0x09;	//Ack, no packet num msb
+	lsb = 0xD0;	//pnum = 2512 (0x9D0)
+	pnum = CMD_GET_PACKET_NUM(msb, lsb);
+	TEST_ASSERT_EQUAL(2512, pnum);
+
+	//Small packet num and Nack
+	msb = 0x00;	//Nack, no packet num msb
+	lsb = 25;	//pnum = 25
+	pnum = CMD_GET_PACKET_NUM(msb, lsb);
+	TEST_ASSERT_EQUAL(25, pnum);
+
+	//Combine ack and packet number msb, small
+	msb = CMD_ACK_PNUM_MSB(1, 25);
+	lsb = CMD_ACK_PNUM_LSB(25);
+	TEST_ASSERT_EQUAL(0x80, msb);
+	TEST_ASSERT_EQUAL(25, lsb);
+
+	//Combine nack and packet number msb, small
+	msb = CMD_ACK_PNUM_MSB(0, 25);
+	lsb = CMD_ACK_PNUM_LSB(25);
+	TEST_ASSERT_EQUAL(0x0, msb);
+	TEST_ASSERT_EQUAL(25, lsb);
+
+	//Combine ack and packet number msb, large
+	msb = CMD_ACK_PNUM_MSB(1, 12345);
+	lsb = CMD_ACK_PNUM_LSB(12345);
+	TEST_ASSERT_EQUAL(0x80 | 0x30, msb);
+	TEST_ASSERT_EQUAL(0x39, lsb);
+
+	//Combine nack and packet number msb, large
+	msb = CMD_ACK_PNUM_MSB(0, 12345);
+	lsb = CMD_ACK_PNUM_LSB(12345);
+	TEST_ASSERT_EQUAL(0x30, msb);
+	TEST_ASSERT_EQUAL(0x39, lsb);
+}
+
 //Make sure we can encode and decode the ACK bit
 void test_command_encode_decode_ack_nack(void)
 {
@@ -341,6 +397,7 @@ void test_flexsea_command(void)
 	RUN_TEST(test_command_create_tx_basic_bad_cmd_rw);
 	RUN_TEST(test_command_parse_rx_catchall);
 	RUN_TEST(test_command_parse_rx_registered_command);
+	RUN_TEST(test_command_ack_nack_packet_macros);
 	RUN_TEST(test_command_encode_decode_ack_nack);
 	RUN_TEST(test_command_track_tx_packet_number);
 	RUN_TEST(test_command_encode_decode_packet_number);
