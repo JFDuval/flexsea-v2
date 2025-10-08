@@ -11,12 +11,14 @@ from flexsea_tools import *
 # Only edit if you have changed the code used to generate the DLL!
 
 MAX_ENCODED_PAYLOAD_BYTES = 200
+MIN_OVERHEAD = 4
+CMD_OVERHEAD = 3
+# Command codes and limits:
 MIN_CMD_CODE = 0
 MAX_CMD_CODE = 63
 CMD_WHO_AM_I = 0
 CMD_ACK = 1
-MIN_OVERHEAD = 4
-CMD_OVERHEAD = 3
+CMD_DEMO = 2
 
 # This structure holds all the info about a given circular buffer
 # This needs to match circ_buf.h!

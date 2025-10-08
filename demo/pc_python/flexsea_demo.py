@@ -6,6 +6,7 @@ import sys
 
 # Add the FlexSEA path to this project
 sys.path.append('../../')
+import flexsea_python
 from flexsea_python import FlexSEAPython
 from flexsea_tools import *
 # Note: with PyCharm you must add this folder and mark is as a Sources Folder to avoid an Unresolved Reference issue
@@ -14,8 +15,6 @@ dll_filename = '../../projects/eclipse_pc/DynamicLib/libflexsea-v2.dll'
 com_port = 'COM4'
 serial_port = 0  # Holds the serial port object
 new_tx_delay_ms = 40
-
-CMD_OVERHEAD = 3    # ToDo this needs to be in the stack
 
 
 # Open serial port
@@ -55,8 +54,8 @@ class FxDemoStruct(Structure):
 
 # Custom command handler used by the serial demo code
 # Note: this has to match the embedded code for the serial demo to work!
-def fx_rx_cmd_handler_1(cmd_6bits, rw, ack, buf):
-    print(f'Handler #1 received: cmd={cmd_6bits}, rw={rw}, buf={buf}.')
+def fx_rx_cmd_handler_2(cmd_6bits, rw, ack, buf):
+    print(f'Handler #2 received: cmd={cmd_6bits}, rw={rw}, buf={buf}.')
     print(f'This confirms the reception of our command.')
 
     # This demo decodes the received data two ways. We start with the manual version.
@@ -91,7 +90,7 @@ def fx_rx_cmd_handler_1(cmd_6bits, rw, ack, buf):
     tx_data = FxDemoStruct(var0_int8=-1, var1_uint32=123456, var2_uint8=150, var3_int32=-1234567, var4_int8=-125,
                            var5_uint16=4567, var6_uint8=123, var7_int16=-4567, var8_float=12.37)
     rx_data = FxDemoStruct()
-    ctypes.memmove(pointer(rx_data), buf[CMD_OVERHEAD:], sizeof(rx_data))
+    ctypes.memmove(pointer(rx_data), buf[flexsea_python.CMD_OVERHEAD:], sizeof(rx_data))
     if identical_ctype_structs(tx_data, rx_data):
         print('All decoded values match what our demo code is sending! Successful PC Python <> Embedded C interface, '
               'Structure decoding mode.\n')
@@ -139,10 +138,11 @@ def flexsea_demo_local_loopback():
     fx = FlexSEAPython(dll_filename)
 
     # Prepare for reception:
-    fx.register_cmd_handler(1, fx_rx_cmd_handler_1)
+    fx.register_cmd_handler(flexsea_python.CMD_DEMO, fx_rx_cmd_handler_2)
 
     # Generate bytestream from text string (payload):
-    ret_val, bytestream, bytestream_len = fx.create_bytestream_from_cmd(cmd=1, rw="CmdReadWrite", ack="Nack",
+    ret_val, bytestream, bytestream_len = fx.create_bytestream_from_cmd(cmd=flexsea_python.CMD_DEMO, rw="CmdReadWrite",
+                                                                        ack="Nack",
                                                                         payload_string=gen_test_code_payload('manual'))
 
     if not ret_val:
@@ -188,10 +188,11 @@ def flexsea_demo_serial():
         exit()
 
     # Prepare for reception:
-    fx.register_cmd_handler(1, fx_rx_cmd_handler_1)
+    fx.register_cmd_handler(flexsea_python.CMD_DEMO, fx_rx_cmd_handler_2)
 
     # Generate bytestream from text string (payload):
-    ret_val, bytestream, bytestream_len = fx.create_bytestream_from_cmd(cmd=1, rw="CmdReadWrite", ack="Nack",
+    ret_val, bytestream, bytestream_len = fx.create_bytestream_from_cmd(cmd=flexsea_python.CMD_DEMO, rw="CmdReadWrite",
+                                                                        ack="Nack",
                                                                         payload_string=gen_test_code_payload('struct'))
 
     if not ret_val:
