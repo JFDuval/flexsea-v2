@@ -38,6 +38,7 @@ To test the stack on your PC use a project from the 'demo' folder. That folder a
 #### Encoded string ####
 
 `[HEADER][# of BYTES][PAYLOAD (DATA)...][CHECKSUM][FOOTER]`
+
 This is what's exchanged on the bus.
 
 - Number of bytes includes the ESCAPE bytes
@@ -47,6 +48,7 @@ This is what's exchanged on the bus.
 #### Packaged payload ####
 
 `[CMD + R/W][ACK/NAK + PACKET NUM][DATA...]`
+
 This is what the user sees before encoding (TX), and after decoding (RX).
 
 - CMD is a 6-bit command code
