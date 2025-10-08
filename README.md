@@ -31,17 +31,23 @@ To test the stack on your PC use a project from the 'demo' folder. That folder a
   - **pc_python/:** Demo/test code written in Python, with PyCharm project. You need to compile a DLL first. It can interact with the STM32 demo project.
   - **stm32_c/:** STM32 demo code. It's the default STM test project with a very minimalist stack integration. It can interact with the Python demo project.
 
-## Packet format, data exchange
+## Packet format & data exchange
 
 ### Packet format
 
-Encoded string: `[HEADER][# of BYTES][PAYLOAD (DATA)...][CHECKSUM][FOOTER]`. This is what's exchanged on the bus.
+#### Encoded string ####
+
+`[HEADER][# of BYTES][PAYLOAD (DATA)...][CHECKSUM][FOOTER]`
+This is what's exchanged on the bus.
 
 - Number of bytes includes the ESCAPE bytes
 - Checksum is done on the payload (data + ESCAPEs) and on the BYTES byte.
 - Payload/data: string of bytes. It can be a command (see flexsea_command) or raw data.
 
-Packaged payload: `[CMD + R/W][ACK/NAK + PACKET NUM][DATA...]`. This is what the user sees before encoding (TX), and after decoding (RX).
+#### Packaged payload ####
+
+`[CMD + R/W][ACK/NAK + PACKET NUM][DATA...]`
+This is what the user sees before encoding (TX), and after decoding (RX).
 
 - CMD is a 6-bit command code
 - R/W is a 2-bit code to determine if this command is a Read, Write, or Read/Write
