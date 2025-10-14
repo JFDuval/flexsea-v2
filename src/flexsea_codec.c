@@ -179,6 +179,15 @@ uint8_t fx_decode(circ_buf_t *cb, uint8_t *encoded, uint8_t *encoded_len,
 		//If we can't find a header, we quit searching for encoded payloads
 		if(ret_val == 1)
 		{
+			//We just looked at every byte and didn't find anything, so let's delete them
+			//to avoid looking at the same ones again and again
+
+			uint8_t dump = 0;
+			for(int j = 0; j < cb_size; j++)
+			{
+				ret_val = circ_buf_read_byte(cb, &dump);
+			}
+
 			return 1;
 		}
 

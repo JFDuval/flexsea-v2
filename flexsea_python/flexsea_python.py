@@ -84,6 +84,7 @@ class FlexSEASerial:
         timeout_counter = 10
         if self.serial_port:
             self.serial_port.write(bytestream[0:bytestream_length])
+            # print(f'SP bytestream len: {bytestream_length}')
             while self.serial_port.out_waiting and timeout_counter:
                 timeout_counter = timeout_counter - 1
                 time.sleep(0.01)
@@ -291,7 +292,8 @@ class FlexSEAPython:
         send_reply = 0
         cmd_reply = 0
         new_data = 0
-        if self.get_circular_buffer_length() > MIN_OVERHEAD:
+        while self.get_circular_buffer_length() > MIN_OVERHEAD:
+            # ToDo we need a safety here...
             ret_val, cmd_6bits_out, rw_out, ack_out, buf, buf_len = self.get_cmd_handler_from_bytestream()
             if not ret_val:
                 # Call handler:
@@ -301,6 +303,8 @@ class FlexSEAPython:
                 if (rw_out == self.rw_dict['CmdRead']) or (rw_out == self.rw_dict['CmdReadWrite']):
                     reply_cmd = cmd_6bits_out
                     send_reply = 1
+                # print(f'fx.receive remaining CB bytes: {self.get_circular_buffer_length()}')
+                # print(f'fx.receive remaining CB bytes: {self.get_circular_buffer_length()}')
                 self.cleanup()
         else:
             self.cleanup()

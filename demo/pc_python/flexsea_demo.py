@@ -252,6 +252,8 @@ def flexsea_demo_serial():
 
     except KeyboardInterrupt:
         print('Interrupted! End or demo code.')
+        print(f'Serial bytes in waiting = {serial_port.in_waiting}, out waiting = {serial_port.out_waiting}.')
+        serial_port.close()
 
 
 if __name__ == "__main__":

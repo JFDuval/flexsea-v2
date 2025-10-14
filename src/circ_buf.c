@@ -39,8 +39,7 @@ uint8_t circ_buf_init(circ_buf_t *cb)
 
 //Add a value to the circular buffer (single byte)
 //Returns 0 if it's not full (normal operation)
-//Returns 1 if the buffer is full (it will save the value by overwriting the
-//oldest data)
+//Returns 1 if the buffer is full (refuse new data)
 uint8_t circ_buf_write_byte(circ_buf_t *cb, uint8_t new_value)
 {
 	uint8_t ret_val = 0;
@@ -50,6 +49,7 @@ uint8_t circ_buf_write_byte(circ_buf_t *cb, uint8_t new_value)
 	{
 		cb->length = CIRC_BUF_SIZE;
 		ret_val = 1;
+		return ret_val;
 	}
 	else
 	{
@@ -105,7 +105,7 @@ uint8_t circ_buf_peek(circ_buf_t *cb, uint8_t *read_value, uint16_t offset)
 {
 	if(offset >= cb->length)
 	{
-		read_value = 0;
+		*read_value = 0;
 		return 1;
 	}
 
@@ -167,14 +167,14 @@ uint8_t circ_buf_checksum(circ_buf_t *cb, uint8_t *checksum, uint16_t start,
 	if((start >= cb->length) || (end > cb->length))
 	{
 		//Start or stop are out of the range
-		checksum = 0;
+		*checksum = 0;
 		return 1;
 	}
 
 	if((end - start) < 1)
 	{
 		//We need some bytes if we want to calculate a checksum
-		checksum = 0;
+		*checksum = 0;
 		return 1;
 	}
 
