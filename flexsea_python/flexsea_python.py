@@ -284,7 +284,7 @@ class FlexSEAPython:
                 ret_val = self.write_to_circular_buffer(new_rx_byte[0], 1)
 
 
-    def receive(self):
+    def receive(self, max_tries=5):
         """
         This replicates the embedded system's fx_receive command
         :return:
@@ -292,8 +292,8 @@ class FlexSEAPython:
         send_reply = 0
         cmd_reply = 0
         new_data = 0
-        while self.get_circular_buffer_length() > MIN_OVERHEAD:
-            # ToDo we need a safety here...
+        read_attempts = max_tries
+        while (self.get_circular_buffer_length() > MIN_OVERHEAD) and (read_attempts > 0):
             ret_val, cmd_6bits_out, rw_out, ack_out, buf, buf_len = self.get_cmd_handler_from_bytestream()
             if not ret_val:
                 # Call handler:
@@ -306,6 +306,7 @@ class FlexSEAPython:
                 # print(f'fx.receive remaining CB bytes: {self.get_circular_buffer_length()}')
                 # print(f'fx.receive remaining CB bytes: {self.get_circular_buffer_length()}')
                 self.cleanup()
+            read_attempts = read_attempts - 1
         else:
             self.cleanup()
 
