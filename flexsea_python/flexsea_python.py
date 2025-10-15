@@ -303,7 +303,7 @@ class FlexSEAPython:
                 new_data = 1
                 # Reply if requested
                 if (rw_out == self.rw_dict['CmdRead']) or (rw_out == self.rw_dict['CmdReadWrite']):
-                    reply_cmd = cmd_6bits_out
+                    cmd_reply = cmd_6bits_out
                     send_reply = 1
                 # print(f'fx.receive remaining CB bytes: {self.get_circular_buffer_length()}')
                 # print(f'fx.receive remaining CB bytes: {self.get_circular_buffer_length()}')

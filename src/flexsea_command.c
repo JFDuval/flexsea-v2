@@ -36,7 +36,7 @@ extern "C" {
 //   Read/Write
 //=> CMD and R/W share a byte. CMD has the 6 MSBs, and RW has the 2 LSBs.
 //=> ACK/NACK is the MSB. Set to request an ACK, reset for open-ended comm.
-//=> PACKET NUM is 15 bits. 7 LSB of the ACK byte + another full byte
+//=> PACKET NUM is 15 bits. 7 LSBs of the ACK byte + another full byte
 //=> Data is a byte array
 
 //This file is all about sending and receiving commands. The command code and
