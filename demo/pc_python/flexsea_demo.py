@@ -61,15 +61,16 @@ def fx_rx_cmd_handler_2(cmd_6bits, rw, ack, buf):
     # This demo decodes the received data two ways. We start with the manual version.
 
     # We start at 'CMD_OVERHEAD'
-    var0_int8 = byte_to_int8(buf[3])
-    var1_uint32 = bytes_to_uint32(buf[4:8])
-    var2_uint8 = byte_to_uint8(buf[8])
-    var3_int32 = bytes_to_int32(buf[9:13])
-    var4_int8 = byte_to_int8(buf[13])
-    var5_uint16 = bytes_to_uint16(buf[14:16])
-    var6_uint8 = byte_to_uint8(buf[16])
-    var7_int16 = bytes_to_int16(buf[17:19])
-    var8_float = bytes_to_float(buf[19:23])
+    b0 = flexsea_python.CMD_OVERHEAD
+    var0_int8 = byte_to_int8(buf[b0])
+    var1_uint32 = bytes_to_uint32(buf[b0+1:b0+5])
+    var2_uint8 = byte_to_uint8(buf[b0+5])
+    var3_int32 = bytes_to_int32(buf[b0+6:b0+10])
+    var4_int8 = byte_to_int8(buf[b0+10])
+    var5_uint16 = bytes_to_uint16(buf[b0+11:b0+13])
+    var6_uint8 = byte_to_uint8(buf[b0+13])
+    var7_int16 = bytes_to_int16(buf[b0+14:b0+16])
+    var8_float = bytes_to_float(buf[b0+16:b0+20])
     print(f'var0_int8 = {var0_int8}, var1_uint32 = {var1_uint32}, var2_uint8 = {var2_uint8}, var3_int32 = {var3_int32}'
           f', var4_int8 = {var4_int8}, var5_uint16 = {var5_uint16}, var6_uint8 = {var6_uint8}, var7_int16 = '
           f'{var7_int16}, var8_float = {var8_float}')

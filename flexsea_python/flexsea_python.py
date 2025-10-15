@@ -246,7 +246,8 @@ class FlexSEAPython:
                                                              byref(ack_out), buf, byref(buf_len))
         return ret_val, cmd_6bits_out.value, rw_out.value, ack_out.value, bytes(buf), buf_len.value
 
-    def cmd_handler_catchall(self, cmd_6bits, rw, ack, buf):
+    @staticmethod
+    def cmd_handler_catchall(cmd_6bits, rw, ack, buf):
         print(f'Handler Catch-All received: cmd={cmd_6bits}, rw={rw}, ack={ack}, buf={buf}.')
         print(f'This is a sign that you are missing a callback!')
 
@@ -287,6 +288,7 @@ class FlexSEAPython:
     def receive(self, max_tries=5):
         """
         This replicates the embedded system's fx_receive command
+        :max_tries: How many times do we try to parse?
         :return:
         """
         send_reply = 0
