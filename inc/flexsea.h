@@ -67,6 +67,8 @@ uint8_t fx_get_cmd_handler_from_bytestream(circ_buf_t *cb,
 // Structure(s):
 //****************************************************************************
 
+#define DBUF_MAX_LEN	256
+
 //This structure holds all the info about a communication port
 typedef struct CommPort
 {
@@ -78,6 +80,10 @@ typedef struct CommPort
 	uint16_t ack_packet_num;	//Packet number we are acknowledging
 	circ_buf_t *cb;				//Reception circular buffer
 	uint8_t (*tx_fct_prt) (uint8_t *, uint16_t);	//TX function
+	//Double buffering with ping-pong buffers (ToDo)
+	volatile uint8_t dbuf[DBUF_MAX_LEN];
+	volatile uint8_t dbuf_lock;
+	volatile uint32_t dbuf_len;
 }CommPort;
 
 //****************************************************************************
