@@ -81,9 +81,13 @@ typedef struct CommPort
 	circ_buf_t *cb;				//Reception circular buffer
 	uint8_t (*tx_fct_prt) (uint8_t *, uint16_t);	//TX function
 	//Double buffering with ping-pong buffers (ToDo)
-	volatile uint8_t dbuf[DBUF_MAX_LEN];
-	volatile uint8_t dbuf_lock;
-	volatile uint32_t dbuf_len;
+	volatile uint8_t dbuf_ping[DBUF_MAX_LEN];
+	volatile uint8_t dbuf_pong[DBUF_MAX_LEN];
+	volatile uint8_t dbuf_lock_ping;
+	volatile uint8_t dbuf_lock_pong;
+	volatile uint32_t dbuf_ping_len;
+	volatile uint32_t dbuf_pong_len;
+	volatile uint8_t dbuf_selected;
 }CommPort;
 
 //****************************************************************************
