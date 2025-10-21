@@ -32,7 +32,7 @@ new_tx_delay_ms = 20  # 10 ms = 100 Hz
 FX_CMD_STRESS_TEST_PERIPH_1 = 3
 FX_CMD_STRESS_TEST_PERIPH_2 = 4
 RAMP_MAX = 1000
-STRESS_TEST_CYCLES = 1000
+STRESS_TEST_CYCLES = 2500
 
 # Variables used in TX and RX to analyze a loop back
 start_time = 0
