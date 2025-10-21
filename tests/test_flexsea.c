@@ -277,109 +277,12 @@ void test_flexsea_continuous_receive_handle(void)
 	}
 }
 
-//We prepare a new circular buffer for our test
-circ_buf_t cb_test = {.buffer = {0}, .length = 0, .write_index = 0,
-		.read_index = 0};
-
-//CommPort and init:
-CommPort comm_port;
-
-void Comm_RxHandler(uint8_t* Buf, uint32_t Len)
-{
-	//Basic lock & double buffer
-	if(comm_port.dbuf_selected == 0)
-	{
-		//Write to the Ping buffer
-		comm_port.dbuf_lock_ping = 1;
-		comm_port.dbuf_ping_len = Len;
-		memcpy(comm_port.dbuf_ping, Buf, Len);
-		comm_port.dbuf_lock_ping = 0;
-		comm_port.dbuf_selected = 1;
-	}
-	else
-	{
-		//Write to the Pong buffer
-		comm_port.dbuf_lock_pong = 1;
-		comm_port.dbuf_pong_len = Len;
-		memcpy(comm_port.dbuf_pong, Buf, Len);
-		comm_port.dbuf_lock_pong = 0;
-		comm_port.dbuf_selected = 0;
-	}
-}
-
-//We write to the Circular Buffer here, when new data has been received.
-void process_buffer(CommPort *cp)
-{
-	//We read from the buffer that's not selected for a Write
-	if(cp->dbuf_selected == 1)
-	{
-		//Pong is lined up for the next write => read Ping
-		if(cp->dbuf_ping_len > 0 && !cp->dbuf_lock_ping)
-		{
-			for(int i = 0; i < cp->dbuf_ping_len; i++)
-			{
-				circ_buf_write_byte(cp->cb, cp->dbuf_ping[i]);
-			}
-			cp->dbuf_ping_len = 0;
-		}
-	}
-	else
-	{
-		//Ping is lined up for the next write => read Pong
-		if(cp->dbuf_pong_len > 0 && !cp->dbuf_lock_pong)
-		{
-			for(int i = 0; i < cp->dbuf_pong_len; i++)
-			{
-				circ_buf_write_byte(cp->cb, cp->dbuf_pong[i]);
-			}
-			cp->dbuf_pong_len = 0;
-		}
-	}
-}
-
-void test_flexsea_ping_pong_buffer(void)
-{
-	circ_buf_init(&cb_test);
-
-	//FlexSEA Comm Port:
-	comm_port.id = 0;
-	comm_port.send_reply = 0;
-	comm_port.reply_cmd = 0;
-	comm_port.cb = &cb_test;
-	//comm_port.tx_fct_prt = (void);
-	memset(comm_port.dbuf_ping, 0x00, DBUF_MAX_LEN);
-	memset(comm_port.dbuf_pong, 0x00, DBUF_MAX_LEN);
-	comm_port.dbuf_lock_ping = 0;
-	comm_port.dbuf_lock_pong = 0;
-	comm_port.dbuf_ping_len = 0;
-	comm_port.dbuf_pong_len = 0;
-
-	//We receive a few chunks of information and make sure it gets saved in order
-	uint8_t wbuf1[10] = "Test #1.";
-	Comm_RxHandler(wbuf1, 8);
-	process_buffer(&comm_port);
-	memcpy(wbuf1, "Worked?", 7);
-	Comm_RxHandler(wbuf1, 7);
-	process_buffer(&comm_port);
-	memcpy(wbuf1, "For sure!", 9);
-	Comm_RxHandler(wbuf1, 9);
-	process_buffer(&comm_port);
-	TEST_ASSERT_EQUAL(cb_test.length, 8+7+9);
-	uint8_t read_back[8+7+9] = {0};
-	for(int i = 0; i < (8+7+9+1); i++)
-	{
-		circ_buf_read_byte(&cb_test, &read_back[i]);
-	}
-	TEST_ASSERT_EQUAL_STRING("Test #1.Worked?For sure!", read_back);
-}
-
 void test_flexsea(void)
 {
 	RUN_TEST(test_fx_create_bytestream_from_cmd);
 	RUN_TEST(test_fx_get_cmd_handler_from_bytestream);
 	RUN_TEST(test_structure_serialize_deserialize);
 	RUN_TEST(test_flexsea_continuous_receive_handle);
-	RUN_TEST(test_flexsea_ping_pong_buffer);
 
 	fflush(stdout);
 }

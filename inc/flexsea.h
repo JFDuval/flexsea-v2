@@ -42,6 +42,7 @@ extern "C" {
 #include "circ_buf.h"
 #include <flexsea_codec.h>
 #include <flexsea_command.h>
+#include <flexsea_comm.h>
 #include <flexsea_tools.h>
 
 //****************************************************************************
@@ -67,28 +68,7 @@ uint8_t fx_get_cmd_handler_from_bytestream(circ_buf_t *cb,
 // Structure(s):
 //****************************************************************************
 
-#define DBUF_MAX_LEN	256
 
-//This structure holds all the info about a communication port
-typedef struct CommPort
-{
-	uint8_t id;					//Port identification
-	uint8_t send_reply;			//Do we have a reply to send?
-	uint8_t reply_cmd;			//What is it?
-	uint8_t send_ack;			//Do we need to acknowledge a Write?
-	uint8_t ack_cmd;			//Command code we are acknowledging
-	uint16_t ack_packet_num;	//Packet number we are acknowledging
-	circ_buf_t *cb;				//Reception circular buffer
-	uint8_t (*tx_fct_prt) (uint8_t *, uint16_t);	//TX function
-	//Double buffering with ping-pong buffers (ToDo)
-	volatile uint8_t dbuf_ping[DBUF_MAX_LEN];
-	volatile uint8_t dbuf_pong[DBUF_MAX_LEN];
-	volatile uint8_t dbuf_lock_ping;
-	volatile uint8_t dbuf_lock_pong;
-	volatile uint32_t dbuf_ping_len;
-	volatile uint32_t dbuf_pong_len;
-	volatile uint8_t dbuf_selected;
-}CommPort;
 
 //****************************************************************************
 // Shared variable(s)
