@@ -50,6 +50,8 @@ extern "C" {
 #include "flexsea.h"
 #include <flexsea_codec.h>
 
+//#include "main.h"
+
 //****************************************************************************
 // Variable(s)
 //****************************************************************************
@@ -169,6 +171,21 @@ uint8_t fx_decode(circ_buf_t *cb, uint8_t *encoded, uint8_t *encoded_len,
 		{
 			ret_val = circ_buf_search(cb, &header_pos, HEADER, last_header_pos);
 			first_time = 0;
+
+			if(ret_val == 1)
+			{
+				//We just looked at every byte and didn't find anything, so let's delete them
+				//to avoid looking at the same ones again and again
+				//EXT_PB11_Write(1);
+				uint8_t dump = 0;
+				for(int j = 0; j < last_header_pos; j++)
+				{
+					ret_val = circ_buf_read_byte(cb, &dump);
+				}
+				//EXT_PB11_Write(0);
+
+				return 1;
+			}
 		}
 		else
 		{
@@ -176,27 +193,39 @@ uint8_t fx_decode(circ_buf_t *cb, uint8_t *encoded, uint8_t *encoded_len,
 					last_header_pos + 1);
 		}
 
+		//This means it's not the first time => we found at least one header => don't delete
+		if(ret_val == 1)
+		{
+			return 1;
+		}
+
+
+		//I THINK THIS IS WHAT'S CAUSING MY BUG - IT EMPTIES THE BUFFER BEFORE
+		//WE HAVE RECEIVED EVERYTHING!!!
 		//If we can't find a header, we quit searching for encoded payloads
+		/*
 		if(ret_val == 1)
 		{
 			//We just looked at every byte and didn't find anything, so let's delete them
 			//to avoid looking at the same ones again and again
-
+			EXT_PB11_Write(1);
 			uint8_t dump = 0;
 			for(int j = 0; j < cb_size; j++)
 			{
 				ret_val = circ_buf_read_byte(cb, &dump);
 			}
+			EXT_PB11_Write(0);
 
 			return 1;
-
 		}
+		*/
 
 		//We found a header! Can we find a footer in the right location?
 		headers++;
 		found_footer = 0;
 		if(header_pos <= last_possible_header_index)
 		{
+
 			//How many bytes in this potential encoded payload?
 			ret_val = circ_buf_peek(cb, &bytes_in_encoded_payload,
 					header_pos + 1);
@@ -215,6 +244,7 @@ uint8_t fx_decode(circ_buf_t *cb, uint8_t *encoded, uint8_t *encoded_len,
 		}
 
 		//Now that we found an encoded payload, let's make sure it's valid
+
 		if(found_footer)
 		{
 			footers++;

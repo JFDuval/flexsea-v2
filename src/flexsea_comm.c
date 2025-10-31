@@ -35,6 +35,8 @@ extern "C" {
 #include "flexsea.h"
 #include <flexsea_comm.h>
 
+//#include "main.h"
+
 //****************************************************************************
 // Variable(s)
 //****************************************************************************
@@ -115,9 +117,13 @@ uint8_t fx_receive(CommPort *cp)
 
 	fx_comm_process_ping_pong_buffers(cp);
 
+	uint16_t laTCH_CB_LEN = 0;
+
 	//Receive commands
 	if(cp->cb->length > MIN_OVERHEAD)
 	{
+		//EXT_PB12_Write(1);
+		laTCH_CB_LEN = cp->cb->length;
 		//At this point our encoded command is in the circular buffer
 		ret_val = fx_get_cmd_handler_from_bytestream(cp->cb, &cmd_6bits_out, &rw_out,
 				&ack_out, buf, &buf_len);
@@ -147,6 +153,7 @@ uint8_t fx_receive(CommPort *cp)
 				//Proceed with clean-up procedure
 				fx_cleanup(cp->cb);
 
+				//EXT_PB12_Write(0);
 				return FX_SUCCESS;	//Success = we decoded something
 			}
 		}
@@ -156,6 +163,7 @@ uint8_t fx_receive(CommPort *cp)
 		fx_cleanup(cp->cb);
 	}
 
+	//EXT_PB12_Write(0);
 	return FX_PROBLEM;	//Not really a problem, but we didn't decode anything.
 }
 
