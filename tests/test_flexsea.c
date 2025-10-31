@@ -91,7 +91,7 @@ typedef struct
 } __attribute__((__packed__)) FlexSEA_Cmd_Test_s;
 
 //Can we serialize a structure, send it over a serial interface, then reconstruct it?
-void test_structure_serialize_deserialize(void)
+void test_fx_structure_serialize_deserialize(void)
 {
 	//We create a structure
 	FlexSEA_Cmd_Test_s fx_test_struct1;
@@ -186,7 +186,7 @@ uint8_t test_command_45a(uint8_t cmd_6bits, ReadWrite rw, AckNack ack, uint8_t *
 
 //Long payload built from a structure
 //We decode as soon as we receive
-void test_flexsea_continuous_receive_handle(void)
+void test_fx_continuous_receive_handle(void)
 {
 	int i = 0, loop = 0;
 
@@ -281,8 +281,8 @@ void test_flexsea(void)
 {
 	RUN_TEST(test_fx_create_bytestream_from_cmd);
 	RUN_TEST(test_fx_get_cmd_handler_from_bytestream);
-	RUN_TEST(test_structure_serialize_deserialize);
-	RUN_TEST(test_flexsea_continuous_receive_handle);
+	RUN_TEST(test_fx_structure_serialize_deserialize);
+	RUN_TEST(test_fx_continuous_receive_handle);
 
 	fflush(stdout);
 }

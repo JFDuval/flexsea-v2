@@ -189,6 +189,7 @@ uint8_t fx_decode(circ_buf_t *cb, uint8_t *encoded, uint8_t *encoded_len,
 			}
 
 			return 1;
+
 		}
 
 		//We found a header! Can we find a footer in the right location?
