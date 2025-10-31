@@ -34,8 +34,6 @@ extern "C" {
 
 #include <flexsea.h>
 
-//#include "main.h"
-
 //****************************************************************************
 // Variable(s)
 //****************************************************************************
@@ -99,11 +97,9 @@ uint8_t fx_get_cmd_handler_from_bytestream(circ_buf_t *cb,
 	uint8_t decoded_payload_len = 0;
 
 	//Decode payload
-	//EXT_PB11_Write(0);
 	if(!fx_decode(cb, encoded_payload, &encoded_payload_len,
 			decoded_payload, &decoded_payload_len))
 	{
-		//EXT_PB11_Write(1);
 		//This function takes a decoded payload as an input,
 		//and determines what the command code and R/W is
 		if(!fx_parse_rx_cmd(decoded_payload, decoded_payload_len,
