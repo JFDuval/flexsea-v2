@@ -13,7 +13,7 @@ circ_buf_t cb_test = {.buffer = {0}, .length = 0, .write_index = 0,
 //CommPort
 CommPort comm_port;
 
-//This emulates USB reception
+//This emulates USB reception. Use this to test the ping pong buffer reception.
 void Comm_RxHandler(uint8_t* Buf, uint32_t Len)
 {
 	//Basic lock & double buffer
@@ -35,6 +35,13 @@ void Comm_RxHandler(uint8_t* Buf, uint32_t Len)
 		comm_port.dbuf_lock_pong = 0;
 		comm_port.dbuf_selected = 0;
 	}
+}
+
+//This emulates basic serial reception. Use this to test reception without ping pong buffers.
+void uart_callback(uint8_t new_byte)
+{
+	//Original code: save one byte per ISR
+	circ_buf_write_byte(&cb_test, new_byte);
 }
 
 void comm_port_init(CommPort *cp)
@@ -147,7 +154,7 @@ void test_comm_flexsea_receive_many_full_packets(void)
 	uint8_t bytestream[MAX_ENCODED_PAYLOAD_BYTES] = {0};
 	uint8_t bytestream_len = 0;
 	uint8_t cmd_6bits_in = 10;
-	uint8_t ret_val = 0, ret_val_cmd = 0;
+	uint8_t ret_val = 0;
 	ReadWrite rw = CmdRead;
 	AckNack ack = Nack;
 
@@ -276,7 +283,7 @@ void test_comm_flexsea_receive_slowly(void)
 	uint8_t bytestream[MAX_ENCODED_PAYLOAD_BYTES] = {0};
 	uint8_t bytestream_len = 0;
 	uint8_t cmd_6bits_in = 10;
-	uint8_t ret_val = 0, ret_val_cmd = 0;
+	uint8_t ret_val = 0;
 	ReadWrite rw = CmdRead;
 	AckNack ack = Nack;
 
@@ -321,6 +328,105 @@ void test_comm_flexsea_receive_slowly(void)
 	TEST_ASSERT_EQUAL(2000, good_packets++);
 }
 
+//Receive one packet using fx_receive(), one byte at the time
+void test_comm_flexsea_receive_full_packet_byte_by_byte_ping_pong(void)
+{
+	circ_buf_init(&cb_test);
+	comm_port_init(&comm_port);
+	comm_port.use_ping_pong = 1;
+
+	//We create a payload
+	uint8_t text_payload[55] = "This is a test: can we receive data using fx_receive? ";	//54 bytes
+	uint8_t* payload_in = (uint8_t*)&text_payload;
+	uint8_t payload_in_len = 54;
+
+	uint8_t bytestream[MAX_ENCODED_PAYLOAD_BYTES] = {0};
+	uint8_t bytestream_len = 0;
+	uint8_t cmd_6bits_in = 10;
+	uint8_t ret_val = 0, ret_val_cmd = 0;
+	ReadWrite rw = CmdRead;
+	AckNack ack = Nack;
+
+	//Register test function:
+	fx_register_rx_cmd_handler(cmd_6bits_in, &test_command_10a);
+
+	//Encode test string
+	ret_val = fx_create_bytestream_from_cmd(cmd_6bits_in, rw, ack, payload_in,
+			payload_in_len, bytestream, &bytestream_len);
+	TEST_ASSERT_EQUAL(0, ret_val);
+
+	uint8_t tiny_buffer[2] = {0};
+	for(int i = 0; i < bytestream_len-1; i++)
+	{
+		//Receive one byte via serial peripheral
+		tiny_buffer[0] = bytestream[i];
+		Comm_RxHandler(tiny_buffer, 1);
+
+		//Receive command?
+		ret_val = fx_receive(&comm_port);
+		TEST_ASSERT_EQUAL(1, ret_val);	//1 means not received
+	}
+
+	//Last byte
+	tiny_buffer[0] = bytestream[bytestream_len - 1];
+	Comm_RxHandler(tiny_buffer, 1);
+
+	//Receive command?
+	ret_val = fx_receive(&comm_port);
+	TEST_ASSERT_EQUAL(0, ret_val);
+	//If it got decoded, we will notify fx_transmit using these flags
+	TEST_ASSERT_EQUAL(cmd_6bits_in, comm_port.reply_cmd);
+	TEST_ASSERT_EQUAL(1, comm_port.send_reply);
+}
+
+//Receive one packet using fx_receive(), one byte at the time
+void test_comm_flexsea_receive_full_packet_byte_by_byte_no_ping_pong(void)
+{
+	circ_buf_init(&cb_test);
+	comm_port_init(&comm_port);
+	comm_port.use_ping_pong = 0;
+
+	//We create a payload
+	uint8_t text_payload[55] = "This is a test: can we receive data using fx_receive? ";	//54 bytes
+	uint8_t* payload_in = (uint8_t*)&text_payload;
+	uint8_t payload_in_len = 54;
+
+	uint8_t bytestream[MAX_ENCODED_PAYLOAD_BYTES] = {0};
+	uint8_t bytestream_len = 0;
+	uint8_t cmd_6bits_in = 10;
+	uint8_t ret_val = 0, ret_val_cmd = 0;
+	ReadWrite rw = CmdRead;
+	AckNack ack = Nack;
+
+	//Register test function:
+	fx_register_rx_cmd_handler(cmd_6bits_in, &test_command_10a);
+
+	//Encode test string
+	ret_val = fx_create_bytestream_from_cmd(cmd_6bits_in, rw, ack, payload_in,
+			payload_in_len, bytestream, &bytestream_len);
+	TEST_ASSERT_EQUAL(0, ret_val);
+
+	for(int i = 0; i < bytestream_len-1; i++)
+	{
+		//Receive one byte via serial peripheral
+		uart_callback(bytestream[i]);
+
+		//Receive command?
+		ret_val = fx_receive(&comm_port);
+		TEST_ASSERT_EQUAL(1, ret_val);	//1 means not received
+	}
+
+	//Last byte
+	uart_callback(bytestream[bytestream_len - 1]);
+
+	//Receive command?
+	ret_val = fx_receive(&comm_port);
+	TEST_ASSERT_EQUAL(0, ret_val);
+	//If it got decoded, we will notify fx_transmit using these flags
+	TEST_ASSERT_EQUAL(cmd_6bits_in, comm_port.reply_cmd);
+	TEST_ASSERT_EQUAL(1, comm_port.send_reply);
+}
+
 void test_flexsea_comm(void)
 {
 	RUN_TEST(test_comm_flexsea_ping_pong_buffer);
@@ -328,6 +434,8 @@ void test_flexsea_comm(void)
 	RUN_TEST(test_comm_flexsea_receive_many_full_packets);
 	RUN_TEST(test_comm_flexsea_receive_many_full_packets_with_noise_in_between);
 	RUN_TEST(test_comm_flexsea_receive_slowly);
+	RUN_TEST(test_comm_flexsea_receive_full_packet_byte_by_byte_ping_pong);
+	RUN_TEST(test_comm_flexsea_receive_full_packet_byte_by_byte_no_ping_pong);
 
 	fflush(stdout);
 }
