@@ -5,14 +5,25 @@ import time
 import sys
 
 # Add the FlexSEA path to this project
-sys.path.append('../../')
+sys.path.append('../../flexsea_python')
 import flexsea_python
 from flexsea_python import FlexSEAPython
 from flexsea_tools import *
 # Note: with PyCharm you must add this folder and mark is as a Sources Folder to avoid an Unresolved Reference issue
 
-dll_filename = '../../projects/eclipse_pc/DynamicLib/libflexsea-v2.dll'
-com_port = 'COM4'
+# Platform specific shared library and serial port
+pf = FlexSEAPython.identify_platform()
+if pf == 'WIN':
+    dll_filename = '../../projects/eclipse_pc/DynamicLib/libflexsea-v2.dll'
+    com_port = 'COM4'  # Default, can be over-ridden by CLI argument
+elif pf == 'MAC':
+    dll_filename = '../../projects/eclipse_pc/DynamicLib/libflexsea-v2.dylib'
+    com_port = '/dev/tty.usbserial-ABCD'  # Default, can be over-ridden by CLI argument
+else:
+    # ToDo this is likely too generic
+    dll_filename = '../..//projects/eclipse_pc/DynamicLib/libflexsea-v2.so'
+    com_port = '/dev/ttyAMA0'  # Default, can be over-ridden by CLI argument
+
 serial_port = 0  # Holds the serial port object
 new_tx_delay_ms = 40
 

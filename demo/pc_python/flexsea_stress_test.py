@@ -20,11 +20,11 @@ if pf == 'WIN':
     dll_filename = '../../projects/eclipse_pc/DynamicLib/libflexsea-v2.dll'
     com_port = 'COM4'
 elif pf == 'MAC':
-    dll_filename = '../../../flexsea-v2/projects/eclipse_pc/DynamicLib/libflexsea-v2.dylib'
+    dll_filename = '../../projects/eclipse_pc/DynamicLib/libflexsea-v2.dylib'
     com_port = '/dev/tty.usbserial-ABCD'  # Default, can be over-ridden by CLI argument
 else:
     # ToDo this is likely too generic
-    dll_filename = '../../../flexsea-v2/projects/eclipse_pc/DynamicLib/libflexsea-v2.so'
+    dll_filename = '../../projects/eclipse_pc/DynamicLib/libflexsea-v2.so'
     com_port = '/dev/ttyAMA0'  # Default, can be over-ridden by CLI argument
 
 new_tx_delay_ms = 20  # 10 ms = 100 Hz
