@@ -26,32 +26,44 @@ StressTestStructure stress_test;
 // Private Function Prototype(s)
 //****************************************************************************
 
-static uint8_t fx_tx_demo(void);
-static uint8_t fx_tx_stress_test(void);
+static uint8_t fx_tx_demo(uint8_t (*tx_fct_prt) (uint8_t *, uint16_t));
+static uint8_t fx_tx_stress_test(uint8_t (*tx_fct_prt) (uint8_t *, uint16_t));
+static uint8_t fx_tx_ack(CommPort *cp);
 
 //****************************************************************************
 // Public Function(s)
 //****************************************************************************
 
-uint8_t fx_transmit(uint8_t send_reply, uint8_t cmd_reply)
+uint8_t fx_transmit(CommPort *cp)
 {
-	if(send_reply)
+	if(cp->send_reply)
 	{
 		//Note: we might use a function pointer array here, just like in the
 		//reception
 
-		switch(cmd_reply)
+		switch(cp->reply_cmd)
 		{
+			//case FX_CMD_WHO_AM_I:
+			//	fx_tx_who_am_i(cp->tx_fct_prt);
+			//	break;
+
 			case FX_CMD_DEMO:
-				fx_tx_demo();
+				fx_tx_demo(cp->tx_fct_prt);
 				break;
 
 			case FX_CMD_STRESS_TEST:
-				fx_tx_stress_test();
+				fx_tx_stress_test(cp->tx_fct_prt);
 				break;
 		}
 
-		send_reply = 0;
+		cp->send_reply = 0;
+	}
+	else
+	{
+		if(cp->send_ack)
+		{
+			fx_tx_ack(cp);
+		}
 	}
 
 	return FX_SUCCESS;
@@ -68,7 +80,7 @@ void fx_init_stress_test(void)
 //****************************************************************************
 
 //This is the default FlexSEA stack test command.
-static uint8_t fx_tx_demo(void)
+static uint8_t fx_tx_demo(uint8_t (*tx_fct_prt) (uint8_t *, uint16_t))
 {
 	uint8_t ret_val = 0;
 
@@ -76,14 +88,14 @@ static uint8_t fx_tx_demo(void)
 	uint8_t payload_len = sizeof(my_demo_structure);
 	uint8_t* payload = (uint8_t*)&my_demo_structure;
 
-	ret_val = fx_create_bytestream_from_cmd(FX_CMD_DEMO, CmdWrite, payload,
-			  payload_len, bytestream, &bytestream_len);
+	ret_val = fx_create_bytestream_from_cmd(FX_CMD_DEMO, CmdWrite,
+			Nack, payload, payload_len, bytestream, &bytestream_len);
 
-	//CDC_Transmit_FS(bytestream, bytestream_len);
-	HAL_UART_Transmit_IT(&huart2, &bytestream, bytestream_len);
+	tx_fct_prt(bytestream, bytestream_len);
 
 	return ret_val;
 }
+
 
 //Increment and ceil counter and ramp
 void counter_and_ramp(void)
@@ -98,7 +110,7 @@ void counter_and_ramp(void)
 }
 
 //FlexSEA Stress Test Command
-static uint8_t fx_tx_stress_test(void)
+static uint8_t fx_tx_stress_test(uint8_t (*tx_fct_prt) (uint8_t *, uint16_t))
 {
 	uint8_t ret_val = 0;
 
@@ -108,11 +120,30 @@ static uint8_t fx_tx_stress_test(void)
 	uint8_t payload_len = sizeof(stress_test);
 	uint8_t* payload = (uint8_t*)&stress_test;
 
-	ret_val = fx_create_bytestream_from_cmd(FX_CMD_STRESS_TEST, CmdWrite, payload,
-			  payload_len, bytestream, &bytestream_len);
+	ret_val = fx_create_bytestream_from_cmd(FX_CMD_STRESS_TEST, CmdWrite,
+			Nack, payload, payload_len, bytestream, &bytestream_len);
 
-	//CDC_Transmit_FS(bytestream, bytestream_len);
-	HAL_UART_Transmit_IT(&huart2, &bytestream, bytestream_len);
+	tx_fct_prt(bytestream, bytestream_len);
+
+	return ret_val;
+}
+
+//FlexSEA Write Acknowledge. This is used for pure Writes that require an Ack.
+//Reads and ReadWrite will Ack as part of the existing reply.
+static uint8_t fx_tx_ack(CommPort *cp)
+{
+	uint8_t ret_val = 0;
+
+	uint8_t payload_len = 3;
+	uint8_t payload[3] = {0};
+	payload[0] = cp->ack_cmd;
+	payload[1] = CMD_ACK_PNUM_LSB(cp->ack_packet_num);
+	payload[2] = CMD_ACK_PNUM_MSB(1, cp->ack_packet_num);
+
+	ret_val = fx_create_bytestream_from_cmd(FX_CMD_ACK, CmdWrite,
+			Ack, payload, payload_len, bytestream, &bytestream_len);
+
+	cp->tx_fct_prt(bytestream, bytestream_len);
 
 	return ret_val;
 }

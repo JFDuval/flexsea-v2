@@ -39,7 +39,7 @@ typedef struct StressTestStructure
 // Public Function Prototype(s):
 //****************************************************************************
 
-uint8_t fx_transmit(uint8_t send_reply, uint8_t cmd_reply);
+uint8_t fx_transmit(CommPort *cp);
 void fx_init_stress_test(void);
 
 //****************************************************************************

@@ -1,5 +1,5 @@
-#ifndef INC_FX_DEF_H_
-#define INC_FX_DEF_H_
+#ifndef INC_COMM_H
+#define INC_COMM_H
 
 //****************************************************************************
 // Include(s)
@@ -11,21 +11,19 @@
 // Definition(s):
 //****************************************************************************
 
-//Define your command codes here. Start your custom commands at 10 to ease
-//stack upgrades over time.
-
-//Stack commands:
-#define FX_CMD_WHO_AM_I				0
-#define FX_CMD_ACK					1
-#define FX_CMD_DEMO					2
-#define FX_CMD_STRESS_TEST			3
-
 //****************************************************************************
 // Public Function Prototype(s):
 //****************************************************************************
+
+void comm_init(void);
+uint8_t usb_serial_tx_string(uint8_t *bytes_to_send, uint16_t length);
+void usb_serial_rx(void);
 
 //****************************************************************************
 // Shared variable(s)
 //****************************************************************************
 
-#endif //INC_FX_DEF_H_
+extern CommPort comm_port[];
+extern circ_buf_t cb;
+
+#endif //INC_COMM_H
