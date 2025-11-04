@@ -21,11 +21,11 @@
  [Contributors to v1] Work maintained and expended by Dephy, Inc. (2015-20xx)
  [v2.0] Complete re-write based on the original idea. (2024)
  *****************************************************************************
- [This file] flexsea: top-level FlexSEA protocol v2.0
+ [This file] flexsea_codec: Data-Link layer of the FlexSEA protocol v2.0
  ****************************************************************************/
 
-#ifndef INC_FX_FLEXSEA_H
-#define INC_FX_FLEXSEA_H
+#ifndef INC_FX_COMM_H
+#define INC_FX_COMM_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -35,40 +35,44 @@ extern "C" {
 // Include(s)
 //****************************************************************************
 
-#include <stdio.h>
-#include <stdint.h>
-#include <string.h>
-#include <stdlib.h>
-#include "circ_buf.h"
-#include <flexsea_codec.h>
-#include <flexsea_command.h>
-#include <flexsea_comm.h>
-#include <flexsea_tools.h>
-
 //****************************************************************************
 // Definition(s):
 //****************************************************************************
 
-//Use these for return calls:
-#define FX_SUCCESS		0
-#define FX_PROBLEM		1
-
-//****************************************************************************
-// Public Function Prototype(s):
-//****************************************************************************
-
-uint8_t fx_create_bytestream_from_cmd(uint8_t cmd_6bits, ReadWrite rw,
-		AckNack ack, uint8_t *buf_in, uint8_t buf_in_len, uint8_t* bytestream,
-		uint8_t *bytestream_len);
-uint8_t fx_get_cmd_handler_from_bytestream(circ_buf_t *cb,
-		uint8_t *cmd_6bits, ReadWrite *rw, AckNack *ack, uint8_t *buf,
-		uint8_t *buf_len);
+#define DBUF_MAX_LEN	256
 
 //****************************************************************************
 // Structure(s):
 //****************************************************************************
 
+//This structure holds all the info about a communication port
+typedef struct CommPort
+{
+	uint8_t id;					//Port identification
+	uint8_t send_reply;			//Do we have a reply to send?
+	uint8_t reply_cmd;			//What is it?
+	uint8_t send_ack;			//Do we need to acknowledge a Write?
+	uint8_t ack_cmd;			//Command code we are acknowledging
+	uint16_t ack_packet_num;	//Packet number we are acknowledging
+	circ_buf_t *cb;				//Reception circular buffer
+	uint8_t (*tx_fct_prt) (uint8_t *, uint16_t);	//TX function
+	//Double buffering with ping-pong buffers
+	volatile uint8_t use_ping_pong;
+	volatile uint8_t dbuf_ping[DBUF_MAX_LEN];
+	volatile uint8_t dbuf_pong[DBUF_MAX_LEN];
+	volatile uint8_t dbuf_lock_ping;
+	volatile uint8_t dbuf_lock_pong;
+	volatile uint32_t dbuf_ping_len;
+	volatile uint32_t dbuf_pong_len;
+	volatile uint8_t dbuf_selected;
+}CommPort;
 
+//****************************************************************************
+// Public Function Prototype(s):
+//****************************************************************************
+
+void fx_comm_process_ping_pong_buffers(CommPort *cp);
+uint8_t fx_receive(CommPort *cp);
 
 //****************************************************************************
 // Shared variable(s)
@@ -78,4 +82,4 @@ uint8_t fx_get_cmd_handler_from_bytestream(circ_buf_t *cb,
 }
 #endif
 
-#endif	//INC_FX_FLEXSEA_H
+#endif	//INC_FX_COMM_H

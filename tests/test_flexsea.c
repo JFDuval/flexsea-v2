@@ -15,8 +15,9 @@ void test_fx_create_bytestream_from_cmd(void)
 	uint8_t cmd_6bits = 45;
 	uint8_t ret_val = 0;
 	ReadWrite rw = CmdWrite;
+	AckNack ack = Nack;
 
-	ret_val = fx_create_bytestream_from_cmd(cmd_6bits, rw, payload_in,
+	ret_val = fx_create_bytestream_from_cmd(cmd_6bits, rw, ack, payload_in,
 			payload_in_len, bytestream, &bytestream_len);
 
 	//Make sure our function works by checking it's return value, as
@@ -43,7 +44,8 @@ void test_fx_get_cmd_handler_from_bytestream(void)
 	uint8_t cmd_6bits_in = 5;
 	uint8_t ret_val = 0;
 	ReadWrite rw = CmdWrite;
-	ret_val = fx_create_bytestream_from_cmd(cmd_6bits_in, rw, payload,
+	AckNack ack = Nack;
+	ret_val = fx_create_bytestream_from_cmd(cmd_6bits_in, rw, ack, payload,
 			payload_len, bytestream, &bytestream_len);
 	//We then feed it to a new circular buffer
 	circ_buf_t cb = {.buffer = {0}, .length = 0, .write_index = 0, .read_index =
@@ -66,16 +68,17 @@ void test_fx_get_cmd_handler_from_bytestream(void)
 	//At this point our encoded command is in the circular buffer
 	uint8_t cmd_6bits_out = 0;
 	ReadWrite rw_out = CmdInvalid;
+	AckNack ack_out = Nack;
 	uint8_t buf[MAX_ENCODED_PAYLOAD_BYTES] = {0};
 	uint8_t buf_len = 0;
 	ret_val = fx_get_cmd_handler_from_bytestream(&cb, &cmd_6bits_out, &rw_out,
-			buf, &buf_len);
+			&ack_out, buf, &buf_len);
 
 	TEST_ASSERT_EQUAL(0, ret_val);
 	TEST_ASSERT_EQUAL(cmd_6bits_in, cmd_6bits_out);
 	TEST_ASSERT_EQUAL(rw, rw_out);
 	TEST_ASSERT_EQUAL(CMD_SET_W(cmd_6bits_out), buf[0]);
-	TEST_ASSERT_EQUAL_UINT8_ARRAY(payload, &buf[1], payload_len);
+	TEST_ASSERT_EQUAL_UINT8_ARRAY(payload, &buf[CMD_OVERHEAD], payload_len);
 }
 
 //Simple test structure
@@ -88,7 +91,7 @@ typedef struct
 } __attribute__((__packed__)) FlexSEA_Cmd_Test_s;
 
 //Can we serialize a structure, send it over a serial interface, then reconstruct it?
-void test_structure_serialize_deserialize(void)
+void test_fx_structure_serialize_deserialize(void)
 {
 	//We create a structure
 	FlexSEA_Cmd_Test_s fx_test_struct1;
@@ -165,7 +168,7 @@ typedef struct
 } __attribute__((__packed__)) FlexSEA_Cmd_Test_2_s;
 
 //This is a FlexSEA test command
-uint8_t test_command_45a(uint8_t cmd_6bits, ReadWrite rw, uint8_t *buf, uint8_t len)
+uint8_t test_command_45a(uint8_t cmd_6bits, ReadWrite rw, AckNack ack, uint8_t *buf, uint8_t len)
 {
 	//We check a few parameters
 	if((cmd_6bits == 45) && (rw == CmdWrite) && (len >= 1) &&
@@ -183,7 +186,7 @@ uint8_t test_command_45a(uint8_t cmd_6bits, ReadWrite rw, uint8_t *buf, uint8_t 
 
 //Long payload built from a structure
 //We decode as soon as we receive
-void test_flexsea_continuous_receive_handle(void)
+void test_fx_continuous_receive_handle(void)
 {
 	int i = 0, loop = 0;
 
@@ -207,11 +210,12 @@ void test_flexsea_continuous_receive_handle(void)
 	uint8_t cmd_6bits_in = 45;
 	uint8_t ret_val = 0, ret_val_cmd = 0;
 	ReadWrite rw = CmdWrite;
+	AckNack ack = Nack;
 
 	//Register test function:
 	fx_register_rx_cmd_handler(cmd_6bits_in, &test_command_45a);
 
-	ret_val = fx_create_bytestream_from_cmd(cmd_6bits_in, rw, payload_in,
+	ret_val = fx_create_bytestream_from_cmd(cmd_6bits_in, rw, ack, payload_in,
 			payload_in_len, bytestream, &bytestream_len);
 	TEST_ASSERT_EQUAL(0, ret_val);
 
@@ -241,21 +245,22 @@ void test_flexsea_continuous_receive_handle(void)
 		//At this point our encoded command is in the circular buffer
 		uint8_t cmd_6bits_out = 0;
 		ReadWrite rw_out = CmdInvalid;
+		AckNack ack_out = Nack;
 		uint8_t buf[MAX_ENCODED_PAYLOAD_BYTES] = {0};
 		uint8_t buf_len = 0;
 		ret_val = fx_get_cmd_handler_from_bytestream(&cb, &cmd_6bits_out, &rw_out,
-				buf, &buf_len);
+				&ack_out, buf, &buf_len);
 
 		TEST_ASSERT_EQUAL(0, ret_val);
 		TEST_ASSERT_EQUAL(cmd_6bits_in, cmd_6bits_out);
 		TEST_ASSERT_EQUAL(rw, rw_out);
 		TEST_ASSERT_EQUAL(CMD_SET_W(cmd_6bits_out), buf[0]);
-		TEST_ASSERT_EQUAL_UINT8_ARRAY(&payload_in[0], &buf[1], payload_in_len);
+		TEST_ASSERT_EQUAL_UINT8_ARRAY(&payload_in[0], &buf[CMD_OVERHEAD], payload_in_len);
 
 		//Call handler
 		if(!ret_val)
 		{
-			ret_val_cmd = fx_call_rx_cmd_handler(cmd_6bits_out, rw, buf, buf_len);
+			ret_val_cmd = fx_call_rx_cmd_handler(cmd_6bits_out, rw, ack_out, buf, buf_len);
 			if(ret_val_cmd == TEST_CMD_RETURN)
 			{
 				TEST_PASS(); //As expected, we reached our test function
@@ -276,8 +281,8 @@ void test_flexsea(void)
 {
 	RUN_TEST(test_fx_create_bytestream_from_cmd);
 	RUN_TEST(test_fx_get_cmd_handler_from_bytestream);
-	RUN_TEST(test_structure_serialize_deserialize);
-	RUN_TEST(test_flexsea_continuous_receive_handle);
+	RUN_TEST(test_fx_structure_serialize_deserialize);
+	RUN_TEST(test_fx_continuous_receive_handle);
 
 	fflush(stdout);
 }

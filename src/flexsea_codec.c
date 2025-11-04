@@ -158,7 +158,6 @@ uint8_t fx_decode(circ_buf_t *cb, uint8_t *encoded, uint8_t *encoded_len,
 	*encoded_len = 0;
 	*decoded_len = 0;
 
-
 	//We look for an encoded payload, starting by searching for a header
 	uint16_t headers = 0, footers = 0;
 	while(!found_encoded_payload
@@ -169,6 +168,19 @@ uint8_t fx_decode(circ_buf_t *cb, uint8_t *encoded, uint8_t *encoded_len,
 		{
 			ret_val = circ_buf_search(cb, &header_pos, HEADER, last_header_pos);
 			first_time = 0;
+
+			if(ret_val == 1)
+			{
+				//We just looked at every possible byte and didn't find anything, so
+				//let's delete them to avoid looking at the same ones again and again
+				uint8_t dump = 0;
+				for(int j = 0; j < last_header_pos; j++)
+				{
+					ret_val = circ_buf_read_byte(cb, &dump);
+				}
+
+				return 1;
+			}
 		}
 		else
 		{
@@ -176,7 +188,7 @@ uint8_t fx_decode(circ_buf_t *cb, uint8_t *encoded, uint8_t *encoded_len,
 					last_header_pos + 1);
 		}
 
-		//If we can't find a header, we quit searching for encoded payloads
+		//This means it's not the first time => we found at least one header => don't delete
 		if(ret_val == 1)
 		{
 			return 1;

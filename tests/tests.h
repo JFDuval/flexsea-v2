@@ -5,6 +5,7 @@ extern "C" {
 #ifndef INC_TEST_H
 #define INC_TEST_H
 
+#include <stdio.h>
 #include "../../unity/unity.h"
 #include "flexsea.h"
 
@@ -15,8 +16,8 @@ void test_flexsea_tools(void);
 void test_circ_buf(void);
 void test_flexsea_codec(void);
 void test_flexsea_command(void);
+void test_flexsea_comm(void);
 void test_flexsea(void);
-
 
 #endif	//INC_TEST_H
 

@@ -47,8 +47,9 @@ extern "C" {
 //****************************************************************************
 
 //From command to bytestream
-uint8_t fx_create_bytestream_from_cmd(uint8_t cmd_6bits, ReadWrite rw, uint8_t *buf_in,
-		uint8_t buf_in_len, uint8_t* bytestream, uint8_t *bytestream_len)
+uint8_t fx_create_bytestream_from_cmd(uint8_t cmd_6bits, ReadWrite rw,
+		AckNack ack, uint8_t *buf_in, uint8_t buf_in_len, uint8_t* bytestream,
+		uint8_t *bytestream_len)
 {
 	//Temporary variables to hold data between command creation
 	//and encoding
@@ -63,7 +64,7 @@ uint8_t fx_create_bytestream_from_cmd(uint8_t cmd_6bits, ReadWrite rw, uint8_t *
 	}
 
 	//Create a valid command (command code and RW bits)
-	if(!fx_create_tx_cmd(cmd_6bits, rw, buf_in, buf_in_len,
+	if(!fx_create_tx_cmd(cmd_6bits, rw, ack, buf_in, buf_in_len,
 			payload_out, &payload_out_len))
 	{
 		//Encode it
@@ -87,8 +88,8 @@ uint8_t fx_create_bytestream_from_cmd(uint8_t cmd_6bits, ReadWrite rw, uint8_t *
 //Our input bytestream comes in the form of a circular buffer
 //We decode it, and get ready to call a function handler
 uint8_t fx_get_cmd_handler_from_bytestream(circ_buf_t *cb,
-		uint8_t *cmd_6bits, ReadWrite *rw, uint8_t *buf,
-		uint8_t *buf_len)
+		uint8_t *cmd_6bits, ReadWrite *rw, AckNack *ack,
+		uint8_t *buf, uint8_t *buf_len)
 {
 	uint8_t encoded_payload[MAX_ENCODED_PAYLOAD_BYTES] = {0};
 	uint8_t encoded_payload_len = 0;
@@ -102,7 +103,7 @@ uint8_t fx_get_cmd_handler_from_bytestream(circ_buf_t *cb,
 		//This function takes a decoded payload as an input,
 		//and determines what the command code and R/W is
 		if(!fx_parse_rx_cmd(decoded_payload, decoded_payload_len,
-				cmd_6bits, rw))
+				cmd_6bits, rw, ack))
 		{
 			//Share data with the caller
 			memcpy(buf, decoded_payload, decoded_payload_len);

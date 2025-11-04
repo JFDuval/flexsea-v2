@@ -5,15 +5,20 @@ import serial
 from serial import SerialException
 import time
 import platform
+from flexsea_tools import *
 
 # The variables found before the FlexSEAPython class need to match the C code.
 # Only edit if you have changed the code used to generate the DLL!
 
 MAX_ENCODED_PAYLOAD_BYTES = 200
+MIN_OVERHEAD = 4
+CMD_OVERHEAD = 3
+# Command codes and limits:
 MIN_CMD_CODE = 0
 MAX_CMD_CODE = 63
 CMD_WHO_AM_I = 0
-MIN_OVERHEAD = 4
+CMD_ACK = 1
+CMD_DEMO = 2
 
 # This structure holds all the info about a given circular buffer
 # This needs to match circ_buf.h!
@@ -32,18 +37,6 @@ class WhoAmIStruct(Structure):
     _fields_ = [("uuid", c_uint32 * 3),
                 ("serial_number", c_uint32),
                 ("board", c_int8 * 12)]
-
-
-# Who am I?
-def fx_rx_cmd_handler_0(cmd_6bits, rw, buf):
-    rx_data = WhoAmIStruct()
-    ctypes.memmove(pointer(rx_data), buf[1:], sizeof(rx_data))
-    uuid = rx_data.uuid[0] * 2**64 + rx_data.uuid[1] * 2**32 + rx_data.uuid[2]  # Rebuild UUID C-style
-
-    board_str_as_bytes = [chr(rx_data.board[i]) for i in range(len(rx_data.board))]
-    board = ''.join(board_str_as_bytes)
-    board = board.split('\x00', 1)[0]   # Remove trailing zeros
-    print(f'Who am I? UUID = 0x{uuid:02X}, Serial number = {rx_data.serial_number}, Board = {board}')
 
 
 class FlexSEASerial:
@@ -91,6 +84,7 @@ class FlexSEASerial:
         timeout_counter = 10
         if self.serial_port:
             self.serial_port.write(bytestream[0:bytestream_length])
+            # print(f'SP bytestream len: {bytestream_length}')
             while self.serial_port.out_waiting and timeout_counter:
                 timeout_counter = timeout_counter - 1
                 time.sleep(0.01)
@@ -152,8 +146,13 @@ class FlexSEAPython:
             "CmdWrite": 2,
             "CmdReadWrite": 3,
         }
+        self.ack_dict = {
+            "Nack": 0,
+            "Ack": 1,
+        }
+        self.register_cmd_handler(CMD_ACK, self.fx_rx_cmd_handler_1)
 
-    def create_bytestream_from_cmd(self, cmd, rw, payload_string):
+    def create_bytestream_from_cmd(self, cmd, rw, ack, payload_string):
         """
         Create a new bytestream (data ready to be sent via USB) from a command, and a payload
         :param cmd: command code, between MIN_CMD_CODE and MAX_CMD_CODE
@@ -176,9 +175,10 @@ class FlexSEAPython:
         cmd_6bits_in = c_uint8(cmd)
 
         rw_c = c_uint8(self.rw_dict[rw])
+        ack_c = c_uint8(self.ack_dict[ack])
 
-        ret_val = self.fx.fx_create_bytestream_from_cmd(cmd_6bits_in, rw_c, payload_in, payload_in_len, bytestream_ba,
-                                                        byref(bytestream_len))
+        ret_val = self.fx.fx_create_bytestream_from_cmd(cmd_6bits_in, rw_c, ack_c, payload_in, payload_in_len,
+                                                        bytestream_ba, byref(bytestream_len))
 
         return ret_val, bytes(bytestream_ba), int(bytestream_len.value)
 
@@ -238,16 +238,18 @@ class FlexSEAPython:
         # At this point our encoded command is in the circular buffer
         cmd_6bits_out = c_uint8(0)
         rw_out = c_uint8(0)
+        ack_out = c_uint8(0)
         buf = (c_uint8 * MAX_ENCODED_PAYLOAD_BYTES)()
         buf_len = c_uint8(0)
         # Can we decode it?
-        ret_val = self.fx.fx_get_cmd_handler_from_bytestream(byref(self.cb), byref(cmd_6bits_out), byref(rw_out), buf,
-                                                             byref(buf_len))
-        return ret_val, cmd_6bits_out.value, rw_out.value,bytes(buf), buf_len.value
+        ret_val = self.fx.fx_get_cmd_handler_from_bytestream(byref(self.cb), byref(cmd_6bits_out), byref(rw_out),
+                                                             byref(ack_out), buf, byref(buf_len))
+        return ret_val, cmd_6bits_out.value, rw_out.value, ack_out.value, bytes(buf), buf_len.value
 
-    def cmd_handler_catchall(self, cmd_6bits, rw, buf):
-        print(f'Handler Catch-All received: cmd={cmd_6bits}, rw={rw}, buf={buf}.')
-        print(f'If you are running a demo, you should not be seeing this!')
+    @staticmethod
+    def cmd_handler_catchall(cmd_6bits, rw, ack, buf):
+        print(f'Handler Catch-All received: cmd={cmd_6bits}, rw={rw}, ack={ack}, buf={buf}.')
+        print(f'This is a sign that you are missing a callback!')
 
     def init_cmd_handler(self):
         index = 0
@@ -258,15 +260,17 @@ class FlexSEAPython:
     def register_cmd_handler(self, cmd, handler):
         self.cmd_handler_dict.update({cmd: handler})
 
-    def call_cmd_handler(self, cmd_6bits, rw, buf):
+    def call_cmd_handler(self, cmd_6bits, rw, ack, buf):
         my_cmd = self.cmd_handler_dict[cmd_6bits]
         # Member functions come as a set, but user callbacks do not
         if isinstance(my_cmd, set):
-            # If it's a set, we get the first member
-            my_cmd.pop()(cmd_6bits, rw, buf)
+            # If it's a set, we call the element that's a method (the one that's not an int...)
+            for item in my_cmd:
+                if not isinstance(item, int):
+                    item(cmd_6bits, rw, ack, buf)
         else:
             # Call without popping
-            my_cmd(cmd_6bits, rw, buf)
+            my_cmd(cmd_6bits, rw, ack, buf)
 
     def grab_new_bytes(self):
         """
@@ -281,25 +285,30 @@ class FlexSEAPython:
                 ret_val = self.write_to_circular_buffer(new_rx_byte[0], 1)
 
 
-    def receive(self):
+    def receive(self, max_tries=5):
         """
         This replicates the embedded system's fx_receive command
+        :max_tries: How many times do we try to parse?
         :return:
         """
         send_reply = 0
         cmd_reply = 0
         new_data = 0
-        if self.get_circular_buffer_length() > MIN_OVERHEAD:
-            ret_val, cmd_6bits_out, rw_out, buf, buf_len = self.get_cmd_handler_from_bytestream()
+        read_attempts = max_tries
+        while (self.get_circular_buffer_length() > MIN_OVERHEAD) and (read_attempts > 0):
+            ret_val, cmd_6bits_out, rw_out, ack_out, buf, buf_len = self.get_cmd_handler_from_bytestream()
             if not ret_val:
                 # Call handler:
-                self.call_cmd_handler(cmd_6bits_out, rw_out, buf)
+                self.call_cmd_handler(cmd_6bits_out, rw_out, ack_out, buf)
                 new_data = 1
                 # Reply if requested
                 if (rw_out == self.rw_dict['CmdRead']) or (rw_out == self.rw_dict['CmdReadWrite']):
-                    reply_cmd = cmd_6bits_out
+                    cmd_reply = cmd_6bits_out
                     send_reply = 1
+                # print(f'fx.receive remaining CB bytes: {self.get_circular_buffer_length()}')
+                # print(f'fx.receive remaining CB bytes: {self.get_circular_buffer_length()}')
                 self.cleanup()
+            read_attempts = read_attempts - 1
         else:
             self.cleanup()
 
@@ -340,12 +349,12 @@ class FlexSEAPython:
 
     def who_am_i(self):
         # Prepare for reception:
-        self.register_cmd_handler(CMD_WHO_AM_I, fx_rx_cmd_handler_0)
+        self.register_cmd_handler(CMD_WHO_AM_I, self.fx_rx_cmd_handler_0)
         start_time = round(time.time() * 1000)
 
         # Who am I?
         ret_val, bytestream, bytestream_len = self.create_bytestream_from_cmd(cmd=CMD_WHO_AM_I, rw="CmdReadWrite",
-                                                                            payload_string='')
+                                                                              ack="Nack", payload_string='')
         self.rw_one_packet(bytestream, bytestream_len, start_time, None)
 
     @staticmethod
@@ -377,6 +386,39 @@ class FlexSEAPython:
     def get_max_cb_length():
         global CIRC_BUF_SIZE
         return CIRC_BUF_SIZE
+
+    @staticmethod
+    def fx_rx_cmd_handler_0(cmd_6bits, rw, ack, buf):
+        """
+        # Who am I? reception handler.
+        :param cmd_6bits: 6-bits command code
+        :param rw: ReadWrite
+        :param ack: Ack or Nack
+        :param buf: buffer with data
+        :return: N/A
+        """
+        rx_data = WhoAmIStruct()
+        ctypes.memmove(pointer(rx_data), buf[CMD_OVERHEAD:], sizeof(rx_data))
+        uuid = rx_data.uuid[0] * 2 ** 64 + rx_data.uuid[1] * 2 ** 32 + rx_data.uuid[2]  # Rebuild UUID C-style
+
+        board_str_as_bytes = [chr(rx_data.board[i]) for i in range(len(rx_data.board))]
+        board = ''.join(board_str_as_bytes)
+        board = board.split('\x00', 1)[0]  # Remove trailing zeros
+        print(f'Who am I? UUID = 0x{uuid:02X}, Serial number = {rx_data.serial_number}, Board = {board}')
+
+    def fx_rx_cmd_handler_1(self, cmd_6bits, rw, ack, buf):
+        """
+        Command ACK reception handler.
+        :param cmd_6bits: 6-bits command code
+        :param rw: ReadWrite
+        :param ack: Ack or Nack
+        :param buf: buffer with data
+        :return: N/A
+        """
+        ack_cmd = byte_to_int8(buf[CMD_OVERHEAD])
+        ack_packet_num = bytes_to_uint16(buf[CMD_OVERHEAD + 1:CMD_OVERHEAD + 3]) & 0x7FFF
+        print(f'FlexSEA command acknowledged: cmd = {ack_cmd}, packet #{ack_packet_num}. The last TX # was '
+              f'{self.fx.get_last_tx_packet_num()}.')
 
 
 class CommHardware:

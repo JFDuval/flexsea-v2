@@ -19,7 +19,8 @@ void test_command_parse_rx_rw_byte_valid(void)
 	payload[CMD_CODE_INDEX] = cmd_8bits;
 	uint8_t ret_val = 0, cmd_6bits_out = 0;
 	ReadWrite rw = CmdInvalid;
-	ret_val = fx_parse_rx_cmd(payload, payload_len, &cmd_6bits_out, &rw);
+	AckNack ack = Nack;
+	ret_val = fx_parse_rx_cmd(payload, payload_len, &cmd_6bits_out, &rw, &ack);
 	TEST_ASSERT_EQUAL(0, ret_val);	//ret_val = 0 when valid
 	TEST_ASSERT_EQUAL(cmd_6bits_in, cmd_6bits_out);
 	TEST_ASSERT_EQUAL(CmdWrite, rw);
@@ -32,7 +33,7 @@ void test_command_parse_rx_rw_byte_valid(void)
 	ret_val = 0;
 	cmd_6bits_out = 0;
 	rw = CmdInvalid;
-	ret_val = fx_parse_rx_cmd(payload, payload_len, &cmd_6bits_out, &rw);
+	ret_val = fx_parse_rx_cmd(payload, payload_len, &cmd_6bits_out, &rw, &ack);
 	TEST_ASSERT_EQUAL(0, ret_val);	//ret_val = 0 when valid
 	TEST_ASSERT_EQUAL(cmd_6bits_in, cmd_6bits_out);
 	TEST_ASSERT_EQUAL(CmdRead, rw);
@@ -45,7 +46,7 @@ void test_command_parse_rx_rw_byte_valid(void)
 	ret_val = 0;
 	cmd_6bits_out = 0;
 	rw = CmdInvalid;
-	ret_val = fx_parse_rx_cmd(payload, payload_len, &cmd_6bits_out, &rw);
+	ret_val = fx_parse_rx_cmd(payload, payload_len, &cmd_6bits_out, &rw, &ack);
 	TEST_ASSERT_EQUAL(0, ret_val);	//ret_val = 0 when valid
 	TEST_ASSERT_EQUAL(cmd_6bits_in, cmd_6bits_out);
 	TEST_ASSERT_EQUAL(CmdReadWrite, rw);
@@ -62,6 +63,7 @@ void test_command_parse_rx_rw_byte_invalid(void)
 	payload[CMD_CODE_INDEX] = cmd_8bits;
 	uint8_t ret_val = 0, cmd_6bits_out = 0;
 	ReadWrite rw = CmdInvalid;
+	AckNack ack = Nack;
 
 	//Test #1: command code of 0 (smaller than MIN_CMD_CODE)
 
@@ -71,7 +73,7 @@ void test_command_parse_rx_rw_byte_invalid(void)
 	payload[CMD_CODE_INDEX] = cmd_8bits;
 	ret_val = 0, cmd_6bits_out = 0;
 	rw = CmdInvalid;
-	ret_val = fx_parse_rx_cmd(payload, payload_len, &cmd_6bits_out, &rw);
+	ret_val = fx_parse_rx_cmd(payload, payload_len, &cmd_6bits_out, &rw, &ack);
 	TEST_ASSERT_EQUAL(1, ret_val);	//1 means it detected the problem
 	TEST_ASSERT_EQUAL(0, cmd_6bits_out); //Invalid returns 0
 	TEST_ASSERT_EQUAL(0, rw); //Invalid returns 0
@@ -91,11 +93,12 @@ void test_command_create_tx_basic_good_cmd_rw(void)
 	uint8_t cmd_6bits_in = 33;
 	uint8_t ret_val = 0;
 	ReadWrite rw = CmdWrite;
+	AckNack ack = Nack;
 
-	ret_val = fx_create_tx_cmd(cmd_6bits_in, rw, payload_in, payload_in_len,
+	ret_val = fx_create_tx_cmd(cmd_6bits_in, rw, ack, payload_in, payload_in_len,
 			payload_out, &payload_out_len);
 	TEST_ASSERT_EQUAL(0, ret_val);
-	TEST_ASSERT_EQUAL(payload_in_len + 1, payload_out_len);
+	TEST_ASSERT_EQUAL(payload_in_len + CMD_OVERHEAD, payload_out_len);
 	TEST_ASSERT_EQUAL(CMD_SET_W(cmd_6bits_in), payload_out[CMD_CODE_INDEX]);
 }
 
@@ -109,6 +112,7 @@ void test_command_create_tx_basic_bad_cmd_rw(void)
 	uint8_t cmd_6bits_in = 0;
 	uint8_t ret_val = 0;
 	ReadWrite rw = CmdWrite;
+	AckNack ack = Nack;
 
 	//Test #1: command code too low no longer possible, we use 0 for WhoAmI
 
@@ -121,7 +125,7 @@ void test_command_create_tx_basic_bad_cmd_rw(void)
 	ret_val = 0;
 	rw = CmdWrite;
 
-	ret_val = fx_create_tx_cmd(cmd_6bits_in, rw, payload_in, payload_in_len,
+	ret_val = fx_create_tx_cmd(cmd_6bits_in, rw, ack, payload_in, payload_in_len,
 			payload_out, &payload_out_len);
 	TEST_ASSERT_EQUAL(1, ret_val);
 	TEST_ASSERT_EQUAL(0, payload_out_len);
@@ -136,7 +140,7 @@ void test_command_create_tx_basic_bad_cmd_rw(void)
 	ret_val = 0;
 	rw = CmdInvalid;
 
-	ret_val = fx_create_tx_cmd(cmd_6bits_in, rw, payload_in, payload_in_len,
+	ret_val = fx_create_tx_cmd(cmd_6bits_in, rw, ack, payload_in, payload_in_len,
 			payload_out, &payload_out_len);
 	TEST_ASSERT_EQUAL(1, ret_val);
 	TEST_ASSERT_EQUAL(0, payload_out_len);
@@ -153,19 +157,20 @@ void test_command_parse_rx_catchall(void)
 	uint8_t payload_out[10] = {0};
 	uint8_t payload_out_len = 0;
 	ReadWrite rw = CmdWrite;
+	AckNack ack = Nack;
 	uint8_t ret_val = 0;
 	uint8_t cmd = 22;
 
-	ret_val = fx_create_tx_cmd(cmd, rw, payload, payload_len,
+	ret_val = fx_create_tx_cmd(cmd, rw, ack, payload, payload_len,
 				payload_out, &payload_out_len);
 
 	uint8_t cmd_6bits = 0;
 	rw = CmdInvalid;
 	uint8_t ret_val_cmd = 0;
-	ret_val = fx_parse_rx_cmd(payload_out, payload_out_len, &cmd_6bits, &rw);
+	ret_val = fx_parse_rx_cmd(payload_out, payload_out_len, &cmd_6bits, &rw, &ack);
 	if(!ret_val)
 	{
-		ret_val_cmd = fx_call_rx_cmd_handler(cmd_6bits, rw, payload_out, payload_out_len);
+		ret_val_cmd = fx_call_rx_cmd_handler(cmd_6bits, rw, ack, payload_out, payload_out_len);
 		if(ret_val_cmd == CATCHALL_RETURN)
 		{
 			TEST_PASS(); //As expected, we reached our catch-all
@@ -182,7 +187,7 @@ void test_command_parse_rx_catchall(void)
 }
 
 //This is a FlexSEA test command
-uint8_t test_command_22a(uint8_t cmd_6bits, ReadWrite rw, uint8_t *buf, uint8_t len)
+uint8_t test_command_22a(uint8_t cmd_6bits, ReadWrite rw, AckNack ack, uint8_t *buf, uint8_t len)
 {
 	//We check a few parameters
 	if((cmd_6bits == 22) && (rw == CmdWrite) && (len >= 1) &&
@@ -210,15 +215,16 @@ void test_command_parse_rx_registered_command(void)
 	payload[CMD_CODE_INDEX] = CMD_SET_W(cmd);	//Write
 	uint8_t ret_val = 0, cmd_6bits = 0;
 	ReadWrite rw = CmdInvalid;
+	AckNack ack = Nack;
 	uint8_t ret_val_cmd = 0;
 
 	//Register test function:
 	fx_register_rx_cmd_handler(cmd, &test_command_22a);
 
-	ret_val = fx_parse_rx_cmd(payload, payload_len, &cmd_6bits, &rw);
+	ret_val = fx_parse_rx_cmd(payload, payload_len, &cmd_6bits, &rw, &ack);
 	if(!ret_val)
 	{
-		ret_val_cmd = fx_call_rx_cmd_handler(cmd_6bits, rw, payload, payload_len);
+		ret_val_cmd = fx_call_rx_cmd_handler(cmd_6bits, rw, ack, payload, payload_len);
 		if(ret_val_cmd == TEST_CMD_RETURN)
 		{
 			TEST_PASS(); //As expected, we reached our test function
@@ -234,6 +240,155 @@ void test_command_parse_rx_registered_command(void)
 	}
 }
 
+//Make sure that our Ack/Nack/Packet Number macros work as intended
+void test_command_ack_nack_packet_macros(void)
+{
+	//Ack
+	uint8_t ack = 0x80;	//Ack
+	uint8_t parsed_ack = CMD_GET_ACK(ack);
+	TEST_ASSERT_EQUAL(1, parsed_ack);
+
+	//Nack
+	ack = 0x00;	//Nack
+	parsed_ack = CMD_GET_ACK(ack);
+	TEST_ASSERT_EQUAL(0, parsed_ack);
+
+	//Small packet num and Ack
+	uint8_t msb = 0x80;	//Ack, no packet num msb
+	uint8_t lsb = 25;	//pnum = 25
+	uint16_t pnum = CMD_GET_PACKET_NUM(msb, lsb);
+	TEST_ASSERT_EQUAL(lsb, pnum);
+
+	//Large packet num and Ack
+	msb = 0x80 | 0x09;	//Ack, no packet num msb
+	lsb = 0xD0;	//pnum = 2512 (0x9D0)
+	pnum = CMD_GET_PACKET_NUM(msb, lsb);
+	TEST_ASSERT_EQUAL(2512, pnum);
+
+	//Small packet num and Nack
+	msb = 0x00;	//Nack, no packet num msb
+	lsb = 25;	//pnum = 25
+	pnum = CMD_GET_PACKET_NUM(msb, lsb);
+	TEST_ASSERT_EQUAL(25, pnum);
+
+	//Combine ack and packet number msb, small
+	msb = CMD_ACK_PNUM_MSB(1, 25);
+	lsb = CMD_ACK_PNUM_LSB(25);
+	TEST_ASSERT_EQUAL(0x80, msb);
+	TEST_ASSERT_EQUAL(25, lsb);
+
+	//Combine nack and packet number msb, small
+	msb = CMD_ACK_PNUM_MSB(0, 25);
+	lsb = CMD_ACK_PNUM_LSB(25);
+	TEST_ASSERT_EQUAL(0x0, msb);
+	TEST_ASSERT_EQUAL(25, lsb);
+
+	//Combine ack and packet number msb, large
+	msb = CMD_ACK_PNUM_MSB(1, 12345);
+	lsb = CMD_ACK_PNUM_LSB(12345);
+	TEST_ASSERT_EQUAL(0x80 | 0x30, msb);
+	TEST_ASSERT_EQUAL(0x39, lsb);
+
+	//Combine nack and packet number msb, large
+	msb = CMD_ACK_PNUM_MSB(0, 12345);
+	lsb = CMD_ACK_PNUM_LSB(12345);
+	TEST_ASSERT_EQUAL(0x30, msb);
+	TEST_ASSERT_EQUAL(0x39, lsb);
+}
+
+//Make sure we can encode and decode the ACK bit
+void test_command_encode_decode_ack_nack(void)
+{
+	uint8_t payload_in[20] = "123payload"; //The first 3 chars will be replaced
+	uint16_t payload_in_len = sizeof(payload_in);
+	uint8_t payload_out[20] = {0};
+	uint8_t payload_out_len = 0;
+	uint8_t cmd_6bits_in = 0;
+	uint8_t ret_val = 0, cmd_6bits_out = 0;
+	ReadWrite rw_in = CmdWrite, rw_out = CmdInvalid;
+	AckNack ack_in = Nack, ack_out = Ack;
+
+	//Test #1: send NACK
+	ret_val = fx_create_tx_cmd(cmd_6bits_in, rw_in, ack_in, payload_in, payload_in_len,
+			payload_out, &payload_out_len);
+	ret_val = fx_parse_rx_cmd(payload_out, payload_out_len, &cmd_6bits_out, &rw_out, &ack_out);
+	TEST_ASSERT_EQUAL(0, ret_val);	//0 means it no problem
+	TEST_ASSERT_EQUAL(cmd_6bits_in, cmd_6bits_out);
+	TEST_ASSERT_EQUAL(rw_in, rw_out); //Invalid returns 0
+	TEST_ASSERT_EQUAL(ack_in, ack_out); //Invalid returns 0
+
+	//Test #2: send ACK
+	ack_in = Ack;
+	ret_val = fx_create_tx_cmd(cmd_6bits_in, rw_in, ack_in, payload_in, payload_in_len,
+			payload_out, &payload_out_len);
+	ret_val = fx_parse_rx_cmd(payload_out, payload_out_len, &cmd_6bits_out, &rw_out, &ack_out);
+	TEST_ASSERT_EQUAL(0, ret_val);	//0 means it no problem
+	TEST_ASSERT_EQUAL(cmd_6bits_in, cmd_6bits_out);
+	TEST_ASSERT_EQUAL(rw_in, rw_out); //Invalid returns 0
+	TEST_ASSERT_EQUAL(ack_in, ack_out); //Invalid returns 0
+}
+
+//Is the tx packet count increasing?
+void test_command_track_tx_packet_number(void)
+{
+	uint8_t payload_in[20] = "123payload"; //The first 3 chars will be replaced
+	uint16_t payload_in_len = sizeof(payload_in);
+	uint8_t payload_out[20] = {0};
+	uint8_t payload_out_len = 0;
+	uint8_t cmd_6bits_in = 0;
+	uint8_t ret_val = 0, cmd_6bits_out = 0;
+	ReadWrite rw_in = CmdWrite, rw_out = CmdInvalid;
+	AckNack ack_in = Nack, ack_out = Ack;
+
+	//Test #1: send a new packet
+	uint16_t current_packet_num = get_last_tx_packet_num();
+	ret_val = fx_create_tx_cmd(cmd_6bits_in, rw_in, ack_in, payload_in, payload_in_len,
+			payload_out, &payload_out_len);
+	ret_val = fx_parse_rx_cmd(payload_out, payload_out_len, &cmd_6bits_out, &rw_out, &ack_out);
+	TEST_ASSERT_EQUAL(0, ret_val);	//0 means it no problem
+	TEST_ASSERT_EQUAL(cmd_6bits_in, cmd_6bits_out);
+	TEST_ASSERT_EQUAL(rw_in, rw_out); //Invalid returns 0
+	TEST_ASSERT_EQUAL(ack_in, ack_out); //Invalid returns 0
+	TEST_ASSERT_EQUAL(current_packet_num + 1, get_last_tx_packet_num());	//Did it increment?
+	TEST_ASSERT_EQUAL(current_packet_num + 1, get_last_rx_packet_num());	//Did we receive the same?
+
+	//Test #2: send a bunch (4 new commands, total of 5)
+	ret_val = fx_create_tx_cmd(cmd_6bits_in, rw_in, ack_in, payload_in, payload_in_len,
+				payload_out, &payload_out_len);
+	ret_val = fx_create_tx_cmd(cmd_6bits_in, rw_in, ack_in, payload_in, payload_in_len,
+				payload_out, &payload_out_len);
+	ret_val = fx_create_tx_cmd(cmd_6bits_in, rw_in, ack_in, payload_in, payload_in_len,
+				payload_out, &payload_out_len);
+	ret_val = fx_create_tx_cmd(cmd_6bits_in, rw_in, ack_in, payload_in, payload_in_len,
+				payload_out, &payload_out_len);
+	TEST_ASSERT_EQUAL(current_packet_num + 5, get_last_tx_packet_num());	//Did we keep track?
+}
+
+//Make sure we can encode and decode the packet number
+void test_command_encode_decode_packet_number(void)
+{
+	uint8_t payload_in[20] = "123payload"; //The first 3 chars will be replaced
+	uint16_t payload_in_len = sizeof(payload_in);
+	uint8_t payload_out[20] = {0};
+	uint8_t payload_out_len = 0;
+	uint8_t cmd_6bits_in = 0;
+	uint8_t ret_val = 0, cmd_6bits_out = 0;
+	ReadWrite rw_in = CmdWrite, rw_out = CmdInvalid;
+	AckNack ack_in = Nack, ack_out = Ack;
+
+	//Test #1: send a new packet
+	uint16_t current_packet_num = get_last_tx_packet_num();
+	ret_val = fx_create_tx_cmd(cmd_6bits_in, rw_in, ack_in, payload_in, payload_in_len,
+			payload_out, &payload_out_len);
+	ret_val = fx_parse_rx_cmd(payload_out, payload_out_len, &cmd_6bits_out, &rw_out, &ack_out);
+	TEST_ASSERT_EQUAL(0, ret_val);	//0 means it no problem
+	TEST_ASSERT_EQUAL(cmd_6bits_in, cmd_6bits_out);
+	TEST_ASSERT_EQUAL(rw_in, rw_out); //Invalid returns 0
+	TEST_ASSERT_EQUAL(ack_in, ack_out); //Invalid returns 0
+	TEST_ASSERT_EQUAL(current_packet_num + 1, get_last_tx_packet_num());	//Did it increment?
+	TEST_ASSERT_EQUAL(current_packet_num + 1, get_last_rx_packet_num());	//Did we receive the same?
+}
+
 void test_flexsea_command(void)
 {
 	RUN_TEST(test_command_parse_rx_rw_byte_valid);
@@ -242,6 +397,10 @@ void test_flexsea_command(void)
 	RUN_TEST(test_command_create_tx_basic_bad_cmd_rw);
 	RUN_TEST(test_command_parse_rx_catchall);
 	RUN_TEST(test_command_parse_rx_registered_command);
+	RUN_TEST(test_command_ack_nack_packet_macros);
+	RUN_TEST(test_command_encode_decode_ack_nack);
+	RUN_TEST(test_command_track_tx_packet_number);
+	RUN_TEST(test_command_encode_decode_packet_number);
 
 	fflush(stdout);
 }

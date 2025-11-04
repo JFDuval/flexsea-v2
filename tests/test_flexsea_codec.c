@@ -142,6 +142,47 @@ void test_codec_decode_simple(void)
 			payload_len);
 }
 
+//This tests a manually entered string (ex.: Logic output)
+void test_codec_decode_manual(void)
+{
+	//We start by packing a simple payload
+	uint8_t ret_val = 0;
+	uint8_t message[10] = {237, 3, 43, 75, 120, 238, 238, 170, 0, 0};
+	uint8_t message_len = 8;	//7 good, one extra
+	uint16_t payload_len = 3;
+
+	//We then feed it to a new circular buffer
+	circ_buf_t cb = {.buffer = {0}, .length = 0, .write_index = 0, .read_index =
+			0};
+
+	//Write to circular buffer
+	for(int i = 0; i < message_len; i++)
+	{
+		circ_buf_write_byte(&cb, message[i]);
+	}
+
+	//At this point our packaged payload is in 'cb'. We decode it.
+	uint8_t extracted_encoded_payload[MAX_ENCODED_PAYLOAD_BYTES] = {0};
+	uint8_t extracted_encoded_payload_len = 0;
+	uint8_t extracted_decoded_payload[MAX_ENCODED_PAYLOAD_BYTES] = {0};
+	uint8_t extracted_decoded_payload_len = 0;
+	ret_val = fx_decode(&cb, extracted_encoded_payload,
+			&extracted_encoded_payload_len, extracted_decoded_payload,
+			&extracted_decoded_payload_len);
+	if(ret_val)
+	{
+		TEST_FAIL_MESSAGE("fx_decode() encountered an error");
+	}
+
+	//Compare lengths in & out
+	TEST_ASSERT_EQUAL(payload_len, extracted_decoded_payload_len);
+	TEST_ASSERT_EQUAL(message_len - 1, extracted_encoded_payload_len);
+
+	//Compare strings in & out
+	TEST_ASSERT_EQUAL_UINT8_ARRAY(message, extracted_encoded_payload,
+			message_len - 1);
+}
+
 //Simple payload (no escape, short, etc.) preceded by some garbage in our
 //circular buffer
 void test_codec_decode_with_garbage_before(void)
@@ -549,6 +590,7 @@ void test_flexsea_codec(void)
 
 	//Decoding:
 	RUN_TEST(test_codec_decode_simple);
+	RUN_TEST(test_codec_decode_manual);
 	RUN_TEST(test_codec_decode_with_garbage_before);
 	RUN_TEST(test_codec_decode_with_garbage_before_and_corruption);
 

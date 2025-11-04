@@ -34,6 +34,7 @@
 #include "fx_receive.h"
 #include "fx_transmit.h"
 #include "stm32g4xx_it.h"
+#include "comm.h"
 
 /* USER CODE END Includes */
 
@@ -59,13 +60,6 @@ UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 
-//Temporary buffer for our UART reception
-volatile uint8_t pc_rx_data[10] = {0};
-//We prepare a new circular buffer
-circ_buf_t cb = {.buffer = {0}, .length = 0, .write_index = 0, .read_index =
-		0};
-volatile uint8_t new_bytes = 0;
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -80,19 +74,6 @@ static void MX_TIM2_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
-{
-	if(huart->Instance == USART2)
-	{
-		//Minimalist code. We deal with one byte at a time (let's hope
-		//we service this ISR quickly!) and we feed it to the circular
-		//buffer.
-		circ_buf_write_byte(&cb, pc_rx_data[0]);
-		HAL_UART_Receive_IT(&huart2, &pc_rx_data, 1);
-		new_bytes++;
-	}
-}
-
 /* USER CODE END 0 */
 
 /**
@@ -103,8 +84,6 @@ int main(void)
 {
   /* USER CODE BEGIN 1 */
 
-  //Variables used by the FlexSEA stack
-  uint8_t send_reply = 0, cmd_reply = 0;
   uint16_t led_counter = 0;
 
   /* USER CODE END 1 */
@@ -135,9 +114,10 @@ int main(void)
 
   //Init stack & register test function:
   fx_rx_cmd_init();
+  comm_init();
 
   //Start UART reception
-  HAL_UART_Receive_IT(&huart2, &pc_rx_data, 1);
+  usb_serial_rx();
 
   /* USER CODE END 2 */
 
@@ -166,10 +146,10 @@ int main(void)
 	  }
 
       //Receive commands
-      fx_receive(&send_reply, &cmd_reply);
+      fx_receive(&comm_port[0]);
 
       //Send commands
-      fx_transmit(send_reply, cmd_reply);
+      fx_transmit(&comm_port[0]);
 
   }
   /* USER CODE END 3 */

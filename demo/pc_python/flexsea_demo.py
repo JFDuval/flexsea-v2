@@ -5,13 +5,25 @@ import time
 import sys
 
 # Add the FlexSEA path to this project
-sys.path.append('../../')
+sys.path.append('../../flexsea_python')
+import flexsea_python
 from flexsea_python import FlexSEAPython
 from flexsea_tools import *
 # Note: with PyCharm you must add this folder and mark is as a Sources Folder to avoid an Unresolved Reference issue
 
-dll_filename = '../../projects/eclipse_pc/DynamicLib/libflexsea-v2.dll'
-com_port = 'COM20'
+# Platform specific shared library and serial port
+pf = FlexSEAPython.identify_platform()
+if pf == 'WIN':
+    dll_filename = '../../projects/eclipse_pc/DynamicLib/libflexsea-v2.dll'
+    com_port = 'COM4'  # Default, can be over-ridden by CLI argument
+elif pf == 'MAC':
+    dll_filename = '../../projects/eclipse_pc/DynamicLib/libflexsea-v2.dylib'
+    com_port = '/dev/tty.usbserial-ABCD'  # Default, can be over-ridden by CLI argument
+else:
+    # ToDo this is likely too generic
+    dll_filename = '../..//projects/eclipse_pc/DynamicLib/libflexsea-v2.so'
+    com_port = '/dev/ttyAMA0'  # Default, can be over-ridden by CLI argument
+
 serial_port = 0  # Holds the serial port object
 new_tx_delay_ms = 40
 
@@ -53,21 +65,23 @@ class FxDemoStruct(Structure):
 
 # Custom command handler used by the serial demo code
 # Note: this has to match the embedded code for the serial demo to work!
-def fx_rx_cmd_handler_1(cmd_6bits, rw, buf):
-    print(f'Handler #1 received: cmd={cmd_6bits}, rw={rw}, buf={buf}.')
+def fx_rx_cmd_handler_2(cmd_6bits, rw, ack, buf):
+    print(f'Handler #2 received: cmd={cmd_6bits}, rw={rw}, buf={buf}.')
     print(f'This confirms the reception of our command.')
 
     # This demo decodes the received data two ways. We start with the manual version.
 
-    var0_int8 = byte_to_int8(buf[1])
-    var1_uint32 = bytes_to_uint32(buf[2:6])
-    var2_uint8 = byte_to_uint8(buf[6])
-    var3_int32 = bytes_to_int32(buf[7:11])
-    var4_int8 = byte_to_int8(buf[11])
-    var5_uint16 = bytes_to_uint16(buf[12:14])
-    var6_uint8 = byte_to_uint8(buf[14])
-    var7_int16 = bytes_to_int16(buf[15:17])
-    var8_float = bytes_to_float(buf[17:21])
+    # We start at 'CMD_OVERHEAD'
+    b0 = flexsea_python.CMD_OVERHEAD
+    var0_int8 = byte_to_int8(buf[b0])
+    var1_uint32 = bytes_to_uint32(buf[b0+1:b0+5])
+    var2_uint8 = byte_to_uint8(buf[b0+5])
+    var3_int32 = bytes_to_int32(buf[b0+6:b0+10])
+    var4_int8 = byte_to_int8(buf[b0+10])
+    var5_uint16 = bytes_to_uint16(buf[b0+11:b0+13])
+    var6_uint8 = byte_to_uint8(buf[b0+13])
+    var7_int16 = bytes_to_int16(buf[b0+14:b0+16])
+    var8_float = bytes_to_float(buf[b0+16:b0+20])
     print(f'var0_int8 = {var0_int8}, var1_uint32 = {var1_uint32}, var2_uint8 = {var2_uint8}, var3_int32 = {var3_int32}'
           f', var4_int8 = {var4_int8}, var5_uint16 = {var5_uint16}, var6_uint8 = {var6_uint8}, var7_int16 = '
           f'{var7_int16}, var8_float = {var8_float}')
@@ -79,7 +93,7 @@ def fx_rx_cmd_handler_1(cmd_6bits, rw, buf):
         print('\nAll decoded values match what our demo code is sending! Successful PC Python <> Embedded C interface, '
               'Manual decoding mode (variable by variable).')
     else:
-        print('\nSome of the decoded values do not match what our demo code is sending! There is a problem between'
+        print('\nSome of the decoded values do not match what our demo code is sending! There is a problem between '
               'PC Python <> Embedded C in Manual mode...')
 
     # Second option: receive data as a ctype structure, and compare it.
@@ -88,7 +102,7 @@ def fx_rx_cmd_handler_1(cmd_6bits, rw, buf):
     tx_data = FxDemoStruct(var0_int8=-1, var1_uint32=123456, var2_uint8=150, var3_int32=-1234567, var4_int8=-125,
                            var5_uint16=4567, var6_uint8=123, var7_int16=-4567, var8_float=12.37)
     rx_data = FxDemoStruct()
-    ctypes.memmove(pointer(rx_data), buf[1:], sizeof(rx_data))
+    ctypes.memmove(pointer(rx_data), buf[flexsea_python.CMD_OVERHEAD:], sizeof(rx_data))
     if identical_ctype_structs(tx_data, rx_data):
         print('All decoded values match what our demo code is sending! Successful PC Python <> Embedded C interface, '
               'Structure decoding mode.\n')
@@ -136,10 +150,11 @@ def flexsea_demo_local_loopback():
     fx = FlexSEAPython(dll_filename)
 
     # Prepare for reception:
-    fx.register_cmd_handler(1, fx_rx_cmd_handler_1)
+    fx.register_cmd_handler(flexsea_python.CMD_DEMO, fx_rx_cmd_handler_2)
 
     # Generate bytestream from text string (payload):
-    ret_val, bytestream, bytestream_len = fx.create_bytestream_from_cmd(cmd=1, rw="CmdReadWrite",
+    ret_val, bytestream, bytestream_len = fx.create_bytestream_from_cmd(cmd=flexsea_python.CMD_DEMO, rw="CmdReadWrite",
+                                                                        ack="Nack",
                                                                         payload_string=gen_test_code_payload('manual'))
 
     if not ret_val:
@@ -154,7 +169,7 @@ def flexsea_demo_local_loopback():
     fx.write_to_circular_buffer(bytestream, bytestream_len)
 
     # At this point our encoded command is in the circular buffer. Can we decode it?
-    ret_val, cmd_6bits_out, rw_out, buf, buf_len = fx.get_cmd_handler_from_bytestream()
+    ret_val, cmd_6bits_out, rw_out, ack_out, buf, buf_len = fx.get_cmd_handler_from_bytestream()
     if not ret_val:
         print("We successfully got a command handler from a bytestream.")
         print(f'Command handler: {cmd_6bits_out}')
@@ -164,7 +179,7 @@ def flexsea_demo_local_loopback():
         exit()
 
     # Call handler:
-    fx.call_cmd_handler(cmd_6bits_out, rw_out, buf)
+    fx.call_cmd_handler(cmd_6bits_out, rw_out, ack_out, buf)
 
 
 # Serial demo: we create and send commands to a serial peripheral
@@ -185,10 +200,11 @@ def flexsea_demo_serial():
         exit()
 
     # Prepare for reception:
-    fx.register_cmd_handler(1, fx_rx_cmd_handler_1)
+    fx.register_cmd_handler(flexsea_python.CMD_DEMO, fx_rx_cmd_handler_2)
 
     # Generate bytestream from text string (payload):
-    ret_val, bytestream, bytestream_len = fx.create_bytestream_from_cmd(cmd=1, rw="CmdReadWrite",
+    ret_val, bytestream, bytestream_len = fx.create_bytestream_from_cmd(cmd=flexsea_python.CMD_DEMO, rw="CmdReadWrite",
+                                                                        ack="Nack",
                                                                         payload_string=gen_test_code_payload('struct'))
 
     if not ret_val:
@@ -234,13 +250,13 @@ def flexsea_demo_serial():
                         exit()
 
             # At this point received commands are in the circular buffer. Can we decode them?
-            ret_val, cmd_6bits_out, rw_out, buf, buf_len = fx.get_cmd_handler_from_bytestream()
+            ret_val, cmd_6bits_out, rw_out, ack_out, buf, buf_len = fx.get_cmd_handler_from_bytestream()
             if not ret_val:
                 print("We successfully got a command handler from a bytestream.")
                 print(f'Command handler: {cmd_6bits_out}')
                 print(f'R/W type: {rw_out}')
                 # Call handler:
-                fx.call_cmd_handler(cmd_6bits_out, rw_out, buf)
+                fx.call_cmd_handler(cmd_6bits_out, rw_out, ack_out, buf)
                 send_new_tx_cmd = True
                 send_new_tx_cmd_timestamp = round(time.time() * 1000)
 
@@ -248,6 +264,8 @@ def flexsea_demo_serial():
 
     except KeyboardInterrupt:
         print('Interrupted! End or demo code.')
+        print(f'Serial bytes in waiting = {serial_port.in_waiting}, out waiting = {serial_port.out_waiting}.')
+        serial_port.close()
 
 
 if __name__ == "__main__":

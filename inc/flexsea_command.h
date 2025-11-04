@@ -50,6 +50,11 @@ typedef enum {
 	CmdReadWrite	//11b: Read/Write
 } ReadWrite;
 
+typedef enum {
+	Nack,			//0b: Not Acknowledge (NACK)
+	Ack				//1b: Acknowledge (ACK)
+} AckNack;
+
 //Macros to deal with the R/W bits
 #define CMD_SET_R(x)		((x << 2) | CmdRead)
 #define CMD_SET_W(x)		((x << 2) | CmdWrite)
@@ -59,12 +64,22 @@ typedef enum {
 #define CMD_IS_VALID(x)		(x & 3) ? 1 : 0
 
 #define CMD_CODE_INDEX		0
-#define CMD_OVERHEAD		1	//Only one byte is added at this point
+#define CMD_ACK_INDEX		1
+#define CMD_OVERHEAD		3	//One byte for RW+CMD, 2 bytes for ACK+PACKET_NUM
 
 //To detect when a command gets trapped by our catch-all we use a special
 //return code. Same for our test command.
 #define CATCHALL_RETURN		255
 #define TEST_CMD_RETURN		127
+
+//Max TX packet number
+#define MAX_TX_PACKET_NUM 	32767
+
+//Macros to deal with the Ack bit, and packet number
+#define CMD_GET_ACK(x)					(x & 0x80) >> 7
+#define CMD_GET_PACKET_NUM(msb, lsb)	(((msb & 0x7F) << 8) | lsb)
+#define CMD_ACK_PNUM_MSB(ack, pnum)		(((ack & 0b1) << 7) | ((pnum & 0x7F00) >> 8))
+#define CMD_ACK_PNUM_LSB(pnum)			(pnum & 0x00FF)
 
 //Who Am I?
 typedef struct WhoAmI{
@@ -78,14 +93,17 @@ typedef struct WhoAmI{
 //****************************************************************************
 
 uint8_t fx_rx_cmd_init(void);
-uint8_t fx_create_tx_cmd(uint8_t cmd_6bits, ReadWrite rw, uint8_t *buf_in,
-		uint8_t buf_in_len, uint8_t *buf_out, uint8_t *buf_out_len);
+uint8_t fx_create_tx_cmd(uint8_t cmd_6bits, ReadWrite rw, AckNack ack,
+		uint8_t *buf_in, uint8_t buf_in_len, uint8_t *buf_out,
+		uint8_t *buf_out_len);
 uint8_t fx_parse_rx_cmd(uint8_t *decoded, uint8_t decoded_len,
-		uint8_t *cmd_6bits, ReadWrite *rw);
-uint8_t fx_call_rx_cmd_handler(uint8_t cmd_6bits, ReadWrite rw, uint8_t *buf,
-		uint8_t len);
+		uint8_t *cmd_6bits, ReadWrite *rw, AckNack *ack);
+uint8_t fx_call_rx_cmd_handler(uint8_t cmd_6bits, ReadWrite rw, AckNack ack,
+		uint8_t *buf, uint8_t len);
 uint8_t fx_register_rx_cmd_handler(uint8_t cmd,
-		uint8_t (*fct_prt)(uint8_t, ReadWrite, uint8_t*, uint8_t));
+		uint8_t (*fct_prt)(uint8_t, ReadWrite, AckNack, uint8_t*, uint8_t));
+uint16_t get_last_tx_packet_num(void);
+uint16_t get_last_rx_packet_num(void);
 
 //****************************************************************************
 // Structure(s):

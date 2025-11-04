@@ -31,6 +31,44 @@ To test the stack on your PC use a project from the 'demo' folder. That folder a
   - **pc_python/:** Demo/test code written in Python, with PyCharm project. You need to compile a DLL first. It can interact with the STM32 demo project.
   - **stm32_c/:** STM32 demo code. It's the default STM test project with a very minimalist stack integration. It can interact with the Python demo project.
 
+## Packet format & data exchange
+
+### Packet format
+
+#### Encoded string ####
+
+`[HEADER][# of BYTES][PAYLOAD (DATA)...][CHECKSUM][FOOTER]`
+
+This is what's exchanged on the bus.
+
+- Number of bytes includes the ESCAPE bytes
+- Checksum is done on the payload (data + ESCAPEs) and on the BYTES byte.
+- Payload/data: string of bytes. It can be a command (see flexsea_command) or raw data.
+
+#### Packaged payload ####
+
+`[CMD + R/W][ACK/NAK + PACKET NUM][DATA...]`
+
+This is what the user sees before encoding (TX), and after decoding (RX).
+
+- CMD is a 6-bit command code
+- R/W is a 2-bit code to determine if this command is a Read, Write, or Read/Write
+- CMD and R/W share a byte. CMD has the 6 MSBs, and RW has the 2 LSBs.
+- ACK/NACK is the MSB. Set to request an ACK, reset for open-ended comm.
+- PACKET NUM is 15 bits. 7 LSB of the ACK byte + another full byte
+- Data is a byte array
+
+### Data exchange
+
+By convention, the PC starts the exchange, and the microcontroller (uC) responds. Two variables determine the data exchange. ReadWrite determines if this is a write, a read, or a write and read. The Ack field is used to request an Ack when writing.
+
+| ReadWrite / AckNack  | Nack | Ack | Comments |
+| ------------- | ------------- | ------------- | ------------- |
+| **CmdInvalid**  | PC: no TX. uC: no RX. | PC: no TX. uC: no RX. | Invalid commands are not sent. |
+| **CmdRead**  | PC: TX (no payload). uC: Rx => TX (payload). | PC: TX (no payload). uC: Rx => TX (payload + Ack). | PC reads from uC (ex.: read status or sensor value). | 
+| **CmdWrite**  | PC: TX (payload). uC: Rx. | PC: TX (payload). uC: Rx => Tx (Ack). | PC writes to uC (ex.: set motor position). |
+| **CmdReadWrite**  | PC: TX (payload). uC: Rx => TX (payload). | PC: TX (payload). uC: Rx => TX (payload + Ack). | PC writes to uC, and reads data back. |
+
 ## Setup & Integration
 
 ### List of software development tools

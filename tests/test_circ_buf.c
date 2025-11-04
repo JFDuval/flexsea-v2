@@ -27,15 +27,21 @@ void test_circ_buf_w(void)
 			TEST_FAIL_MESSAGE("CB indicates it's full while it shouldn't.");
 			break;
 		}
+
+		//Read index should stay at 0
+		TEST_ASSERT_EQUAL(0, cb.read_index);
+		//Write index should track length, except at CB FULL (back to 0)
+		if(i < CIRC_BUF_SIZE-1)
+		{
+			TEST_ASSERT_EQUAL(cb.length, cb.write_index);
+		}
 	}
 
-	//We add one more value. It should overwrite the first byte.
+	//We add one more value. It should return an error.
 	w_byte = 123;
 	ret_val = circ_buf_write_byte(&cb, w_byte);
 	//circ_buf_write() should always return 0 if we are not overwriting => expecting 1
 	TEST_ASSERT_EQUAL(1, ret_val);
-	//Did that value get written?
-	TEST_ASSERT_EQUAL(cb.buffer[0], w_byte);
 }
 
 //Test writing and reading a full buffer
@@ -510,6 +516,106 @@ void test_circ_buf_checksum(void)
 	TEST_ASSERT_EQUAL(1, ret_val);
 }
 
+//Test massive overwriting
+void test_circ_buf_massive_w(void)
+{
+	//Initialize new cir_buf
+	circ_buf_t cb = {.buffer = {0}, .length = 0, .write_index = 0, .read_index =
+			0};
+
+	//Write sequential values to buffer, filling it
+	int i = 0;
+	uint8_t w_byte = 0, ret_val = 0;
+	for(i = 0; i < 5*CIRC_BUF_SIZE; i++)
+	{
+		//Write to circular buffer
+		ret_val = circ_buf_write_byte(&cb, w_byte);
+		w_byte++;
+
+		//circ_buf_write() should always return 0 if we are not overwriting
+		if(ret_val & (i < CIRC_BUF_SIZE))
+		{
+			TEST_FAIL_MESSAGE("CB indicates it's full while it shouldn't.");
+			break;
+		}
+
+		//Read index should stay at 0
+		TEST_ASSERT_EQUAL(0, cb.read_index);
+	}
+
+	//Read index should have stayed at 0
+	TEST_ASSERT_EQUAL(0, cb.read_index);
+	//Length should be at the max
+	TEST_ASSERT_EQUAL(CIRC_BUF_SIZE, cb.length);
+}
+
+//Read and write
+void test_circ_buf_successive_rw(void)
+{
+	//Initialize new cir_buf
+	circ_buf_t cb = {.buffer = {0}, .length = 0, .write_index = 0, .read_index =
+			0};
+
+	//Write sequential values to buffer, filling it
+	int i = 0;
+	uint8_t w_byte = 0, ret_val = 0;
+	for(i = 0; i < CIRC_BUF_SIZE; i++)
+	{
+		//Write to circular buffer
+		ret_val = circ_buf_write_byte(&cb, w_byte);
+		w_byte++;
+
+		//circ_buf_write() should always return 0 if we are not overwriting
+		if(ret_val & (i < CIRC_BUF_SIZE))
+		{
+			TEST_FAIL_MESSAGE("CB indicates it's full while it shouldn't.");
+			break;
+		}
+
+		//Read index should stay at 0
+		TEST_ASSERT_EQUAL(0, cb.read_index);
+	}
+
+	//Try reading everything
+	uint8_t r_byte = 0;
+	while(cb.length > 0)
+	{
+		//Read from circular buffer
+		ret_val = circ_buf_read_byte(&cb, &r_byte);
+	}
+
+	//Second write, this time we overwrite
+	w_byte = 0;
+	ret_val = 0;
+	for(i = 0; i < CIRC_BUF_SIZE+10; i++)
+	{
+		//Write to circular buffer
+		ret_val = circ_buf_write_byte(&cb, w_byte);
+		w_byte++;
+
+		//circ_buf_write() should always return 0 if we are not overwriting
+		if(ret_val & (i < CIRC_BUF_SIZE))
+		{
+			TEST_FAIL_MESSAGE("CB indicates it's full while it shouldn't.");
+			break;
+		}
+
+		//Read index should stay at 0
+		TEST_ASSERT_EQUAL(0, cb.read_index);
+	}
+
+	//Try reading everything
+	r_byte = 0;
+	while(cb.length > 0)
+	{
+		//Read from circular buffer
+		ret_val = circ_buf_read_byte(&cb, &r_byte);
+	}
+
+	//Length should be at 0
+	TEST_ASSERT_EQUAL(0, cb.length);
+}
+
 void test_circ_buf(void)
 {
 	RUN_TEST(test_circ_buf_w);
@@ -519,6 +625,8 @@ void test_circ_buf(void)
 	RUN_TEST(test_circ_buf_search_after_write);
 	RUN_TEST(test_circ_buf_search_after_read);
 	RUN_TEST(test_circ_buf_checksum);
+	RUN_TEST(test_circ_buf_massive_w);
+	RUN_TEST(test_circ_buf_successive_rw);
 
 	fflush(stdout);
 }
