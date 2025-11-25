@@ -7,7 +7,7 @@ import sys
 # Add the FlexSEA path to this project
 sys.path.append('../../flexsea_python')
 import flexsea_python
-from flexsea_python import FlexSEAPython
+from flexsea_python import FlexSEAPython, CommHardware
 from flexsea_tools import *
 # Note: with PyCharm you must add this folder and mark is as a Sources Folder to avoid an Unresolved Reference issue
 
@@ -15,7 +15,7 @@ from flexsea_tools import *
 pf = FlexSEAPython.identify_platform()
 if pf == 'WIN':
     dll_filename = '../../projects/eclipse_pc/DynamicLib/libflexsea-v2.dll'
-    com_port = 'COM4'  # Default, can be over-ridden by CLI argument
+    com_port = 'COM7'  # Default, can be over-ridden by CLI argument
 elif pf == 'MAC':
     dll_filename = '../../projects/eclipse_pc/DynamicLib/libflexsea-v2.dylib'
     com_port = '/dev/tty.usbserial-ABCD'  # Default, can be over-ridden by CLI argument
@@ -24,28 +24,7 @@ else:
     dll_filename = '../..//projects/eclipse_pc/DynamicLib/libflexsea-v2.so'
     com_port = '/dev/ttyAMA0'  # Default, can be over-ridden by CLI argument
 
-serial_port = 0  # Holds the serial port object
 new_tx_delay_ms = 40
-
-
-# Open serial port
-def serial_open(com_port_name):
-    global serial_port
-    serial_port = serial.Serial(com_port_name, baudrate=115200)
-    if serial_port:
-        print(f'Successfully opened {com_port_name}.')
-        return 0
-    else:
-        print(f'Could not open {com_port_name}!')
-        return 1
-
-
-# Write to a previously opened serial port
-def serial_write(bytestream):
-    if serial_port:
-        serial_port.write(bytestream)
-    else:
-        print("No serial port object, can't write!")
 
 
 # C-style data structure
@@ -191,12 +170,10 @@ def flexsea_demo_serial():
     print('Serial TX - Connect a Nucleo first!\n')
 
     # Initialize FlexSEA comm
-    fx = FlexSEAPython(dll_filename)
+    fx = FlexSEAPython(dll_filename, com_port_name=com_port)
 
-    # Configure serial port
-    ret_val = serial_open(com_port)
-    if ret_val:
-        print(f"Problem opening the {com_port} serial port - quit.")
+    if not fx.serial.valid_port():
+        print("We did not successfully open a serial port. Quit.")
         exit()
 
     # Prepare for reception:
@@ -213,11 +190,11 @@ def flexsea_demo_serial():
         print("We did not successfully create a bytestream. Quit.")
         exit()
 
-    # Flush any old RX bytes
-    serial_port.reset_input_buffer()
+    # Flush any old bytes
+    fx.serial.reset_buffers()
 
     # Send bytestream to serial port
-    serial_write(bytestream)
+    fx.serial.write(bytestream, bytestream_len)
     send_new_tx_cmd = False
     send_new_tx_cmd_timestamp = round(time.time() * 1000)
 
@@ -229,21 +206,21 @@ def flexsea_demo_serial():
             current_time = round(time.time() * 1000)
             if send_new_tx_cmd and current_time > send_new_tx_cmd_timestamp + new_tx_delay_ms:
                 # Send bytestream to serial port
-                serial_write(bytestream)
+                fx.serial.write(bytestream, bytestream_len)
                 send_new_tx_cmd = False
 
             # If we got out of sync we kick it off here
             if current_time > send_new_tx_cmd_timestamp + 3 * new_tx_delay_ms:
                 print('We got out of sync... figure out why.')
                 # Send bytestream to serial port
-                serial_write(bytestream)
+                fx.serial.write(bytestream, bytestream_len)
 
             # Feed any received bytes into the circular buffer
-            bytes_to_read = serial_port.in_waiting
+            bytes_to_read = fx.serial.bytes_available()
             if bytes_to_read > 0:
                 print(f'Bytes to read: {bytes_to_read}.')
                 for i in range(bytes_to_read):
-                    new_rx_byte = serial_port.read(1)
+                    new_rx_byte = fx.serial.read_byte()
                     ret_val = fx.write_to_circular_buffer(new_rx_byte[0], 1)
                     if ret_val:
                         print("circ_buf_write_byte() problem!")
@@ -264,8 +241,8 @@ def flexsea_demo_serial():
 
     except KeyboardInterrupt:
         print('Interrupted! End or demo code.')
-        print(f'Serial bytes in waiting = {serial_port.in_waiting}, out waiting = {serial_port.out_waiting}.')
-        serial_port.close()
+        print(f'Serial bytes in waiting = {fx.serial.bytes_available()}')    # ToDo, out waiting = {serial_port.out_waiting}.')
+        fx.serial.close()
 
 
 if __name__ == "__main__":

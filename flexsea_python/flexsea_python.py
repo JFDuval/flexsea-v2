@@ -68,6 +68,14 @@ class FlexSEASerial:
         else:
             return 1
 
+    def close(self):
+        """
+        Close serial port
+        :return: 0
+        """
+        self.serial_port.close()
+        return 0
+    
     def valid_port(self):
         if self.serial_port:
             return 1
