@@ -323,6 +323,15 @@ class FlexSEAPython:
         return send_reply, cmd_reply, new_data
 
     def rw_one_packet(self, bytestream, bytestream_len, start_time, callback=None, comm_wait=100):
+        """
+        Write one packet and (hopefully) get a reply
+        :param bytestream: data to write
+        :param bytestream_len: length of data to write
+        :param start_time: session start time, used to timestamp replies
+        :param callback: optional callback function to deal with reply
+        :param comm_wait: how long do we wait for a reply? In ms.
+        :return: N/A
+        """
         # Send bytestream to serial port
         self.serial.write(bytestream, bytestream_len)
         self.grab_new_bytes()  # Grab what could be already there (ex.: transceiver switching noise)
@@ -351,6 +360,16 @@ class FlexSEAPython:
         except KeyboardInterrupt:
             print('Interrupted! End of rw_one_flexsea_packet routine.')
             exit()
+
+    def w_one_packet(self, bytestream, bytestream_len):
+        """
+        Write one packet, and return.
+        :param bytestream: data to write
+        :param bytestream_len: length of data to write
+        :return: N/A
+        """
+        # Send bytestream to serial port
+        self.serial.write(bytestream, bytestream_len)
 
     def cleanup(self):
         self.fx.fx_cleanup(byref(self.cb))
