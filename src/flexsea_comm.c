@@ -50,52 +50,26 @@ extern "C" {
 //We write to the Circular Buffer here, when new data has been received.
 void fx_comm_process_ping_pong_buffers(CommPort *cp)
 {
-	if(cp->use_ping_pong)
+	if(cp->use_dbuf)
 	{
-		//We read from the buffer that's not selected for a Write
-		if(cp->dbuf_selected == 1)
+		//Read from the non-selected buffer
+		if(cp->dbuf_len[!cp->dbuf_selected] > 0 && !cp->dbuf_lock[!cp->dbuf_selected])
 		{
-			//Pong is lined up for the next write => read Ping
-			if(cp->dbuf_ping_len > 0 && !cp->dbuf_lock_ping)
+			for(int i = 0; i < cp->dbuf_len[!cp->dbuf_selected]; i++)
 			{
-				for(int i = 0; i < cp->dbuf_ping_len; i++)
-				{
-					circ_buf_write_byte(cp->cb, cp->dbuf_ping[i]);
-				}
-				cp->dbuf_ping_len = 0;
+				circ_buf_write_byte(cp->cb, cp->dbuf[!cp->dbuf_selected][i]);
 			}
-
-			//If we are reading too slow, pong might also be full...
-			if(cp->dbuf_pong_len > 0 && !cp->dbuf_lock_pong)
-			{
-				for(int i = 0; i < cp->dbuf_pong_len; i++)
-				{
-					circ_buf_write_byte(cp->cb, cp->dbuf_pong[i]);
-				}
-				cp->dbuf_pong_len = 0;
-			}
+			cp->dbuf_len[!cp->dbuf_selected] = 0;
 		}
-		else
-		{
-			//Ping is lined up for the next write => read Pong
-			if(cp->dbuf_pong_len > 0 && !cp->dbuf_lock_pong)
-			{
-				for(int i = 0; i < cp->dbuf_pong_len; i++)
-				{
-					circ_buf_write_byte(cp->cb, cp->dbuf_pong[i]);
-				}
-				cp->dbuf_pong_len = 0;
-			}
 
-			//If we are reading too slow, ping might also be full...
-			if(cp->dbuf_ping_len > 0 && !cp->dbuf_lock_ping)
+		//If we are reading too slow, pong might also be full...
+		if(cp->dbuf_len[cp->dbuf_selected] > 0 && !cp->dbuf_lock[cp->dbuf_selected])
+		{
+			for(int i = 0; i < cp->dbuf_len[cp->dbuf_selected]; i++)
 			{
-				for(int i = 0; i < cp->dbuf_ping_len; i++)
-				{
-					circ_buf_write_byte(cp->cb, cp->dbuf_ping[i]);
-				}
-				cp->dbuf_ping_len = 0;
+				circ_buf_write_byte(cp->cb, cp->dbuf[cp->dbuf_selected][i]);
 			}
+			cp->dbuf_len[cp->dbuf_selected] = 0;
 		}
 	}
 }

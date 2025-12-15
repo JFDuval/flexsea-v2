@@ -41,13 +41,13 @@ void comm_init(void)
 	comm_port[CP_USB].reply_cmd = 0;
 	comm_port[CP_USB].cb = &cb;
 	comm_port[CP_USB].tx_fct_prt = &usb_serial_tx_string;
-	comm_port[CP_USB].use_ping_pong = 0;
-	memset(comm_port[CP_USB].dbuf_ping, 0x00, DBUF_MAX_LEN);
-	memset(comm_port[CP_USB].dbuf_pong, 0x00, DBUF_MAX_LEN);
-	comm_port[CP_USB].dbuf_lock_ping = 0;
-	comm_port[CP_USB].dbuf_lock_pong = 0;
-	comm_port[CP_USB].dbuf_ping_len = 0;
-	comm_port[CP_USB].dbuf_pong_len = 0;
+	comm_port[CP_USB].use_dbuf = 0;
+	memset(comm_port[CP_USB].dbuf[0], 0x00, DBUF_MAX_LEN);
+	memset(comm_port[CP_USB].dbuf[1], 0x00, DBUF_MAX_LEN);
+	comm_port[CP_USB].dbuf_lock[0] = 0;
+	comm_port[CP_USB].dbuf_lock[1] = 0;
+	comm_port[CP_USB].dbuf_len[0] = 0;
+	comm_port[CP_USB].dbuf_len[1] = 0;
 	comm_port[CP_USB].dbuf_selected = 0;
 }
 
