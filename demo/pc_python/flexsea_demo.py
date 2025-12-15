@@ -15,7 +15,7 @@ from flexsea_tools import *
 pf = FlexSEAPython.identify_platform()
 if pf == 'WIN':
     dll_filename = '../../projects/eclipse_pc/DynamicLib/libflexsea-v2.dll'
-    com_port = 'COM7'  # Default, can be over-ridden by CLI argument
+    com_port = 'COM6'  # Default, can be over-ridden by CLI argument
 elif pf == 'MAC':
     dll_filename = '../../projects/eclipse_pc/DynamicLib/libflexsea-v2.dylib'
     com_port = '/dev/tty.usbserial-ABCD'  # Default, can be over-ridden by CLI argument

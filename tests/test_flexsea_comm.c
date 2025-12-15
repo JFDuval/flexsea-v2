@@ -16,25 +16,12 @@ CommPort comm_port;
 //This emulates USB reception. Use this to test the ping pong buffer reception.
 void Comm_RxHandler(uint8_t* Buf, uint32_t Len)
 {
-	//Basic lock & double buffer
-	if(comm_port.dbuf_selected == 0)
-	{
-		//Write to the Ping buffer
-		comm_port.dbuf_lock_ping = 1;
-		comm_port.dbuf_ping_len = Len;
-		memcpy(comm_port.dbuf_ping, Buf, Len);
-		comm_port.dbuf_lock_ping = 0;
-		comm_port.dbuf_selected = 1;
-	}
-	else
-	{
-		//Write to the Pong buffer
-		comm_port.dbuf_lock_pong = 1;
-		comm_port.dbuf_pong_len = Len;
-		memcpy(comm_port.dbuf_pong, Buf, Len);
-		comm_port.dbuf_lock_pong = 0;
-		comm_port.dbuf_selected = 0;
-	}
+	//Access lock & ping-pong double buffer
+	comm_port.dbuf_lock[comm_port.dbuf_selected] = 1;
+	comm_port.dbuf_len[comm_port.dbuf_selected] = Len;
+	memcpy(comm_port.dbuf[comm_port.dbuf_selected], Buf, Len);
+	comm_port.dbuf_lock[comm_port.dbuf_selected] = 0;
+	comm_port.dbuf_selected = !comm_port.dbuf_selected;
 }
 
 //This emulates basic serial reception. Use this to test reception without ping pong buffers.
@@ -52,13 +39,13 @@ void comm_port_init(CommPort *cp)
 	cp->reply_cmd = 0;
 	cp->cb = &cb_test;
 	//cp->tx_fct_prt = (void);
-	cp->use_ping_pong = 1;	//Enable ping pong buffers
-	memset(cp->dbuf_ping, 0x00, DBUF_MAX_LEN);
-	memset(cp->dbuf_pong, 0x00, DBUF_MAX_LEN);
-	cp->dbuf_lock_ping = 0;
-	cp->dbuf_lock_pong = 0;
-	cp->dbuf_ping_len = 0;
-	cp->dbuf_pong_len = 0;
+	cp->use_dbuf = 1;	//Enable ping pong buffers
+	memset(cp->dbuf[0], 0x00, DBUF_MAX_LEN);
+	memset(cp->dbuf[1], 0x00, DBUF_MAX_LEN);
+	cp->dbuf_lock[0] = 0;
+	cp->dbuf_lock[1] = 0;
+	cp->dbuf_len[0] = 0;
+	cp->dbuf_len[1] = 0;
 	cp->dbuf_selected = 0;
 }
 
@@ -333,7 +320,7 @@ void test_comm_flexsea_receive_full_packet_byte_by_byte_ping_pong(void)
 {
 	circ_buf_init(&cb_test);
 	comm_port_init(&comm_port);
-	comm_port.use_ping_pong = 1;
+	comm_port.use_dbuf = 1;
 
 	//We create a payload
 	uint8_t text_payload[55] = "This is a test: can we receive data using fx_receive? ";	//54 bytes
@@ -384,7 +371,7 @@ void test_comm_flexsea_receive_full_packet_byte_by_byte_no_ping_pong(void)
 {
 	circ_buf_init(&cb_test);
 	comm_port_init(&comm_port);
-	comm_port.use_ping_pong = 0;
+	comm_port.use_dbuf = 0;
 
 	//We create a payload
 	uint8_t text_payload[55] = "This is a test: can we receive data using fx_receive? ";	//54 bytes
